@@ -1,0 +1,280 @@
+type: custom:button-card
+entity: sun.sun
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: none
+styles:
+  card:
+    - padding: "0"
+    - background: transparent
+    - border-radius: 26px
+    - box-shadow: none
+    - overflow: hidden
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    // ═══════════════════════════════════════════════════════════
+    // KARTA FAZY KSIĘŻYCA
+    // Astronomicznie poprawna — synodyczny 29.53 dni
+    // Znany nów: 6 stycznia 2000, 18:14 UTC
+    // ═══════════════════════════════════════════════════════════
+
+    const SYNODIC  = 29.53058867;
+    const KNOWN_NEW = new Date('2000-01-06T18:14:00Z').getTime();
+
+    // ── Oblicz fazę (0–1) ──────────────────────────────────────
+    const now       = new Date();
+    const elapsed   = (now.getTime() - KNOWN_NEW) / 86400000;
+    const phase     = ((elapsed % SYNODIC) + SYNODIC) % SYNODIC / SYNODIC;
+
+    // ── Informacje o fazie ─────────────────────────────────────
+    const illum     = Math.round((1 - Math.cos(phase * 2 * Math.PI)) / 2 * 100);
+    const age       = (phase * SYNODIC).toFixed(1);
+    const toFull    = phase <= 0.5 ? (0.5 - phase) * SYNODIC : (1.5 - phase) * SYNODIC;
+    const toNew     = phase < 0.5  ? phase * SYNODIC          : (1 - phase)   * SYNODIC;
+    const showFull  = toFull <= toNew;
+    const nextVal   = Math.round((showFull ? toFull : toNew) * 10) / 10;
+    const nextLbl   = showFull ? 'Do pełni' : 'Do nowiu';
+
+    let namePL, nameEN;
+    if      (phase < 0.03 || phase > 0.97) { namePL = 'Nów';             nameEN = 'New Moon'; }
+    else if (phase < 0.22)                  { namePL = 'Sierp rosnący';   nameEN = 'Waxing Crescent'; }
+    else if (phase < 0.28)                  { namePL = 'Pierwsza kwadra'; nameEN = 'First Quarter'; }
+    else if (phase < 0.47)                  { namePL = 'Garb rosnący';    nameEN = 'Waxing Gibbous'; }
+    else if (phase < 0.53)                  { namePL = 'Pełnia';          nameEN = 'Full Moon'; }
+    else if (phase < 0.72)                  { namePL = 'Garb malejący';   nameEN = 'Waning Gibbous'; }
+    else if (phase < 0.78)                  { namePL = 'Ostatnia kwadra'; nameEN = 'Last Quarter'; }
+    else                                    { namePL = 'Sierp malejący';  nameEN = 'Waning Crescent'; }
+
+    const dateStr = now.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // ── Duży księżyc: półkole + elipsa (ta sama logika co miniaturki) ──
+    const cx = 110, cy = 110, R = 88;
+    const D = '#0E1625', L = '#CCD8EE';
+    const isNew     = phase < 0.015 || phase > 0.985;
+    const isFull    = Math.abs(phase - 0.5) < 0.015;
+    const waxing    = phase < 0.5;   // rośnie → oświetlona prawa strona
+    const sw        = waxing ? 1 : 0;
+    const k         = Math.cos(phase * 2 * Math.PI);
+    const ex        = Math.abs(k) * R;
+
+    // Półkole po oświetlonej stronie
+    const halfPath  = `M${cx} ${cy-R} A${R} ${R} 0 0 ${sw} ${cx} ${cy+R} L${cx} ${cy}Z`;
+    // Sierp: ciemna elipsa wycina środek
+    const crescentOverlay = `<ellipse cx="${cx}" cy="${cy}" rx="${ex}" ry="${R}" fill="${D}"/>`;
+    // Garb: jasna pół-elipsa po drugiej stronie dopełnia
+    const gibbousPath = `M${cx} ${cy-R} A${ex} ${R} 0 0 ${waxing?0:1} ${cx} ${cy+R} L${cx} ${cy}Z`;
+
+    // Zbuduj lit clipPath dla marii/kraterów
+    let litClipContent = '';
+    if (!isNew && !isFull) {
+      if (k > 0) litClipContent = halfPath;                            // sierp
+      else       litClipContent = halfPath + ' ' + gibbousPath;        // garb (oba trójkąty)
+    } else if (isFull) {
+      litClipContent = `M${cx} ${cy-R} A${R} ${R} 0 1 1 ${cx-.001} ${cy-R}Z`;
+    }
+
+    // ── Maria (morza księżycowe) ───────────────────────────────
+    const maria = [
+      [cx-18, cy-32, 22, 14],
+      [cx+20, cy- 8, 18, 11],
+      [cx- 8, cy+22, 24, 16],
+      [cx+28, cy+30, 14,  9],
+      [cx-32, cy+ 8, 16, 10],
+    ];
+
+    // ── Kratery ────────────────────────────────────────────────
+    const craters = [
+      [cx+38, cy-42,  7],
+      [cx-42, cy-28,  5],
+      [cx+22, cy+48,  8],
+      [cx-20, cy+50,  6],
+      [cx+52, cy+14,  4],
+      [cx-50, cy+32,  5],
+      [cx- 5, cy-70,  6],
+      [cx+60, cy-22,  3],
+    ];
+
+    const mariaDark = maria.map(([x,y,rx,ry]) =>
+      `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#060B16" opacity="0.55" transform="rotate(-15,${x},${y})"/>`
+    ).join('');
+    const mariaLight = maria.map(([x,y,rx,ry]) =>
+      `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#9CB4D8" opacity="0.28" transform="rotate(-15,${x},${y})"/>`
+    ).join('');
+
+    const craterDark = craters.map(([x,y,r]) =>
+      `<circle cx="${x}" cy="${y}" r="${r}" fill="#06090F" opacity="0.6"/>` +
+      `<circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.5}" fill="#1A2640" opacity="0.4"/>`
+    ).join('');
+    const craterLight = craters.map(([x,y,r]) =>
+      `<circle cx="${x}" cy="${y}" r="${r}" fill="#A0B8D8" opacity="0.22"/>` +
+      `<circle cx="${x+r*.3}" cy="${y+r*.3}" r="${r*.45}" fill="#7898C0" opacity="0.3"/>`
+    ).join('');
+
+    const isNearFull    = Math.abs(phase - 0.5) < 0.055;
+    const fullIntensity = isNearFull ? 1 - Math.abs(phase - 0.5) / 0.055 : 0;
+    const glowSVG = isNearFull
+      ? [14,10,6].map((gex,i) =>
+          `<circle cx="${cx}" cy="${cy}" r="${R+gex}" fill="#7A9FC8" opacity="${((0.18 - i*0.05)*fullIntensity).toFixed(3)}"/>`
+        ).join('')
+      : '';
+
+    // Jasna smuga na krawędzi oświetlonej strony
+    const limbX  = waxing ? cx + R*.55 : cx - R*.55;
+    const limbGlow = !isNew
+      ? `<ellipse cx="${limbX}" cy="${cy}" rx="${R*.5}" ry="${R}" fill="#F0F8FF" opacity="0.04" clip-path="url(#mc-lc)"/>`
+      : '';
+
+    // Buduj SVG warstwy
+    let litLayers = '';
+    if (!isNew) {
+      if (isFull) {
+        litLayers = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${L}"/>`;
+      } else {
+        litLayers = `<path d="${halfPath}" fill="${L}"/>`;
+        if (k > 0) litLayers += crescentOverlay;                  // sierp: przykryj ciemną elipsą
+        else       litLayers += `<path d="${gibbousPath}" fill="${L}"/>`;  // garb: dołóż jasną pół-elipsę
+      }
+    }
+
+    const moonSVG = `
+      <svg viewBox="0 0 220 220" width="160" height="160">
+        <defs>
+          <clipPath id="mc-cc"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath>
+          <clipPath id="mc-lc"><path d="${litClipContent || 'M0 0'}"/></clipPath>
+        </defs>
+        ${glowSVG}
+        <circle cx="${cx}" cy="${cy}" r="${R}" fill="${D}"/>
+        <g clip-path="url(#mc-cc)">${mariaDark}${craterDark}</g>
+        <g clip-path="url(#mc-cc)">${litLayers}</g>
+        <g clip-path="url(#mc-lc)">${mariaLight}${craterLight}</g>
+        ${limbGlow}
+        <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(160,195,240,0.12)" stroke-width="1.5"/>
+      </svg>`;
+
+    // ── Pasek postępu ──────────────────────────────────────────
+    const pct = (phase * 100).toFixed(1);
+
+    // ── Generuj gwiazdy (seed deterministyczny) ────────────────
+    let stars = '';
+    for (let i = 0; i < 38; i++) {
+      const xr = ((i * 137.508 + 43) % 97 + 2).toFixed(1);
+      const yr = ((i * 97.312  + 17) % 91 + 3).toFixed(1);
+      const sr = (0.7 + (i % 14) * 0.1).toFixed(1);
+      const op = (0.07 + (i % 5) * 0.04).toFixed(2);
+      stars += `<div style="position:absolute;left:${xr}%;top:${yr}%;width:${sr}px;height:${sr}px;border-radius:50%;background:#C8D8F0;opacity:${op};pointer-events:none;"></div>`;
+    }
+
+    // ── Statystyki ─────────────────────────────────────────────
+    const stats = [
+      [illum + '%', 'Oświetlenie'],
+      [age + ' d',  'Wiek'],
+      [nextVal + ' d', nextLbl],
+    ];
+    const statsHTML = stats.map(([v,l]) =>
+      `<div style="flex:1;background:rgba(255,255,255,.06);border-radius:13px;padding:11px 6px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:#B0C8F0;letter-spacing:-.3px;">${v}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">${l}</div>
+      </div>`
+    ).join('');
+
+    // ── Miniaturka fazy (strip) ────────────────────────────────
+    // Podejście: półkole (lit) + elipsa nakładkowa (crescent/gibbous)
+    // Warunek: k>0 → sierp, k<0 → garb (niezależnie od waxing/waning)
+    function miniMoonSVG(p) {
+      const r=11, cx=14, cy=14, sz=28;
+      const D='#0E1625', L='#C8DCEE';
+      const uid='mc'+Math.floor(p*1000);
+      let g = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${D}"/>`;
+
+      if (p >= 0.015 && p <= 0.985) {
+        if (Math.abs(p - 0.5) < 0.015) {
+          // Pełnia
+          g = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${L}"/>`;
+        } else {
+          const k   = Math.cos(p * 2 * Math.PI);
+          const ex  = Math.abs(k) * r;
+          const litR = p < 0.5;   // waxing → lit po prawej; waning → lit po lewej
+          const sw   = litR ? 1 : 0;
+          // Półkole po stronie oświetlonej
+          g += `<path d="M${cx} ${cy-r} A${r} ${r} 0 0 ${sw} ${cx} ${cy+r} L${cx} ${cy}Z" fill="${L}"/>`;
+          if (k > 0) {
+            // Sierp: ciemna elipsa centralna przycina półkole → cienki sierp
+            g += `<ellipse cx="${cx}" cy="${cy}" rx="${ex}" ry="${r}" fill="${D}"/>`;
+          } else if (k < 0) {
+            // Garb: jasne pół-elipsa po drugiej stronie dokłada oświetlenie
+            const sw2 = litR ? 0 : 1;
+            g += `<path d="M${cx} ${cy-r} A${ex} ${r} 0 0 ${sw2} ${cx} ${cy+r} L${cx} ${cy}Z" fill="${L}"/>`;
+          }
+          // k=0 (kwadra): samo półkole jest dokładnie poprawne
+        }
+      }
+
+      return `<svg viewBox="0 0 ${sz} ${sz}" width="${sz}" height="${sz}">
+        <defs><clipPath id="${uid}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath></defs>
+        <g clip-path="url(#${uid})">${g}</g>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(150,185,230,0.15)" stroke-width="0.8"/>
+      </svg>`;
+    }
+
+    const STRIP = [
+      {p:0.000, lbl:'Nów'},
+      {p:0.125, lbl:'Sierp r.'},
+      {p:0.250, lbl:'I Kw.'},
+      {p:0.375, lbl:'Garb r.'},
+      {p:0.500, lbl:'Pełnia'},
+      {p:0.625, lbl:'Garb m.'},
+      {p:0.750, lbl:'II Kw.'},
+      {p:0.875, lbl:'Sierp m.'},
+    ];
+    const stripHTML = STRIP.map(({p, lbl}) => {
+      const active = Math.abs(p - phase) < 0.065 || (p===0 && (phase<0.04||phase>0.96));
+      const bg   = active ? 'background:rgba(180,210,255,.1);' : '';
+      const lblC = active ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 2px;border-radius:8px;${bg}">
+        ${miniMoonSVG(p)}
+        <span style="font-size:7px;color:${lblC};text-align:center;line-height:1.2;">${lbl}</span>
+      </div>`;
+    }).join('');
+
+    // ── Render ─────────────────────────────────────────────────
+    return `
+      <div style="background:#080D1A;border-radius:26px;padding:22px 18px 18px;position:relative;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;color:#fff;">
+
+        <div style="position:absolute;inset:0;pointer-events:none;z-index:0;">${stars}</div>
+
+        <div style="position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+          <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.38);">Faza Księżyca</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.22);">${dateStr}</span>
+        </div>
+
+        <div style="position:relative;z-index:1;display:flex;justify-content:center;align-items:center;margin:6px 0 14px;">
+          ${moonSVG}
+        </div>
+
+        <div style="position:relative;z-index:1;font-size:22px;font-weight:700;letter-spacing:-.5px;text-align:center;color:#DCE8FF;margin-bottom:2px;">${namePL}</div>
+        <div style="position:relative;z-index:1;font-size:12px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:18px;">${nameEN}</div>
+
+        <div style="position:relative;z-index:1;display:flex;gap:8px;margin-bottom:18px;">${statsHTML}</div>
+
+        <div style="position:relative;z-index:1;font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Cykl księżycowy</div>
+
+        <div style="position:relative;z-index:1;display:flex;margin-bottom:10px;">${stripHTML}</div>
+
+        <div style="position:relative;z-index:1;height:16px;display:flex;align-items:center;margin-bottom:4px;">
+          <div style="position:absolute;left:0;right:0;height:2px;background:rgba(255,255,255,.08);border-radius:2px;">
+            <div style="width:${pct}%;height:100%;border-radius:2px;background:rgba(180,210,240,.55);"></div>
+          </div>
+          <div style="position:absolute;left:${pct}%;width:12px;height:12px;background:#C8D8F2;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px 2px rgba(180,210,240,.4);"></div>
+        </div>
+
+      </div>`;
+  ]]]

@@ -1,0 +1,342 @@
+type: custom:button-card
+entity: sensor.forecast_hourly_json
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: none
+triggers_update:
+  - sensor.forecast_hourly_json
+styles:
+  card:
+    - padding: "0"
+    - background: transparent
+    - border-radius: 22px
+    - box-shadow: none
+    - overflow: hidden
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    const rawFc = entity.attributes && entity.attributes.forecast;
+    const fcAll = Array.isArray(rawFc) ? rawFc : [];
+
+    // ── Stałe ──────────────────────────────────────────────────
+    const BG1  = '#0e1a2e';
+    const BG2  = '#091220';
+
+    // ── Kolory meteorologiczne temperatury ─────────────────────
+    // Skala zgodna ze standardami WMO / meteo.pl
+    // fiolet < -20 / niebieski -20..0 / błękit 0..10 / zielony 10..18
+    // żółty 18..25 / pomarańcz 25..30 / czerwony 30..35 / ciemny czerwony >35
+    function tempColor(t) {
+      if (t === null) return '#aaaaaa';
+      if (t <= -20) return '#9B59B6';   // fiolet — ekstremalne zimno
+      if (t <= -10) return '#6C5CE7';   // fiolet-niebieski
+      if (t <=   0) return '#4A90D9';   // niebieski — poniżej zera
+      if (t <=   5) return '#5DADE2';   // jasny błękit — bliskie zera
+      if (t <=  10) return '#48C9B0';   // niebiesko-zielony — chłodno
+      if (t <=  15) return '#52BE80';   // zielony — umiarkowanie chłodno
+      if (t <=  18) return '#A9DFBF';   // jasny zielony — przyjemnie
+      if (t <=  22) return '#F9E79F';   // żółty — komfortowo
+      if (t <=  25) return '#F5CBA7';   // jasny pomarańcz — ciepło
+      if (t <=  28) return '#F0A500';   // pomarańcz — gorąco
+      if (t <=  32) return '#E74C3C';   // czerwony — bardzo gorąco
+      if (t <=  36) return '#C0392B';   // ciemny czerwony — upał
+      return '#922B21';                 // bordowy — ekstremalny upał
+    }
+
+    // Kolor tła karty zależy od dominującej temp w oknie 16h
+    function bgAccentFromTemp(t) {
+      if (t === null) return { glow: 'rgba(90,160,255,0.16)', accent: '#5ab0ff' };
+      if (t <= 0)  return { glow: 'rgba(74,144,217,0.20)',  accent: '#4A90D9' };
+      if (t <= 10) return { glow: 'rgba(72,201,176,0.18)',  accent: '#48C9B0' };
+      if (t <= 18) return { glow: 'rgba(82,190,128,0.18)',  accent: '#52BE80' };
+      if (t <= 25) return { glow: 'rgba(245,200,80,0.18)',  accent: '#F0C040' };
+      if (t <= 32) return { glow: 'rgba(231,76,60,0.20)',   accent: '#E87040' };
+      return               { glow: 'rgba(192,57,43,0.22)',  accent: '#C0392B' };
+    }
+
+    // ── Etykiety stanów pogody ─────────────────────────────────
+    const WX = {
+      'sunny':'Słonecznie','clear-night':'Bezchmurnie',
+      'partlycloudy':'Zm. zachmurzenie','cloudy':'Zachmurzenie',
+      'rainy':'Deszcz','pouring':'Ulewa','snowy':'Śnieg',
+      'snowy-rainy':'Deszcz ze śniegiem','hail':'Grad',
+      'lightning':'Burza','lightning-rainy':'Burza z deszczem',
+      'fog':'Mgła','windy':'Wietrzno','windy-variant':'Wietrzno',
+      'exceptional':'Wyjątkowo',
+    };
+
+    // ── Inline ikona pogody ────────────────────────────────────
+    function icon(st) {
+      const s='#F5A623', cl='#6a7a9a', r='#5ab0ff', sn='#aee4f8', b='#FFD060', m='#c8d8f0';
+      const rays = [0,60,120,180,240,300].map(function(d){
+        const a=d*Math.PI/180;
+        return '<line x1="'+(Math.cos(a)*5.5).toFixed(1)+'" y1="'+(Math.sin(a)*5.5).toFixed(1)
+          +'" x2="'+(Math.cos(a)*7.8).toFixed(1)+'" y2="'+(Math.sin(a)*7.8).toFixed(1)
+          +'" stroke="'+s+'" stroke-width="1.5" stroke-linecap="round"/>';
+      }).join('');
+      if (st==='sunny')
+        return '<circle r="4" fill="'+s+'"/>'+rays;
+      if (st==='clear-night')
+        return '<path d="M0-7.5a7.5 7.5 0 000 15 5.5 5.5 0 010-15z" fill="'+m+'"/>';
+      if (st==='partlycloudy')
+        return '<circle cx="-2" cy="-2" r="3.5" fill="'+s+'" opacity=".9"/>'
+          +'<path d="M-5.5 4a4.5 4.5 0 019 0H-5.5z" fill="'+cl+'"/>'
+          +'<circle cx="-0.5" cy="1" r="3" fill="'+cl+'"/>';
+      if (st==='rainy'||st==='pouring')
+        return '<path d="M-6 0a5 5 0 0110 0H-6z" fill="'+cl+'"/>'
+          +'<circle cx="-1" cy="-2.5" r="3" fill="'+cl+'"/>'
+          +'<line x1="-4" y1="5" x2="-5" y2="9" stroke="'+r+'" stroke-width="1.5" stroke-linecap="round"/>'
+          +'<line x1="0" y1="5" x2="-1" y2="9" stroke="'+r+'" stroke-width="1.5" stroke-linecap="round"/>'
+          +'<line x1="4" y1="5" x2="3" y2="9" stroke="'+r+'" stroke-width="1.5" stroke-linecap="round"/>';
+      if (st==='snowy'||st==='snowy-rainy')
+        return '<path d="M-6-1a5 5 0 0110 0H-6z" fill="'+cl+'"/>'
+          +'<circle cx="-1" cy="-3" r="3" fill="'+cl+'"/>'
+          +'<circle cx="-4" cy="6" r="1.5" fill="'+sn+'"/>'
+          +'<circle cx="0" cy="8" r="1.5" fill="'+sn+'"/>'
+          +'<circle cx="4" cy="6" r="1.5" fill="'+sn+'"/>';
+      if (st==='lightning'||st==='lightning-rainy')
+        return '<path d="M-6-1a5 5 0 0110 0H-6z" fill="'+cl+'"/>'
+          +'<polygon points="1,-1 -3,6 0,6 -2,11" fill="'+b+'"/>';
+      if (st==='fog')
+        return '<line x1="-7" y1="-4" x2="7" y2="-4" stroke="'+cl+'" stroke-width="2" stroke-linecap="round" opacity=".7"/>'
+          +'<line x1="-5" y1="0" x2="5" y2="0" stroke="'+cl+'" stroke-width="2" stroke-linecap="round" opacity=".55"/>'
+          +'<line x1="-7" y1="4" x2="4" y2="4" stroke="'+cl+'" stroke-width="2" stroke-linecap="round" opacity=".4"/>';
+      if (st==='windy'||st==='windy-variant')
+        return '<path d="M-7-4 Q0-8 7-4" stroke="'+r+'" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+          +'<path d="M-7 0 Q0-4 7 0" stroke="'+r+'" stroke-width="1.8" fill="none" stroke-linecap="round" opacity=".7"/>'
+          +'<path d="M-7 4 Q0 1 5 4" stroke="'+r+'" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".45"/>';
+      return '<path d="M-6 3a5 5 0 0110 0H-6z" fill="'+cl+'"/>'
+        +'<circle cx="-1" cy="0" r="3.5" fill="'+cl+'"/>'
+        +'<circle cx="4" cy="1" r="2.5" fill="'+cl+'"/>';
+    }
+
+    // ── Stan pogody i nagłówek ─────────────────────────────────
+    const wxNow   = states['weather.forecast_home']?.state || 'cloudy';
+    const wxLabel = WX[wxNow] || wxNow;
+
+    // ── Sloty: co 2h, 16h = 8 slotów ──────────────────────────
+    const slots = fcAll
+      .filter(function(_, i) { return i % 2 === 0; })
+      .slice(0, 8)
+      .map(function(fc) {
+        const dt   = new Date(fc.datetime);
+        const hh   = String(dt.getHours()).padStart(2, '0');
+        const temp = typeof fc.temperature === 'number' ? fc.temperature : null;
+        const prec = typeof fc.precipitation === 'number' ? Math.max(0, fc.precipitation) : 0;
+        const cond = fc.condition || 'cloudy';
+        return { hh: hh, temp: temp, prec: prec, cond: cond };
+      });
+
+    // ── Brak danych ────────────────────────────────────────────
+    if (slots.length === 0) {
+      return '<div style="background:linear-gradient(145deg,'+BG1+','+BG2+');border-radius:22px;'
+        +'padding:24px 20px;font-family:-apple-system,system-ui,sans-serif;">'
+        +'<div style="font-size:13px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.7;">'
+        +'Brak prognozy.<br>'
+        +'Sprawdź sensor.forecast_hourly_json<br>'
+        +'w Developer Tools → States.'
+        +'</div></div>';
+    }
+
+    // Dominująca temperatura — mediana zakresu
+    const allT   = slots.map(function(s){ return s.temp; }).filter(function(t){ return t!==null; });
+    const tMin   = allT.length ? Math.min.apply(null, allT) : 0;
+    const tMax   = allT.length ? Math.max.apply(null, allT) : 20;
+    const tMid   = (tMin + tMax) / 2;
+    const palette = bgAccentFromTemp(tMid);
+    const ACCENT  = palette.accent;
+    const GLOW    = palette.glow;
+
+    // Zakres do nagłówka
+    const tHi = tMax.toFixed(0);
+    const tLo = tMin.toFixed(0);
+    const tHiColor = tempColor(tMax);
+    const tLoColor = tempColor(tMin);
+
+    // ── Wymiary SVG ────────────────────────────────────────────
+    const COL_W  = 58;
+    const SVG_PX = COL_W * slots.length;
+
+    // Kolejność wierszy od góry: ikona → godzina → temp → krzywa → słupki opadów
+    const ICON_Y  = 8;    // środek ikony (translate)
+    const HOUR_Y  = 30;   // tekst godziny
+    const TEMP_Y  = 46;   // tekst temperatury
+    const CURVE_Y = 58;   // top obszaru krzywej
+    const CURVE_H = 44;
+    const BAR_MAX = 14;
+    const BAR_Y   = CURVE_Y + CURVE_H + 4;
+    const SVG_H   = BAR_Y + BAR_MAX + 8;
+
+    function cx(i) { return i * COL_W + COL_W / 2; }
+
+    // Normalizacja Y krzywej
+    const tRngPad = (tMax - tMin) || 1;
+    const tMinP   = tMin - tRngPad * 0.15;
+    const tMaxP   = tMax + tRngPad * 0.15;
+    const tRng2   = tMaxP - tMinP;
+
+    function ty(t) {
+      if (t === null) return CURVE_Y + CURVE_H / 2;
+      return CURVE_Y + CURVE_H - ((t - tMinP) / tRng2) * CURVE_H;
+    }
+
+    const pts = slots.map(function(s, i) {
+      return { x: cx(i), y: ty(s.temp), t: s.temp };
+    });
+
+    // Bezier
+    function bezier(pts) {
+      if (!pts.length) return '';
+      let d = 'M ' + pts[0].x.toFixed(1) + ' ' + pts[0].y.toFixed(1);
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i-1], c = pts[i];
+        const mx = ((p.x + c.x) / 2).toFixed(1);
+        d += ' C ' + mx + ' ' + p.y.toFixed(1) + ',' + mx + ' ' + c.y.toFixed(1) + ',' + c.x.toFixed(1) + ' ' + c.y.toFixed(1);
+      }
+      return d;
+    }
+
+    const curve   = bezier(pts);
+    const first   = pts[0];
+    const last    = pts[pts.length - 1];
+    const aBottom = (BAR_Y + BAR_MAX).toFixed(1);
+    const area    = curve
+      + ' L ' + last.x.toFixed(1) + ' ' + aBottom
+      + ' L ' + first.x.toFixed(1) + ' ' + aBottom + ' Z';
+
+    // ── Gradient krzywej — wielokolorowy wzdłuż X ─────────────
+    // Budujemy <linearGradient> z przystankami per slot
+    let gradStops = '';
+    slots.forEach(function(s, i) {
+      const pct = slots.length > 1 ? ((i / (slots.length - 1)) * 100).toFixed(1) : '50';
+      const col = tempColor(s.temp);
+      gradStops += '<stop offset="' + pct + '%" stop-color="' + col + '"/>';
+    });
+
+    // Gradient wypełnienia pod krzywą (pionowy, od koloru środkowego do przezroczystego)
+    const fillCol = tempColor(tMid);
+
+    const maxPrec = Math.max.apply(null, slots.map(function(s){ return s.prec; }).concat([0.01]));
+    const hasRain = slots.some(function(s){ return s.prec > 0; });
+
+    // ── Budujemy kolumny SVG ───────────────────────────────────
+    let cols = '';
+    slots.forEach(function(s, i) {
+      const x   = cx(i);
+      const now = i === 0;
+      const bh  = s.prec > 0 ? Math.max(2, (s.prec / maxPrec) * BAR_MAX) : 0;
+      const tS  = s.temp !== null ? s.temp.toFixed(0) + '°' : '—';
+      const tC  = tempColor(s.temp);
+
+      // Highlight teraz
+      if (now) {
+        cols += '<rect x="' + (x - COL_W/2).toFixed(1) + '" y="2" width="' + COL_W
+          + '" height="' + (SVG_H - 4) + '" rx="11" fill="rgba(255,255,255,0.05)"/>';
+      }
+
+      // Ikona pogody — nad godziną i temperaturą
+      cols += '<g transform="translate(' + x.toFixed(1) + ',' + (ICON_Y + 8).toFixed(1) + ')" opacity="'
+        + (now ? '1' : '0.80') + '">' + icon(s.cond) + '</g>';
+
+      // Godzina
+      const hCol = now ? '#ffffff' : 'rgba(255,255,255,0.32)';
+      const hTxt = now ? 'teraz' : s.hh + ':00';
+      cols += '<text x="' + x.toFixed(1) + '" y="' + HOUR_Y + '" text-anchor="middle"'
+        + ' font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="500"'
+        + ' fill="' + hCol + '">' + hTxt + '</text>';
+
+      // Temperatura — kolorowana meteorologicznie
+      cols += '<text x="' + x.toFixed(1) + '" y="' + TEMP_Y + '" text-anchor="middle"'
+        + ' font-family="-apple-system,system-ui,sans-serif" font-size="11"'
+        + ' font-weight="' + (now ? 700 : 600) + '"'
+        + ' fill="' + tC + '">' + tS + '</text>';
+
+      // Słupek opadów
+      if (bh > 0) {
+        cols += '<rect x="' + (x - 8).toFixed(1) + '" y="' + (BAR_Y + BAR_MAX - bh).toFixed(1)
+          + '" width="16" height="' + bh.toFixed(1) + '" rx="3"'
+          + ' fill="' + ACCENT + '" opacity=".50"/>';
+      }
+    });
+
+    // Dot "teraz"
+    const dotX = first.x.toFixed(1);
+    const dotY = first.y.toFixed(1);
+    const dotC = tempColor(first.t);
+
+    const svg = '<svg viewBox="0 0 ' + SVG_PX + ' ' + SVG_H + '" width="100%" height="' + SVG_H + '"'
+      + ' style="display:block;overflow:visible" preserveAspectRatio="xMinYMid meet">'
+      + '<defs>'
+      // Gradient krzywej — wzdłuż X, per-temperatura
+      + '<linearGradient id="lcg" x1="0" y1="0" x2="1" y2="0">'
+      + gradStops
+      + '</linearGradient>'
+      // Gradient wypełnienia — pionowy
+      + '<linearGradient id="lag" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0%" stop-color="' + fillCol + '" stop-opacity=".22"/>'
+      + '<stop offset="100%" stop-color="' + fillCol + '" stop-opacity="0"/>'
+      + '</linearGradient>'
+      + '<clipPath id="ac"><rect x="0" y="0" width="' + SVG_PX + '" height="' + SVG_H + '"/></clipPath>'
+      + '</defs>'
+      + '<g clip-path="url(#ac)">'
+      + cols
+      + '<path d="' + area + '" fill="url(#lag)"/>'
+      + '<path d="' + curve + '" stroke="url(#lcg)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '<circle cx="' + dotX + '" cy="' + dotY + '" r="3.5" fill="' + dotC + '"/>'
+      + '<circle cx="' + dotX + '" cy="' + dotY + '" r="6.5" fill="' + dotC + '" opacity=".20"/>'
+      + '</g>'
+      + '</svg>';
+
+    // ── Finał ──────────────────────────────────────────────────
+    return '<div style="background:linear-gradient(145deg,' + BG1 + ' 0%,' + BG2 + ' 100%);'
+      + 'border-radius:22px;overflow:hidden;position:relative;'
+      + 'font-family:-apple-system,system-ui,sans-serif;border:1px solid rgba(255,255,255,0.07);">'
+
+      // Glow
+      + '<div style="position:absolute;top:-40px;right:-30px;width:180px;height:180px;border-radius:50%;'
+      + 'background:radial-gradient(circle,' + GLOW + ' 0%,transparent 65%);pointer-events:none;"></div>'
+
+      // Nagłówek
+      + '<div style="padding:15px 18px 11px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;">'
+        + '<div>'
+          + '<div style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.28);margin-bottom:3px;'
+          + 'text-transform:uppercase;letter-spacing:.07em;">Prognoza · 16h</div>'
+          + '<div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.62);">' + wxLabel + '</div>'
+        + '</div>'
+        + '<div style="text-align:right;">'
+          + '<div style="font-size:10px;color:rgba(255,255,255,0.26);margin-bottom:3px;">zakres</div>'
+          + '<div style="font-size:14px;font-weight:700;letter-spacing:-.3px;">'
+          + '<span style="color:' + tLoColor + '">' + tLo + '°</span>'
+          + '<span style="color:rgba(255,255,255,0.20);font-weight:400;margin:0 3px;">—</span>'
+          + '<span style="color:' + tHiColor + '">' + tHi + '°</span>'
+          + '</div>'
+        + '</div>'
+      + '</div>'
+
+      // Separator
+      + '<div style="margin:0 18px;height:1px;background:rgba(255,255,255,0.06);"></div>'
+
+      // Wykres
+      + '<div style="padding:10px 0 12px;position:relative;z-index:1;">'
+        + '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 14px;'
+        + 'scrollbar-width:none;-ms-overflow-style:none;">'
+          + '<div style="min-width:' + SVG_PX + 'px;">' + svg + '</div>'
+        + '</div>'
+        + (hasRain
+          ? '<div style="padding:4px 18px 0;display:flex;align-items:center;gap:5px;">'
+            + '<div style="width:10px;height:10px;border-radius:2px;background:' + ACCENT + ';opacity:.50;"></div>'
+            + '<span style="font-size:10px;color:rgba(255,255,255,0.26);">opady (mm)</span>'
+            + '</div>'
+          : '')
+      + '</div>'
+
+    + '</div>';
+  ]]]

@@ -1,0 +1,225 @@
+type: custom:button-card
+entity: switch.dishwasher_power
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: more-info
+styles:
+  card:
+    - padding: "0"
+    - background: "#1C1C1E"
+    - border-radius: 16px
+    - overflow: hidden
+    - border: |
+        [[[
+          const on   = entity.state === 'on';
+          const door = states['sensor.dishwasher_door'];
+          const open = door?.state === 'Open' || door?.state === 'open';
+          if (on && open) return '1px solid rgba(201,122,80,0.35)';
+          if (on)         return '1px solid rgba(133,183,235,0.28)';
+          return '0.5px solid rgba(255,255,255,0.08)';
+        ]]]
+    - animation: |
+        [[[
+          const on   = entity.state === 'on';
+          const door = states['sensor.dishwasher_door'];
+          const open = door?.state === 'Open' || door?.state === 'open';
+          if (on && open) return 'dw-pulse-amber 2.4s ease-in-out infinite';
+          if (on)         return 'dw-pulse-blue  2.4s ease-in-out infinite';
+          return 'none';
+        ]]]
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    // ── entities ──────────────────────────────────────────────────────
+    const on       = entity.state === 'on';
+    const door     = states['sensor.dishwasher_door'];
+    const doorOpen = door?.state === 'Open' || door?.state === 'open';
+    const drying   = on && doorOpen;
+    const washing  = on && !doorOpen;
+
+    // ── program ───────────────────────────────────────────────────────
+    const rawProg = states['select.dishwasher_active_program']?.state ?? '';
+    const progMap = {
+      'dishcare_dishwasher_program_eco_50':      { label: 'eco 50°',      dur: 195, col: '#7BAED4', bg: 'rgba(123,174,212,0.12)' },
+      'dishcare_dishwasher_program_intensiv_70': { label: 'intensiv 70°', dur: 130, col: '#EF9F27', bg: 'rgba(239,159,39,0.12)'  },
+      'dishcare_dishwasher_program_normal_65':   { label: 'normal 65°',   dur: 130, col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      'dishcare_dishwasher_program_auto_2':      { label: 'auto',         dur: 120, col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      'dishcare_dishwasher_program_quick_45':    { label: 'quick 45°',    dur: 45,  col: '#97C459', bg: 'rgba(151,196,89,0.12)'  },
+      'dishcare_dishwasher_program_pre_rinse':   { label: 'płukanie',     dur: 15,  col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      'dishcare_dishwasher_program_glas_40':     { label: 'szkło 40°',    dur: 60,  col: '#7BAED4', bg: 'rgba(123,174,212,0.12)' },
+      'dishcare_dishwasher_program_super_clean': { label: 'super clean',  dur: 150, col: '#E24B4A', bg: 'rgba(226,75,74,0.12)'   },
+    };
+    const prog = progMap[rawProg] ?? {
+      label: rawProg.replace('dishcare_dishwasher_program_','').replace(/_/g,' ') || '—',
+      dur: 120, col: '#85B7EB', bg: 'rgba(133,183,235,0.12)'
+    };
+
+    // ── progress from finish time ──────────────────────────────────────
+    const finishEnt = states['sensor.dishwasher_program_finish_time'];
+    let progress  = 0;
+    let timeStr   = '—';
+    let timeLabel = 'gotowa';
+
+    if (on && finishEnt?.state) {
+      const finishTs = new Date(finishEnt.state).getTime();
+      const nowTs    = Date.now();
+      const remMs    = finishTs - nowTs;
+      const remMin   = Math.max(0, Math.round(remMs / 60000));
+      const totalMs  = prog.dur * 60000;
+      const startTs  = finishTs - totalMs;
+      progress       = Math.min(1, Math.max(0, (nowTs - startTs) / totalMs));
+
+      if (remMin > 0) {
+        const h = Math.floor(remMin / 60);
+        const m = remMin % 60;
+        timeStr   = h > 0 ? `${h}h\u00A0${m}m` : `${m}m`;
+        timeLabel = drying ? 'osuszy za' : 'pozostało';
+      } else {
+        timeStr   = 'gotowa';
+        timeLabel = '';
+      }
+    }
+
+    const pct = Math.round(progress * 100);
+
+    // ── colours ───────────────────────────────────────────────────────
+    const accentCol = drying ? '#C97A50' : washing ? '#85B7EB' : '#3D3D3B';
+    const timeCol   = drying ? '#C97A50' : washing ? '#85B7EB' : '#5F5E5A';
+    const barGrad   = drying
+      ? 'linear-gradient(90deg,#9A5230,#C97A50)'
+      : 'linear-gradient(90deg,#185FA5,#85B7EB)';
+    const doorCol   = doorOpen ? '#85B7EB' : '#97C459';
+    const doorBg    = doorOpen ? 'rgba(133,183,235,0.10)' : 'rgba(151,196,89,0.10)';
+    const phaseCol  = on ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.14)';
+
+    // ── phase label ───────────────────────────────────────────────────
+    const phaseLabel = drying      ? 'osuszanie'
+      : washing && pct < 25        ? 'mycie wstępne'
+      : washing && pct < 60        ? 'mycie główne'
+      : washing && pct < 85        ? 'płukanie'
+      : washing                    ? 'końcowe suszenie'
+      : 'ostatni cykl';
+
+    // ── SVG icons ─────────────────────────────────────────────────────
+    const svgIdle = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+      <rect x="3" y="2" width="14" height="16" rx="2" stroke="#3D3D3B" stroke-width="1.4"/>
+      <line x1="3" y1="7" x2="17" y2="7" stroke="#3D3D3B" stroke-width="1.2"/>
+      <circle cx="10" cy="12" r="2.5" stroke="#3D3D3B" stroke-width="1.2"/>
+    </svg>`;
+
+    const svgWash = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+        style="flex-shrink:0;animation:dw-spin 3s linear infinite;">
+      <circle cx="10" cy="10" r="7" stroke="#85B7EB" stroke-width="1.4" stroke-dasharray="3 2.2"/>
+      <circle cx="10" cy="10" r="3" stroke="#85B7EB" stroke-width="1.3"/>
+      <circle cx="10" cy="10" r="1" fill="#85B7EB"/>
+    </svg>`;
+
+    const svgDry = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+        style="flex-shrink:0;animation:dw-steam 1.8s ease-in-out infinite;">
+      <path d="M10 3 Q7.5 7 7.5 10 Q7.5 14 10 17 Q12.5 14 12.5 10 Q12.5 7 10 3Z"
+            stroke="#C97A50" stroke-width="1.3" fill="rgba(201,122,80,0.18)"/>
+      <path d="M7.5 8.5 Q5.5 9.5 5.5 11.5" stroke="#C97A50" stroke-width="1" stroke-linecap="round" opacity=".5"/>
+      <path d="M12.5 8.5 Q14.5 9.5 14.5 11.5" stroke="#C97A50" stroke-width="1" stroke-linecap="round" opacity=".5"/>
+    </svg>`;
+
+    const svgIcon = drying ? svgDry : washing ? svgWash : svgIdle;
+
+    // ── door SVG ──────────────────────────────────────────────────────
+    const doorSvg = doorOpen
+      ? `<svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+           <rect x="1" y="2" width="7" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+           <path d="M8 5l3 1-3 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+         </svg>`
+      : `<svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+           <rect x="1" y="2" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+           <path d="M3 5.5l2 2 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+         </svg>`;
+
+    // ── badge ─────────────────────────────────────────────────────────
+    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;`;
+    const badge = drying
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+                      font-size:10px;font-weight:600;white-space:nowrap;
+                      background:rgba(201,122,80,0.14);color:#C97A50;">
+           <span style="${dotBase}background:#C97A50;animation:dw-dot 1.8s ease-in-out infinite;"></span>osusza</span>`
+      : washing
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+                      font-size:10px;font-weight:600;white-space:nowrap;
+                      background:rgba(133,183,235,0.14);color:#85B7EB;">
+           <span style="${dotBase}background:#85B7EB;animation:dw-dot 1.8s ease-in-out infinite;"></span>myje</span>`
+      : `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+                      font-size:10px;font-weight:600;white-space:nowrap;
+                      background:rgba(151,196,89,0.12);color:#97C459;">
+           <span style="${dotBase}background:#97C459;"></span>gotowa</span>`;
+
+    // ── render ────────────────────────────────────────────────────────
+    return `
+      <style>
+        @keyframes dw-pulse-blue  {
+          0%,100% { box-shadow: 0 0 0 0   rgba(133,183,235,0); }
+          50%     { box-shadow: 0 0 0 5px rgba(133,183,235,0.18); }
+        }
+        @keyframes dw-pulse-amber {
+          0%,100% { box-shadow: 0 0 0 0   rgba(201,122,80,0); }
+          50%     { box-shadow: 0 0 0 5px rgba(201,122,80,0.22); }
+        }
+        @keyframes dw-spin  { to { transform: rotate(360deg); } }
+        @keyframes dw-steam {
+          0%,100% { transform: translateY(0);   opacity: 1;   }
+          50%     { transform: translateY(-2px); opacity: 0.6; }
+        }
+        @keyframes dw-dot {
+          0%,100% { opacity: 1;   }
+          50%     { opacity: 0.2; }
+        }
+      </style>
+
+      <div style="display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;
+                  align-items:stretch;padding:14px 16px;
+                  font-family:-apple-system,system-ui,sans-serif;">
+
+        <div style="width:4px;border-radius:99px;background:${accentCol};align-self:stretch;"></div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${svgIcon}
+            <span style="font-size:13px;font-weight:500;color:#F1EFE8;flex:1;min-width:0;">zmywarka</span>
+            ${badge}
+          </div>
+
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                         background:${prog.bg};color:${prog.col};white-space:nowrap;">${prog.label}</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;
+                         padding:3px 8px;border-radius:6px;background:${doorBg};color:${doorCol};white-space:nowrap;">
+              ${doorSvg}${doorOpen ? 'otwarte' : 'zamknięte'}</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="height:3px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;">
+              <div style="height:100%;width:${on ? pct : 0}%;border-radius:99px;background:${on ? barGrad : 'transparent'};"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:10px;color:${phaseCol};">${phaseLabel}</span>
+              <span style="font-size:10px;color:${phaseCol};">${on ? pct+'%' : ''}</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;min-width:52px;">
+          <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;color:${timeCol};">${timeStr}</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">${timeLabel}</span>
+        </div>
+
+      </div>`;
+  ]]]
