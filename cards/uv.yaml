@@ -1,0 +1,281 @@
+type: custom:button-card
+entity: sensor.stacja_pogodowa_uv_index
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: none
+styles:
+  card:
+    - padding: "0"
+    - background: "linear-gradient(145deg, #0e1a2e 0%, #091220 100%)"
+    - border-radius: 18px
+    - box-shadow: none
+    - border: 1px solid rgba(255,255,255,0.07)
+    - overflow: hidden
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+        // ── Bezpieczne odczytanie UV & Solar ──────────────────
+        const uvRaw   = states['sensor.stacja_pogodowa_uv_index']?.state;
+        const wRaw    = states['sensor.stacja_pogodowa_solar_radiation']?.state;
+        const luxRaw  = states['sensor.stacja_pogodowa_solar_lux']?.state;
+        const uv      = parseFloat(uvRaw);
+        const w       = parseFloat(wRaw);
+        const lux     = parseFloat(luxRaw);
+        const uvOk    = !isNaN(uv);
+        const wOk     = !isNaN(w);
+        const luxOk   = !isNaN(lux);
+
+        // ── Jeden punkt prawdy dla statusu UV ─────────────────
+        // Skala WHO: 0-2 niski, 3-5 umiark., 6-7 wysoki, 8-10 b.wysoki, 11+ ekstremalny
+        function uvStatus(u) {
+          if (!uvOk)  return { name:'Brak danych', ctx:'Sprawdź encję UV.',
+                               accent:'rgba(255,255,255,0.28)', numCol:'rgba(255,255,255,0.20)',
+                               bgBlend:'#091220', glow:'#1A2A3A' };
+          if (u <= 0) return { name:'Brak UV',     ctx:'Nie potrzeba ochrony.',
+                               accent:'#3A5A8A', numCol:'rgba(255,255,255,0.20)',
+                               bgBlend:'#091220', glow:'#0A1828' };
+          if (u <= 2) return { name:'Niski',        ctx:'Bezpieczne warunki. SPF opcjonalny.',
+                               accent:'#30D158', numCol:'#98E8A8',
+                               bgBlend:'#0A1810', glow:'#1A4A22' };
+          if (u <= 5) return { name:'Umiarkowany',  ctx:'SPF 15+, czapka przy dłuższym pobycie.',
+                               accent:'#F5C842', numCol:'#FFE08A',
+                               bgBlend:'#141408', glow:'#3A3210' };
+          if (u <= 7) return { name:'Wysoki',        ctx:'SPF 30+, unikaj słońca 10–14.',
+                               accent:'#FF9F0A', numCol:'#FFD4A0',
+                               bgBlend:'#181008', glow:'#3A2408' };
+          if (u <= 10) return { name:'Bardzo wysoki',ctx:'SPF 50+, koszula, kapelusz.',
+                                accent:'#FF453A', numCol:'#FFB3AA',
+                                bgBlend:'#180808', glow:'#3A1010' };
+          return               { name:'Ekstremalny', ctx:'Unikaj wyjść. Maks. ochrona.',
+                                 accent:'#BF5AF2', numCol:'#DBA8FF',
+                                 bgBlend:'#140818', glow:'#2A1040' };
+        }
+
+        // ── Jeden punkt prawdy dla statusu nasłonecznienia ────
+        // Skala: 0 noc, ~1200 W/m² max przy bezchmurnym niebie
+        function solStatus(v) {
+          if (!wOk)    return { name:'Brak danych',      ctx:'Sprawdź encję promieniowania.',
+                                accent:'rgba(255,255,255,0.28)', numCol:'rgba(255,255,255,0.20)',
+                                bgBlend:'#091220', glow:'#1A2A3A' };
+          if (v <= 0)   return { name:'Brak',            ctx:'Noc lub zachmurzenie.',
+                                 accent:'#3A5A8A', numCol:'rgba(255,255,255,0.25)',
+                                 bgBlend:'#080C14', glow:'#0A1828' };
+          if (v <= 50)  return { name:'Świt',            ctx:'Świt lub zmierzch.',
+                                 accent:'#4A6A9A', numCol:'#B0C8E0',
+                                 bgBlend:'#090E18', glow:'#0E1E30' };
+          if (v <= 150) return { name:'Pochmurno',       ctx:'Brak słońca.',
+                                 accent:'#7BAED4', numCol:'#C8DDF0',
+                                 bgBlend:'#0A1018', glow:'#142030' };
+          if (v <= 350) return { name:'Zm. zachm.',      ctx:'Przerwy w chmurach.',
+                                 accent:'#B0C8E0', numCol:'#D8ECF8',
+                                 bgBlend:'#0C1218', glow:'#182430' };
+          if (v <= 600) return { name:'Częśc. słon.',    ctx:'Słońce przez chmury.',
+                                 accent:'#F5D070', numCol:'#FFF0C0',
+                                 bgBlend:'#141208', glow:'#2A2408' };
+          if (v <= 850) return { name:'Słonecznie',      ctx:'Bezpośrednie.',
+                                 accent:'#F5C842', numCol:'#FFE080',
+                                 bgBlend:'#181408', glow:'#302808' };
+          if (v <= 1000) return { name:'B. słonecznie',  ctx:'Silne promieniowanie.',
+                                  accent:'#FFA020', numCol:'#FFD060',
+                                  bgBlend:'#1A1008', glow:'#342008' };
+          return                { name:'Intensywne',     ctx:'Maks. ochrona UV!',
+                                  accent:'#FF7010', numCol:'#FFBB60',
+                                  bgBlend:'#1C0C08', glow:'#381808' };
+        }
+
+        const stUV  = uvStatus(uv);
+        const stSol = solStatus(w);
+        const pctUV  = uvOk ? Math.max(0, Math.min(100, (uv / 13) * 100)).toFixed(1) : '0';
+        const pctSol = wOk  ? Math.max(0, Math.min(100, (w / 1200) * 100)).toFixed(1) : '0';
+        const uid = 'uv_' + Math.random().toString(36).slice(2, 7);
+
+        // Lux do czytelnej formy
+        const luxStr = luxOk
+          ? (lux >= 1000 ? (lux / 1000).toFixed(1) + ' klx' : lux.toFixed(0) + ' lx')
+          : '—';
+
+        // ── SVG ikony ─────────────────────────────────────────
+        const uvIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+            style="display:inline-block;vertical-align:middle;margin-right:5px;margin-top:-1px;">
+          <circle cx="12" cy="12" r="4" stroke="rgba(255,255,255,0.32)" stroke-width="1.4" fill="none"/>
+          <line x1="12" y1="3"  x2="12" y2="5.5" stroke="rgba(255,255,255,0.32)" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="12" y1="18.5" x2="12" y2="21" stroke="rgba(255,255,255,0.32)" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="3"  y1="12" x2="5.5" y2="12" stroke="rgba(255,255,255,0.32)" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="18.5" y1="12" x2="21" y2="12" stroke="rgba(255,255,255,0.32)" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="5.6" y1="5.6"  x2="7.4" y2="7.4"   stroke="${stUV.accent}" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+          <line x1="16.6" y1="16.6" x2="18.4" y2="18.4" stroke="${stUV.accent}" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+          <line x1="18.4" y1="5.6" x2="16.6" y2="7.4"   stroke="${stUV.accent}" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+          <line x1="7.4"  y1="16.6" x2="5.6" y2="18.4"  stroke="${stUV.accent}" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+        </svg>`;
+
+        const solIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+            style="display:inline-block;vertical-align:middle;margin-right:5px;margin-top:-1px;">
+          <circle cx="12" cy="12" r="5" fill="${stSol.accent}" opacity="0.25"/>
+          <circle cx="12" cy="12" r="3" fill="${stSol.accent}" opacity="0.70"/>
+          <line x1="12" y1="2"  x2="12" y2="5"  stroke="${stSol.accent}" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+          <line x1="12" y1="19" x2="12" y2="22" stroke="${stSol.accent}" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+          <line x1="2"  y1="12" x2="5"  y2="12" stroke="${stSol.accent}" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+          <line x1="19" y1="12" x2="22" y2="12" stroke="${stSol.accent}" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        </svg>`;
+
+        return `
+          <div id="${uid}" style="
+            background:linear-gradient(145deg,#0e1a2e 0%,#091220 100%);
+            border-radius:18px;padding:16px;
+            position:relative;overflow:hidden;
+            font-family:-apple-system,system-ui,sans-serif;
+          ">
+            <!-- UV Glow -->
+            <div style="
+              position:absolute;top:-40px;left:10%;
+              width:120px;height:120px;border-radius:50%;
+              background:radial-gradient(circle,${stUV.glow}50 0%,transparent 65%);
+              pointer-events:none;
+            "></div>
+            <!-- Solar Glow -->
+            <div style="
+              position:absolute;top:-40px;right:10%;
+              width:120px;height:120px;border-radius:50%;
+              background:radial-gradient(circle,${stSol.glow}50 0%,transparent 65%);
+              pointer-events:none;
+            "></div>
+
+            <!-- Grid 2 kolumny -->
+            <div style="
+              display:grid;grid-template-columns:1fr 1px 1fr;gap:16px;
+              position:relative;
+            ">
+
+              <!-- UV Index -->
+              <div style="display:flex;flex-direction:column;">
+                <div style="
+                  display:flex;justify-content:space-between;align-items:flex-start;
+                  margin-bottom:10px;gap:6px;
+                ">
+                  <div style="
+                    font-size:9.5px;font-weight:600;text-transform:uppercase;
+                    letter-spacing:.08em;color:rgba(255,255,255,0.28);
+                    display:flex;align-items:center;line-height:1.2;
+                  ">${uvIcon}UV<br>Index</div>
+                  <div style="
+                    font-size:9px;font-weight:600;letter-spacing:.03em;
+                    color:${stUV.accent};background:${stUV.accent}1A;
+                    border:1px solid ${stUV.accent}40;
+                    padding:2px 6px;border-radius:12px;white-space:nowrap;
+                    flex-shrink:0;
+                  ">${stUV.name}</div>
+                </div>
+
+                <div style="
+                  font-size:56px;font-weight:200;letter-spacing:-3px;line-height:1;
+                  color:${stUV.numCol};font-variant-numeric:tabular-nums;
+                  margin-bottom:6px;
+                ">${uvOk ? uv.toFixed(1) : '—'}<span style="
+                  font-size:13px;font-weight:400;
+                  color:rgba(255,255,255,0.20);
+                  letter-spacing:0;padding-left:2px;
+                ">/11+</span></div>
+
+                <div style="
+                  font-size:9.5px;font-weight:400;color:rgba(255,255,255,0.35);
+                  line-height:1.35;margin-bottom:12px;min-height:26px;
+                ">${stUV.ctx}</div>
+
+                <div style="margin-top:auto;">
+                  <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:3px;position:relative;overflow:hidden;">
+                    <div style="
+                      position:absolute;left:0;top:0;
+                      height:100%;width:${pctUV}%;
+                      background:linear-gradient(to right,#30D158 0%,#F5C842 35%,#FF9F0A 55%,#FF453A 75%,#BF5AF2 100%);
+                      border-radius:3px;opacity:0.65;
+                    "></div>
+                  </div>
+                  <div style="
+                    display:flex;justify-content:space-between;
+                    padding-top:3px;
+                  ">
+                    <span style="font-size:7.5px;color:rgba(255,255,255,0.15);">0</span>
+                    <span style="font-size:7.5px;color:rgba(255,255,255,0.18);">WHO</span>
+                    <span style="font-size:7.5px;color:rgba(255,255,255,0.15);">11+</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div style="
+                width:1px;background:rgba(255,255,255,0.07);
+                align-self:stretch;
+              "></div>
+
+              <!-- Solar Radiation -->
+              <div style="display:flex;flex-direction:column;">
+                <div style="
+                  display:flex;justify-content:space-between;align-items:flex-start;
+                  margin-bottom:10px;gap:6px;
+                ">
+                  <div style="
+                    font-size:9.5px;font-weight:600;text-transform:uppercase;
+                    letter-spacing:.08em;color:rgba(255,255,255,0.28);
+                    display:flex;align-items:center;line-height:1.2;
+                  ">${solIcon}Nasłon.</div>
+                  <div style="
+                    font-size:9px;font-weight:600;letter-spacing:.03em;
+                    color:${stSol.accent};background:${stSol.accent}1A;
+                    border:1px solid ${stSol.accent}40;
+                    padding:2px 6px;border-radius:12px;white-space:nowrap;
+                    flex-shrink:0;
+                  ">${stSol.name}</div>
+                </div>
+
+                <div style="
+                  font-size:56px;font-weight:200;letter-spacing:-3px;line-height:1;
+                  color:${stSol.numCol};font-variant-numeric:tabular-nums;
+                  margin-bottom:6px;
+                ">${wOk ? w.toFixed(0) : '—'}<span style="
+                  font-size:13px;font-weight:400;
+                  color:rgba(255,255,255,0.20);
+                  letter-spacing:0;padding-left:2px;
+                ">W/m²</span></div>
+
+                <div style="
+                  font-size:9.5px;font-weight:400;color:rgba(255,255,255,0.35);
+                  line-height:1.35;margin-bottom:4px;min-height:26px;
+                ">${stSol.ctx}</div>
+
+                <div style="
+                  font-size:10px;font-weight:500;
+                  color:rgba(255,255,255,0.38);
+                  letter-spacing:-.2px;margin-bottom:8px;
+                ">Światło: ${luxStr}</div>
+
+                <div style="margin-top:auto;">
+                  <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:3px;position:relative;overflow:hidden;">
+                    <div style="
+                      position:absolute;left:0;top:0;
+                      height:100%;width:${pctSol}%;
+                      background:linear-gradient(to right,#4A6A9A 0%,#B0C8E0 25%,#F5D070 55%,#FFA020 80%,#FF7010 100%);
+                      border-radius:3px;opacity:0.65;
+                    "></div>
+                  </div>
+                  <div style="
+                    display:flex;justify-content:space-between;
+                    padding-top:3px;
+                  ">
+                    <span style="font-size:7.5px;color:rgba(255,255,255,0.15);">0</span>
+                    <span style="font-size:7.5px;color:rgba(255,255,255,0.18);">W/m²</span>
+                    <span style="font-size:7.5px;color:rgba(255,255,255,0.15);">1200</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>`;
+      ]]]
