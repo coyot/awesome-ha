@@ -1,0 +1,23 @@
+type: custom:waste-schedule-apple-card
+title: Wywóz śmieci
+waste_types:
+  - entity: sensor.waste_bio
+    name: Bio
+    icon: leaf
+    color: '#8B6F47'
+  - entity: sensor.waste_paper
+    name: Papier
+    icon: file-text
+    color: '#3A8FD9'
+  - entity: sensor.waste_plastic
+    name: Plastik i metale
+    icon: package
+    color: '#FFD60A'
+  - entity: sensor.waste_glass
+    name: Szkło
+    icon: droplet
+    color: '#34C759'
+  - entity: sensor.waste_general
+    name: Zmieszane
+    icon: trash-2
+    color: '#636366'

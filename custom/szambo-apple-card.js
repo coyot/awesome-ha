@@ -70,6 +70,311 @@ class SzamboAppleCard extends HTMLElement {
     return isNaN(v) ? 0 : v;
   }
 
+  _renderTankSVG(d1pct, d2pct, emptPct, totalPct, observePct, planPct, clrD1, clrD2, warnObserve, warnPlan) {
+    // Isometric projection: 30° angles
+    // Tank dimensions
+    const w = 50;  // width
+    const d = 30;  // depth
+    const h = 260; // height
+
+    // Isometric offsets (30° projection)
+    const cos30 = Math.cos(Math.PI / 6);
+    const sin30 = Math.sin(Math.PI / 6);
+    const dx = w * cos30;      // ~43.3
+    const dy = w * sin30;      // ~25
+    const ddx = d * cos30;     // ~17.3
+    const ddy = d * sin30;     // ~10
+
+    // ViewBox with padding
+    const vbWidth = dx + ddx + 20;
+    const vbHeight = h + dy + 20;
+
+    // Calculate liquid heights
+    const h2 = (d2pct / 100) * h;  // Dom 2 (bottom)
+    const h1 = (d1pct / 100) * h;  // Dom 1 (top)
+    const hEmpty = (emptPct / 100) * h;
+
+    // Y positions (from bottom)
+    const yBottom = h + 10;
+    const yD2Top = yBottom - h2;
+    const yD1Top = yD2Top - h1;
+
+    // Warning line Y positions
+    const yPlan = yBottom - (planPct / 100) * h;
+    const yObs = yBottom - (observePct / 100) * h;
+
+    // Tank structure points (isometric projection - view from ABOVE)
+    // Front face (left side) - vertical
+    const front = [
+      [5, yBottom],           // bottom left
+      [5 + dx, yBottom + dy], // bottom right (goes DOWN as we go right-front)
+      [5 + dx, 5 + dy],       // top right
+      [5, 5]                  // top left
+    ].map(p => p.join(',')).join(' ');
+
+    // Right face (side) - vertical
+    const right = [
+      [5 + dx, yBottom + dy],             // bottom left (front)
+      [5 + dx + ddx, yBottom + dy - ddy], // bottom right (back) (goes UP as we go right-back)
+      [5 + dx + ddx, 5 + dy - ddy],       // top right
+      [5 + dx, 5 + dy]                    // top left
+    ].map(p => p.join(',')).join(' ');
+
+    // Top face - horizontal parallelogram at top
+    const top = [
+      [5, 5],                       // left
+      [5 + dx, 5 + dy],             // front (goes DOWN)
+      [5 + dx + ddx, 5 + dy - ddy], // right
+      [5 + ddx, 5 - ddy]            // back (goes UP from left)
+    ].map(p => p.join(',')).join(' ');
+
+    // Bottom face - horizontal parallelogram at bottom
+    const bottom = [
+      [5, yBottom],                       // left
+      [5 + dx, yBottom + dy],             // front (goes DOWN)
+      [5 + dx + ddx, yBottom + dy - ddy], // right
+      [5 + ddx, yBottom - ddy]            // back (goes UP from left)
+    ].map(p => p.join(',')).join(' ');
+
+    // === LIQUID D2 (bottom layer) ===
+    // Front face
+    const liquidD2Front = h2 > 0 ? [
+      [5, yBottom],
+      [5 + dx, yBottom + dy],
+      [5 + dx, yD2Top + dy],
+      [5, yD2Top]
+    ].map(p => p.join(',')).join(' ') : '';
+
+    // Right face
+    const liquidD2Right = h2 > 0 ? [
+      [5 + dx, yBottom + dy],
+      [5 + dx + ddx, yBottom + dy - ddy],
+      [5 + dx + ddx, yD2Top + dy - ddy],
+      [5 + dx, yD2Top + dy]
+    ].map(p => p.join(',')).join(' ') : '';
+
+    // Top surface
+    const liquidD2Top = h2 > 0 ? [
+      [5, yD2Top],
+      [5 + dx, yD2Top + dy],
+      [5 + dx + ddx, yD2Top + dy - ddy],
+      [5 + ddx, yD2Top - ddy]
+    ].map(p => p.join(',')).join(' ') : '';
+
+    // === LIQUID D1 (top layer) ===
+    // Front face
+    const liquidD1Front = h1 > 0 ? [
+      [5, yD2Top],
+      [5 + dx, yD2Top + dy],
+      [5 + dx, yD1Top + dy],
+      [5, yD1Top]
+    ].map(p => p.join(',')).join(' ') : '';
+
+    // Right face
+    const liquidD1Right = h1 > 0 ? [
+      [5 + dx, yD2Top + dy],
+      [5 + dx + ddx, yD2Top + dy - ddy],
+      [5 + dx + ddx, yD1Top + dy - ddy],
+      [5 + dx, yD1Top + dy]
+    ].map(p => p.join(',')).join(' ') : '';
+
+    // Top surface
+    const liquidD1Top = h1 > 0 ? [
+      [5, yD1Top],
+      [5 + dx, yD1Top + dy],
+      [5 + dx + ddx, yD1Top + dy - ddy],
+      [5 + ddx, yD1Top - ddy]
+    ].map(p => p.join(',')).join(' ') : '';
+
+    return `
+      <svg class="tank-svg" id="tank" viewBox="0 0 ${vbWidth} ${vbHeight}" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <!-- Tank gradients -->
+          <linearGradient id="grad-front" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(32,32,34,0.85);stop-opacity:1" />
+            <stop offset="60%" style="stop-color:rgba(22,22,24,0.92);stop-opacity:1" />
+            <stop offset="100%" style="stop-color:rgba(18,18,20,0.95);stop-opacity:1" />
+          </linearGradient>
+
+          <linearGradient id="grad-right" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(24,24,26,0.88);stop-opacity:1" />
+            <stop offset="100%" style="stop-color:rgba(16,16,18,0.95);stop-opacity:1" />
+          </linearGradient>
+
+          <linearGradient id="grad-top" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:rgba(48,48,50,0.78);stop-opacity:1" />
+            <stop offset="50%" style="stop-color:rgba(38,38,40,0.86);stop-opacity:1" />
+            <stop offset="100%" style="stop-color:rgba(32,32,34,0.90);stop-opacity:1" />
+          </linearGradient>
+
+          <linearGradient id="grad-bottom" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(18,18,20,0.95);stop-opacity:1" />
+            <stop offset="100%" style="stop-color:rgba(12,12,14,0.98);stop-opacity:1" />
+          </linearGradient>
+
+          <!-- Liquid gradients - front (lighter) -->
+          <linearGradient id="grad-d1-front" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${clrD1};stop-opacity:0.95" />
+            <stop offset="60%" style="stop-color:${clrD1};stop-opacity:0.85" />
+            <stop offset="100%" style="stop-color:${clrD1};stop-opacity:0.90" />
+          </linearGradient>
+
+          <linearGradient id="grad-d2-front" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${clrD2};stop-opacity:0.95" />
+            <stop offset="60%" style="stop-color:${clrD2};stop-opacity:0.85" />
+            <stop offset="100%" style="stop-color:${clrD2};stop-opacity:0.90" />
+          </linearGradient>
+
+          <!-- Liquid gradients - right (darker) -->
+          <linearGradient id="grad-d1-right" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${clrD1};stop-opacity:0.75" />
+            <stop offset="100%" style="stop-color:${clrD1};stop-opacity:0.80" />
+          </linearGradient>
+
+          <linearGradient id="grad-d2-right" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${clrD2};stop-opacity:0.75" />
+            <stop offset="100%" style="stop-color:${clrD2};stop-opacity:0.80" />
+          </linearGradient>
+
+          <!-- Liquid gradients - top (brightest) -->
+          <radialGradient id="grad-d1-top" cx="40%" cy="40%">
+            <stop offset="0%" style="stop-color:${clrD1};stop-opacity:0.98" />
+            <stop offset="100%" style="stop-color:${clrD1};stop-opacity:0.88" />
+          </radialGradient>
+
+          <radialGradient id="grad-d2-top" cx="40%" cy="40%">
+            <stop offset="0%" style="stop-color:${clrD2};stop-opacity:0.98" />
+            <stop offset="100%" style="stop-color:${clrD2};stop-opacity:0.88" />
+          </radialGradient>
+
+          <linearGradient id="light-reflection" x1="0%" y1="0%" x2="60%" y2="40%">
+            <stop offset="0%" style="stop-color:white;stop-opacity:0.2" />
+            <stop offset="100%" style="stop-color:white;stop-opacity:0" />
+          </linearGradient>
+
+          <filter id="tank-shadow">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+            <feOffset dx="2" dy="4" result="offsetblur"/>
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.4"/>
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <g filter="url(#tank-shadow)">
+
+          <!-- Render back to front for proper layering -->
+
+          <!-- Bottom face (darkest, barely visible) -->
+          <polygon points="${bottom}"
+            fill="url(#grad-bottom)"
+            stroke="rgba(60,60,62,0.4)"
+            stroke-width="0.5"
+            opacity="0.6"/>
+
+          <!-- Top face (structural) -->
+          <polygon class="iso-top" points="${top}"
+            fill="url(#grad-top)"
+            stroke="rgba(80,80,82,0.5)"
+            stroke-width="1"
+            style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3))"/>
+
+          <!-- Right face (structural) -->
+          <polygon class="iso-right" points="${right}"
+            fill="url(#grad-right)"
+            stroke="rgba(70,70,72,0.6)"
+            stroke-width="1"
+            style="filter:drop-shadow(2px 0 8px rgba(0,0,0,0.4))"/>
+
+          <!-- Front face (structural) -->
+          <polygon class="iso-front" points="${front}"
+            fill="url(#grad-front)"
+            stroke="rgba(72,72,74,0.7)"
+            stroke-width="1.5"/>
+
+          <!-- Liquid D2 (bottom layer) - right face first -->
+          ${h2 > 0 ? `<polygon class="liquid-d2" points="${liquidD2Right}"
+            fill="url(#grad-d2-right)"
+            opacity="0.88"/>` : ''}
+
+          <!-- Liquid D2 - front face -->
+          ${h2 > 0 ? `<polygon id="tank-d2" data-dom="2" class="liquid-d2" points="${liquidD2Front}"
+            fill="url(#grad-d2-front)"
+            opacity="0.88"/>` : ''}
+
+          <!-- Liquid D2 - top surface (only if D1 doesn't exist or is small) -->
+          ${h2 > 0 && h1 === 0 ? `<polygon class="liquid-d2" points="${liquidD2Top}"
+            fill="url(#grad-d2-top)"
+            stroke="${clrD2}"
+            stroke-width="0.5"
+            opacity="0.92"
+            style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3))"/>` : ''}
+
+          <!-- Liquid D1 (top layer) - right face -->
+          ${h1 > 0 ? `<polygon class="liquid-d1" points="${liquidD1Right}"
+            fill="url(#grad-d1-right)"
+            opacity="0.88"/>` : ''}
+
+          <!-- Liquid D1 - front face -->
+          ${h1 > 0 ? `<polygon id="tank-d1" data-dom="1" class="liquid-d1" points="${liquidD1Front}"
+            fill="url(#grad-d1-front)"
+            opacity="0.88"/>` : ''}
+
+          <!-- Liquid D1 - top surface -->
+          ${h1 > 0 ? `<polygon class="liquid-d1" points="${liquidD1Top}"
+            fill="url(#grad-d1-top)"
+            stroke="${clrD1}"
+            stroke-width="0.5"
+            opacity="0.92"
+            style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3))"/>` : ''}
+
+          <!-- Warning lines (isometric - parallel to top/bottom edges) -->
+          <!-- Observe line (always visible) -->
+          <g opacity="${totalPct >= observePct ? '0.95' : '0.35'}" class="warn-line warn-observe">
+            <line x1="5" y1="${yObs}" x2="${5 + dx}" y2="${yObs + dy}"
+              stroke="#FF9500" stroke-width="${totalPct >= observePct ? '1.8' : '1.2'}"
+              stroke-dasharray="${totalPct >= observePct ? '0' : '3 2'}"
+              style="filter:drop-shadow(0 0 ${totalPct >= observePct ? '6px' : '2px'} rgba(255,149,0,${totalPct >= observePct ? '0.7' : '0.3'}))"/>
+            <line x1="${5 + dx}" y1="${yObs + dy}" x2="${5 + dx + ddx}" y2="${yObs + dy - ddy}"
+              stroke="#FF9500" stroke-width="${totalPct >= observePct ? '1.8' : '1.2'}"
+              stroke-dasharray="${totalPct >= observePct ? '0' : '3 2'}"
+              style="filter:drop-shadow(0 0 ${totalPct >= observePct ? '6px' : '2px'} rgba(255,149,0,${totalPct >= observePct ? '0.7' : '0.3'}))"/>
+            <text x="${5 + dx + ddx + 3}" y="${yObs + dy - ddy + 4}"
+              font-size="7.5" font-weight="${totalPct >= observePct ? '700' : '600'}" fill="#FF9500"
+              opacity="${totalPct >= observePct ? '1' : '0.6'}"
+              style="text-shadow:0 0 ${totalPct >= observePct ? '6px' : '3px'} rgba(255,149,0,${totalPct >= observePct ? '0.9' : '0.5'})">${warnObserve}m³</text>
+          </g>
+
+          <!-- Plan line (always visible) -->
+          <g opacity="${totalPct >= planPct ? '1' : '0.4'}" class="warn-line warn-plan">
+            <line x1="5" y1="${yPlan}" x2="${5 + dx}" y2="${yPlan + dy}"
+              stroke="#FF3B30" stroke-width="${totalPct >= planPct ? '2.2' : '1.4'}"
+              stroke-dasharray="${totalPct >= planPct ? '0' : '4 2'}"
+              style="filter:drop-shadow(0 0 ${totalPct >= planPct ? '8px' : '2px'} rgba(255,59,48,${totalPct >= planPct ? '0.8' : '0.3'}))"/>
+            <line x1="${5 + dx}" y1="${yPlan + dy}" x2="${5 + dx + ddx}" y2="${yPlan + dy - ddy}"
+              stroke="#FF3B30" stroke-width="${totalPct >= planPct ? '2.2' : '1.4'}"
+              stroke-dasharray="${totalPct >= planPct ? '0' : '4 2'}"
+              style="filter:drop-shadow(0 0 ${totalPct >= planPct ? '8px' : '2px'} rgba(255,59,48,${totalPct >= planPct ? '0.8' : '0.3'}))"/>
+            <text x="${5 + dx + ddx + 3}" y="${yPlan + dy - ddy + 4}"
+              font-size="7.5" font-weight="${totalPct >= planPct ? '700' : '600'}" fill="#FF3B30"
+              opacity="${totalPct >= planPct ? '1' : '0.65'}"
+              style="text-shadow:0 0 ${totalPct >= planPct ? '8px' : '3px'} rgba(255,59,48,${totalPct >= planPct ? '1' : '0.5'})">${warnPlan}m³</text>
+          </g>
+
+          <!-- Light reflection overlay -->
+          <polygon points="${front}"
+            fill="url(#light-reflection)"
+            opacity="0.12"
+            pointer-events="none"/>
+
+        </g>
+      </svg>`;
+  }
+
   _render() {
     if (!this._hass) return;
 
@@ -129,12 +434,12 @@ class SzamboAppleCard extends HTMLElement {
         :host { display: block; }
 
         @keyframes szambo-liquid-flow {
-          0%, 100% { opacity: 0.85; }
-          50% { opacity: 0.95; }
+          0%, 100% { opacity: 0.88; }
+          50% { opacity: 0.96; }
         }
 
         @keyframes szambo-glow-pulse {
-          0%, 100% { opacity: 0.6; }
+          0%, 100% { opacity: 0.85; }
           50% { opacity: 1; }
         }
 
@@ -250,271 +555,77 @@ class SzamboAppleCard extends HTMLElement {
 
         .body { display: flex; gap: 14px; }
 
-        /* ── zbiornik 3D ── */
+        /* ── zbiornik SVG ISO ── */
         .tank-col {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 8px;
           flex-shrink: 0;
-          perspective: 800px;
         }
 
-        .tank {
-          width: 70px;
-          flex: 1;
-          position: relative;
+        .tank-svg {
+          width: 90px;
+          height: 100%;
           cursor: pointer;
-          transform-style: preserve-3d;
-          transform: rotateX(8deg) rotateY(-6deg);
-          transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      filter 0.3s ease;
+          filter: drop-shadow(2px 4px 12px rgba(0,0,0,0.35));
         }
 
-        .tank:hover {
-          transform: rotateX(10deg) rotateY(-8deg) scale(1.03);
+        .tank-svg:hover {
+          transform: scale(1.02) translateY(-2px);
+          filter: drop-shadow(3px 6px 16px rgba(0,0,0,0.45));
         }
 
-        /* Front face */
-        .tank-front {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(160deg,
-            rgba(32,32,34,0.85) 0%,
-            rgba(20,20,22,0.95) 100%);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1.5px solid rgba(72,72,74,0.7);
-          border-radius: 8px;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          box-shadow: inset 2px 0 12px rgba(0,0,0,0.5),
-                      inset 0 2px 8px rgba(0,0,0,0.4),
-                      inset -1px 0 0 rgba(255,255,255,0.03),
-                      2px 4px 16px rgba(0,0,0,0.4);
-          transform: translateZ(6px);
-        }
+        /* SVG elements - do NOT style flex/position */
+        .iso-front { transition: opacity 0.3s ease, filter 0.3s ease; }
+        .iso-right { transition: opacity 0.3s ease, filter 0.3s ease; }
+        .iso-top { transition: opacity 0.3s ease, filter 0.3s ease; }
 
-        /* Right face (side) */
-        .tank-right {
-          position: absolute;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          width: 12px;
-          background: linear-gradient(180deg,
-            rgba(24,24,26,0.9) 0%,
-            rgba(16,16,18,0.95) 100%);
-          border: 1px solid rgba(60,60,62,0.6);
-          border-left: none;
-          transform-origin: left center;
-          transform: rotateY(85deg) translateZ(6px);
-          box-shadow: inset 2px 0 8px rgba(0,0,0,0.6),
-                      2px 0 8px rgba(0,0,0,0.3);
-        }
-
-        /* Top face */
-        .tank-top {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 12px;
-          background: linear-gradient(160deg,
-            rgba(48,48,50,0.8) 0%,
-            rgba(36,36,38,0.9) 100%);
-          border: 1px solid rgba(80,80,82,0.6);
-          border-bottom: none;
-          transform-origin: center bottom;
-          transform: rotateX(85deg) translateZ(6px);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-
-        /* Light reflection on front */
-        .tank-front::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 40%;
-          height: 40%;
-          background: linear-gradient(160deg,
-            rgba(255,255,255,0.08) 0%,
-            transparent 70%);
-          pointer-events: none;
-          z-index: 100;
-        }
-
-        .tank-empty {
-          flex: ${emptPct};
-          background: transparent;
-          min-height: 0;
-        }
-
-        .tank-d1 {
-          flex: ${d1pct};
-          min-height: 0;
-          background: linear-gradient(170deg,
-            ${clrD1}f0 0%,
-            ${clrD1}cc 40%,
-            ${clrD1}dd 100%);
-          opacity: 0.90;
-          position: relative;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        .liquid-d1 {
+          transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                      filter 0.4s ease;
           animation: szambo-liquid-flow 4s ease-in-out infinite;
-          box-shadow: inset 2px 0 8px rgba(0,0,0,0.3),
-                      inset 0 2px 6px rgba(0,0,0,0.25);
         }
 
-        /* Liquid surface highlight */
-        .tank-d1::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255,255,255,0.4) 30%,
-            rgba(255,255,255,0.25) 70%,
-            transparent 100%);
-          pointer-events: none;
-        }
-
-        /* Liquid reflection */
-        .tank-d1::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse at 25% 15%,
-            rgba(255,255,255,0.25) 0%,
-            transparent 40%);
-          pointer-events: none;
-        }
-
-        .tank-d1.hovered {
-          opacity: 1;
-          filter: brightness(1.2) saturate(1.2);
-          box-shadow: inset 2px 0 8px rgba(0,0,0,0.3),
-                      inset 0 2px 6px rgba(0,0,0,0.25),
-                      0 0 24px ${clrD1}90,
-                      inset 0 0 20px ${clrD1}30;
-        }
-
-        .tank-d1.faded {
-          opacity: 0.35;
-          filter: grayscale(0.4) brightness(0.8);
-        }
-
-        .tank-d2 {
-          flex: ${d2pct};
-          min-height: 0;
-          background: linear-gradient(170deg,
-            ${clrD2}f0 0%,
-            ${clrD2}cc 40%,
-            ${clrD2}dd 100%);
-          opacity: 0.90;
-          position: relative;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        .liquid-d2 {
+          transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                      filter 0.4s ease;
           animation: szambo-liquid-flow 4.5s ease-in-out infinite;
-          box-shadow: inset 2px 0 8px rgba(0,0,0,0.3),
-                      inset 0 2px 6px rgba(0,0,0,0.25);
         }
 
-        .tank-d2::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255,255,255,0.4) 30%,
-            rgba(255,255,255,0.25) 70%,
-            transparent 100%);
-          pointer-events: none;
+        .liquid-d1.hovered {
+          opacity: 1 !important;
+          filter: brightness(1.2) saturate(1.2) drop-shadow(0 0 8px currentColor);
         }
 
-        .tank-d2::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse at 75% 20%,
-            rgba(255,255,255,0.25) 0%,
-            transparent 40%);
-          pointer-events: none;
+        .liquid-d1.faded {
+          opacity: 0.35 !important;
+          filter: grayscale(0.5) brightness(0.7);
         }
 
-        .tank-d2.hovered {
-          opacity: 1;
-          filter: brightness(1.2) saturate(1.2);
-          box-shadow: inset 2px 0 8px rgba(0,0,0,0.3),
-                      inset 0 2px 6px rgba(0,0,0,0.25),
-                      0 0 24px ${clrD2}90,
-                      inset 0 0 20px ${clrD2}30;
+        .liquid-d2.hovered {
+          opacity: 1 !important;
+          filter: brightness(1.2) saturate(1.2) drop-shadow(0 0 8px currentColor);
         }
 
-        .tank-d2.faded {
-          opacity: 0.35;
-          filter: grayscale(0.4) brightness(0.8);
+        .liquid-d2.faded {
+          opacity: 0.35 !important;
+          filter: grayscale(0.5) brightness(0.7);
         }
 
-        .tank-line-plan {
-          position: absolute;
-          bottom: ${planPct}%;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: #FF3B30;
-          opacity: 0.9;
-          box-shadow: 0 0 8px rgba(255,59,48,0.6),
-                      0 0 16px rgba(255,59,48,0.3);
-          z-index: 5;
-          animation: szambo-glow-pulse 2s ease-in-out infinite;
+        /* Warning lines */
+        .warn-line {
+          transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .tank-lbl-plan {
-          position: absolute;
-          bottom: calc(${planPct}% + 3px);
-          right: 4px;
-          font-size: 7.5px;
-          font-weight: 600;
-          letter-spacing: -0.1px;
-          color: #FF3B30;
-          font-family: -apple-system,'SF Pro Text',sans-serif;
-          text-shadow: 0 0 4px rgba(255,59,48,0.8),
-                       0 1px 2px rgba(0,0,0,0.5);
-          z-index: 6;
+        .warn-observe line {
+          transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .tank-line-obs {
-          position: absolute;
-          bottom: ${observePct}%;
-          left: 0;
-          right: 0;
-          height: 1.5px;
-          background: #FF9500;
-          opacity: 0.85;
-          box-shadow: 0 0 6px rgba(255,149,0,0.5),
-                      0 0 12px rgba(255,149,0,0.25);
-          z-index: 5;
-        }
-
-        .tank-lbl-obs {
-          position: absolute;
-          bottom: calc(${observePct}% + 3px);
-          right: 4px;
-          font-size: 7.5px;
-          font-weight: 600;
-          letter-spacing: -0.1px;
-          color: #FF9500;
-          font-family: -apple-system,'SF Pro Text',sans-serif;
-          text-shadow: 0 0 4px rgba(255,149,0,0.7),
-                       0 1px 2px rgba(0,0,0,0.5);
-          z-index: 6;
+        .warn-plan line {
+          transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .tank-cap-lbl {
@@ -538,7 +649,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 34px;
           font-weight: 200;
           letter-spacing: -2px;
-          color: ${totalClr};a
+          color: ${totalClr};
           line-height: 1;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-shadow: 0 0 20px ${totalClr}40;
@@ -839,15 +950,7 @@ class SzamboAppleCard extends HTMLElement {
         <div class="body">
 
           <div class="tank-col">
-            <div class="tank" id="tank">
-              <div class="tank-empty"></div>
-              <div class="tank-d1" id="tank-d1" data-dom="1"></div>
-              <div class="tank-d2" id="tank-d2" data-dom="2"></div>
-              <div class="tank-line-plan"></div>
-              <div class="tank-lbl-plan">${warnPlan}m\u00b3</div>
-              <div class="tank-line-obs"></div>
-              <div class="tank-lbl-obs">${warnObserve}m\u00b3</div>
-            </div>
+            ${this._renderTankSVG(d1pct, d2pct, emptPct, totalPct, observePct, planPct, clrD1, clrD2, warnObserve, warnPlan)}
             <div class="tank-cap-lbl">${cap} m\u00b3</div>
           </div>
 
@@ -956,44 +1059,49 @@ class SzamboAppleCard extends HTMLElement {
   }
 
   _bindHover() {
-    const td1  = this.shadowRoot.getElementById('tank-d1');
-    const td2  = this.shadowRoot.getElementById('tank-d2');
+    const d1Liquids = this.shadowRoot.querySelectorAll('.liquid-d1');
+    const d2Liquids = this.shadowRoot.querySelectorAll('.liquid-d2');
     const sec1 = this.shadowRoot.getElementById('sec1');
     const sec2 = this.shadowRoot.getElementById('sec2');
-    if (!td1 || !td2) return;
+    if (!d1Liquids.length || !d2Liquids.length) return;
 
     const highlight = (dom) => {
       if (dom === 1) {
-        td1.classList.add('hovered');   td1.classList.remove('faded');
-        td2.classList.add('faded');     td2.classList.remove('hovered');
-        sec1.classList.add('hovered');  sec1.classList.remove('faded');
-        sec2.classList.add('faded');    sec2.classList.remove('hovered');
+        d1Liquids.forEach(el => { el.classList.add('hovered'); el.classList.remove('faded'); });
+        d2Liquids.forEach(el => { el.classList.add('faded'); el.classList.remove('hovered'); });
+        sec1?.classList.add('hovered'); sec1?.classList.remove('faded');
+        sec2?.classList.add('faded'); sec2?.classList.remove('hovered');
       } else if (dom === 2) {
-        td2.classList.add('hovered');   td2.classList.remove('faded');
-        td1.classList.add('faded');     td1.classList.remove('hovered');
-        sec2.classList.add('hovered');  sec2.classList.remove('faded');
-        sec1.classList.add('faded');    sec1.classList.remove('hovered');
+        d2Liquids.forEach(el => { el.classList.add('hovered'); el.classList.remove('faded'); });
+        d1Liquids.forEach(el => { el.classList.add('faded'); el.classList.remove('hovered'); });
+        sec2?.classList.add('hovered'); sec2?.classList.remove('faded');
+        sec1?.classList.add('faded'); sec1?.classList.remove('hovered');
       } else {
-        [td1, td2, sec1, sec2].forEach(el => el.classList.remove('hovered', 'faded'));
+        [...d1Liquids, ...d2Liquids].forEach(el => el.classList.remove('hovered', 'faded'));
+        sec1?.classList.remove('hovered', 'faded');
+        sec2?.classList.remove('hovered', 'faded');
       }
     };
 
-    td1.addEventListener('mouseenter', () => highlight(1));
-    td2.addEventListener('mouseenter', () => highlight(2));
-    td1.addEventListener('mouseleave', () => highlight(null));
-    td2.addEventListener('mouseleave', () => highlight(null));
+    d1Liquids.forEach(el => {
+      el.addEventListener('mouseenter', () => highlight(1));
+      el.addEventListener('mouseleave', () => highlight(null));
+      el.addEventListener('touchstart', () => highlight(1), { passive: true });
+      el.addEventListener('touchend', () => setTimeout(() => highlight(null), 600));
+    });
 
-    /* touch */
-    td1.addEventListener('touchstart', () => highlight(1), { passive: true });
-    td2.addEventListener('touchstart', () => highlight(2), { passive: true });
-    td1.addEventListener('touchend',   () => setTimeout(() => highlight(null), 600));
-    td2.addEventListener('touchend',   () => setTimeout(() => highlight(null), 600));
+    d2Liquids.forEach(el => {
+      el.addEventListener('mouseenter', () => highlight(2));
+      el.addEventListener('mouseleave', () => highlight(null));
+      el.addEventListener('touchstart', () => highlight(2), { passive: true });
+      el.addEventListener('touchend', () => setTimeout(() => highlight(null), 600));
+    });
 
     /* hover po sekcjach też podświetla zbiornik */
-    sec1.addEventListener('mouseenter', () => highlight(1));
-    sec2.addEventListener('mouseenter', () => highlight(2));
-    sec1.addEventListener('mouseleave', () => highlight(null));
-    sec2.addEventListener('mouseleave', () => highlight(null));
+    sec1?.addEventListener('mouseenter', () => highlight(1));
+    sec2?.addEventListener('mouseenter', () => highlight(2));
+    sec1?.addEventListener('mouseleave', () => highlight(null));
+    sec2?.addEventListener('mouseleave', () => highlight(null));
   }
 }
 

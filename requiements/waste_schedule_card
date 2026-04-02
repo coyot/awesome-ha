@@ -1,0 +1,32 @@
+generate a waste schedule card with highly visible next scheduled type of waste
+
+the states that are available:
+calendar.ecoharmonogram_3
+Ecoharmonogram
+off
+
+sensor.harmonogram_bio
+Harmonogram BIO
+8
+
+sensor.harmonogram_gabaryty
+Harmonogram Gabaryty
+79
+
+sensor.harmonogram_platnosc
+Harmonogram Płatność
+30.04.2026
+
+sensor.harmonogram_segregowane
+Harmonogram Segregowane
+6
+
+sensor.harmonogram_zmieszane
+Harmonogram Zmieszane
+13
+
+
+these are days from now when the waste is going to be taken. based on these names (that must be part of the config!!) create great looking apple-styled 
+card to display the schedule with appropriate warnings and showing next to be collected.
+
+aim for visual not for text.
