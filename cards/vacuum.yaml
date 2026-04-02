@@ -64,14 +64,20 @@ label: |
                     : '#3D3D3B';
 
     const batteryCol = batteryPct !== null
-                     ? (batteryPct > 60 ? '#97C459' : batteryPct > 30 ? '#EF9F27' : '#E24B4A')
+                     ? (docked
+                         ? (batteryPct > 90 ? '#7A8A75' : batteryPct > 60 ? '#6B7A68' : batteryPct > 30 ? '#8A7A60' : '#8A6A60')
+                         : (batteryPct > 60 ? '#97C459' : batteryPct > 30 ? '#EF9F27' : '#E24B4A'))
                      : '#5F5E5A';
 
     // ── battery progress ───────────────────────────────────────────────
     const batteryProgress = batteryPct !== null ? batteryPct : 0;
-    const barGrad = batteryProgress > 60 ? 'linear-gradient(90deg,#5F8932,#97C459)'
-                  : batteryProgress > 30 ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
-                  : 'linear-gradient(90deg,#8F2320,#E24B4A)';
+    const barGrad = docked
+                  ? (batteryProgress > 60 ? 'linear-gradient(90deg,#5A6356,#7A8A75)'
+                     : batteryProgress > 30 ? 'linear-gradient(90deg,#6A5A40,#8A7A60)'
+                     : 'linear-gradient(90deg,#6A4A40,#8A6A60)')
+                  : (batteryProgress > 60 ? 'linear-gradient(90deg,#5F8932,#97C459)'
+                     : batteryProgress > 30 ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
+                     : 'linear-gradient(90deg,#8F2320,#E24B4A)');
 
     const progressLabel = cleaning ? 'sprząta'
                         : returning ? 'wraca do bazy'
