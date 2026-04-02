@@ -1,0 +1,102 @@
+type: custom:button-card
+entity: switch.porecz_klatka_schodowa_socket_1
+variables:
+  card_name: "Poręcz"   # ← krótka nazwa wyświetlana na kafelku
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: toggle
+hold_action:
+  action: more-info
+aspect_ratio: 1/1
+styles:
+  card:
+    - padding: "0"
+    - background: |
+        [[[
+          return entity.state === 'on'
+            ? 'linear-gradient(145deg,#2a2508,#1a1a0e)'
+            : '#1C1C1E';
+        ]]]
+    - border-radius: 16px
+    - overflow: hidden
+    - border: |
+        [[[
+          return entity.state === 'on'
+            ? '1px solid rgba(255,214,10,0.25)'
+            : '0.5px solid rgba(255,255,255,0.08)';
+        ]]]
+    - animation: |
+        [[[
+          return entity.state === 'on'
+            ? 'sw-pulse 2.8s ease-in-out infinite'
+            : 'none';
+        ]]]
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - height: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    const on   = entity.state === 'on';
+    const name = variables?.card_name || entity.attributes.friendly_name || 'Gniazdko';
+
+    const accentCol = on ? '#FFD60A' : '#3D3D3B';
+    const nameCol   = on ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.30)';
+
+    const svgIcon = on
+      ? `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              style="filter:drop-shadow(0 0 6px rgba(255,214,10,0.55));">
+           <path d="M8 6v2M16 6v2" stroke="#FFD60A" stroke-width="1.8" stroke-linecap="round"/>
+           <path d="M6 8h12v4a6 6 0 01-12 0V8z" stroke="#FFD60A" stroke-width="1.5"/>
+           <line x1="12" y1="18" x2="12" y2="22" stroke="#FFD60A" stroke-width="1.8" stroke-linecap="round"/>
+           <line x1="9" y1="22" x2="15" y2="22" stroke="#FFD60A" stroke-width="1.8" stroke-linecap="round"/>
+         </svg>`
+      : `<svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+           <path d="M8 6v2M16 6v2" stroke="#3D3D3B" stroke-width="1.8" stroke-linecap="round"/>
+           <path d="M6 8h12v4a6 6 0 01-12 0V8z" stroke="#3D3D3B" stroke-width="1.5"/>
+           <line x1="12" y1="18" x2="12" y2="22" stroke="#3D3D3B" stroke-width="1.8" stroke-linecap="round"/>
+           <line x1="9" y1="22" x2="15" y2="22" stroke="#3D3D3B" stroke-width="1.8" stroke-linecap="round"/>
+         </svg>`;
+
+    const statusDot = `<span style="width:5px;height:5px;border-radius:50%;
+                                    background:${accentCol};flex-shrink:0;
+                                    ${on ? 'animation:sw-dot 2s ease-in-out infinite;box-shadow:0 0 4px rgba(255,214,10,0.6);' : ''}"></span>`;
+
+    return `
+      <style>
+        @keyframes sw-pulse {
+          0%,100% { box-shadow: 0 0 0 0   rgba(255,214,10,0); }
+          50%     { box-shadow: 0 0 0 6px rgba(255,214,10,0.12); }
+        }
+        @keyframes sw-dot {
+          0%,100% { opacity:1; }
+          50%     { opacity:0.25; }
+        }
+      </style>
+
+      <div style="display:flex;flex-direction:column;justify-content:space-between;
+                  padding:14px 12px 12px;height:100%;box-sizing:border-box;
+                  font-family:-apple-system,system-ui,sans-serif;">
+
+        <div>${svgIcon}</div>
+
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <span style="font-size:12px;font-weight:500;color:${nameCol};
+                       line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;
+                       -webkit-box-orient:vertical;overflow:hidden;">${name}</span>
+          <div style="display:flex;align-items:center;gap:5px;">
+            ${statusDot}
+            <span style="font-size:10px;font-weight:600;color:${accentCol};letter-spacing:0.1px;">
+              ${on ? 'Włączone' : 'Wyłączone'}
+            </span>
+          </div>
+        </div>
+
+      </div>`;
+  ]]]

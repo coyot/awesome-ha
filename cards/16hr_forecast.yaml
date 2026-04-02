@@ -121,6 +121,7 @@ label: |
     // ── Stan pogody i nagłówek ─────────────────────────────────
     const wxNow   = states['weather.forecast_home']?.state || 'cloudy';
     const wxLabel = WX[wxNow] || wxNow;
+    const tNow    = parseFloat(states['sensor.stacja_pogodowa_outdoor_temperature']?.state) || null;
 
     // ── Sloty: co 2h, 16h = 8 slotów ──────────────────────────
     const slots = fcAll
@@ -134,6 +135,12 @@ label: |
         const cond = fc.condition || 'cloudy';
         return { hh: hh, temp: temp, prec: prec, cond: cond };
       });
+
+    // Slot 0 = "teraz" — zastąp prognozą rzeczywistymi wartościami z czytnika
+    if (slots.length > 0) {
+      slots[0].cond = wxNow;
+      if (tNow !== null) slots[0].temp = tNow;
+    }
 
     // ── Brak danych ────────────────────────────────────────────
     if (slots.length === 0) {

@@ -90,15 +90,32 @@ label: |
 
     const pct = Math.round(progress * 100);
 
+    // ── off + door states ─────────────────────────────────────────────
+    const loading = !on && doorOpen;   // off + open = ktoś ładuje naczynia
+
     // ── colours ───────────────────────────────────────────────────────
     const accentCol = drying ? '#C97A50' : washing ? '#85B7EB' : '#3D3D3B';
     const timeCol   = drying ? '#C97A50' : washing ? '#85B7EB' : '#5F5E5A';
     const barGrad   = drying
       ? 'linear-gradient(90deg,#9A5230,#C97A50)'
       : 'linear-gradient(90deg,#185FA5,#85B7EB)';
-    const doorCol   = doorOpen ? '#85B7EB' : '#97C459';
-    const doorBg    = doorOpen ? 'rgba(133,183,235,0.10)' : 'rgba(151,196,89,0.10)';
     const phaseCol  = on ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.14)';
+
+    // door chip — kolor tylko gdy zmywarka pracuje, gdy off → zawsze szary
+    const doorCol = on && doorOpen  ? '#85B7EB'
+                  : on && !doorOpen ? '#97C459'
+                  : '#5F5E5A';
+    const doorBg  = on && doorOpen  ? 'rgba(133,183,235,0.10)'
+                  : on && !doorOpen ? 'rgba(151,196,89,0.10)'
+                  : 'rgba(95,94,90,0.08)';
+    const doorLabel = drying   ? 'otwarte · suszy'
+                    : loading  ? 'ładowanie'
+                    : doorOpen ? 'otwarte'
+                    : 'zamknięta';
+
+    // program chip — kolor tylko gdy on
+    const progCol = on ? prog.col : '#5F5E5A';
+    const progBg  = on ? prog.bg  : 'rgba(95,94,90,0.08)';
 
     // ── phase label ───────────────────────────────────────────────────
     const phaseLabel = drying      ? 'osuszanie'
@@ -157,8 +174,8 @@ label: |
            <span style="${dotBase}background:#85B7EB;animation:dw-dot 1.8s ease-in-out infinite;"></span>myje</span>`
       : `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
                       font-size:10px;font-weight:600;white-space:nowrap;
-                      background:rgba(151,196,89,0.12);color:#97C459;">
-           <span style="${dotBase}background:#97C459;"></span>gotowa</span>`;
+                      background:rgba(95,94,90,0.10);color:#636366;">
+           <span style="${dotBase}background:#636366;"></span>${loading ? 'ładowanie' : 'wyłączona'}</span>`;
 
     // ── render ────────────────────────────────────────────────────────
     return `
@@ -198,10 +215,10 @@ label: |
 
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
-                         background:${prog.bg};color:${prog.col};white-space:nowrap;">${prog.label}</span>
+                         background:${progBg};color:${progCol};white-space:nowrap;">${prog.label}</span>
             <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;
                          padding:3px 8px;border-radius:6px;background:${doorBg};color:${doorCol};white-space:nowrap;">
-              ${doorSvg}${doorOpen ? 'otwarte' : 'zamknięte'}</span>
+              ${doorSvg}${doorLabel}</span>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:4px;">

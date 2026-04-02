@@ -103,10 +103,21 @@ class WasteScheduleAppleCard extends HTMLElement {
     return `za ${n} dni`;
   }
 
-  _urgencyColor(n) {
-    if (n <= 0) return _C.urgent;
-    if (n <= 3) return _C.soon;
-    return _C.later;
+  // Returns { color, level } based on calendar-week proximity, not raw day count.
+  // level: 'urgent' | 'soon' | 'later' | 'distant'
+  _urgencyMeta(n, date) {
+    const today = this._today();
+    const nextMonday = this._weekMonday(today);
+    nextMonday.setDate(nextMonday.getDate() + 7);          // start of next week
+    const weekAfterNext = new Date(nextMonday);
+    weekAfterNext.setDate(weekAfterNext.getDate() + 7);   // start of week after next
+
+    const d = new Date(date); d.setHours(0, 0, 0, 0);
+
+    if (n <= 1)                      return { color: _C.urgent, level: 'urgent' };  // today / tomorrow
+    if (n <= 3 && d < nextMonday)    return { color: _C.soon,   level: 'soon'   };  // ≤3 days, same week
+    if (d < weekAfterNext)           return { color: _C.later,  level: 'later'  };  // next calendar week
+    return                                  { color: '#636366', level: 'distant' }; // beyond — no emphasis
   }
 
   /* ── Data ── */
@@ -252,41 +263,41 @@ class WasteScheduleAppleCard extends HTMLElement {
       ? `<div class="empty">Brak zaplanowanych wywozów</div>`
       : grouped.map((g, i) => {
           const n = this._daysFrom(g.date);
-          const uc = this._urgencyColor(n);
+          const { color: uc, level } = this._urgencyMeta(n, g.date);
           const label = this._relLabel(n);
-          const isUrgent = n <= 0;
-          const isSoon = n === 1 || n <= 3;
+          const isDistant = level === 'distant';
 
           const dateStr = g.date.toLocaleDateString('pl-PL', {
             weekday: 'long', day: 'numeric', month: 'short',
           });
 
-          // Urgency bar glow only for today/tomorrow
-          const barGlow = isUrgent
+          // Left bar — glow only for urgent/soon, invisible-ish for distant
+          const barGlow = level === 'urgent'
             ? `box-shadow:0 0 10px ${uc}99,0 0 4px ${uc}cc;`
-            : isSoon
+            : level === 'soon'
             ? `box-shadow:0 0 6px ${uc}66;`
             : '';
+          const barOpacity = isDistant ? 'opacity:0.3;' : '';
 
-          // Item background tint for today
-          const itemBg = isUrgent
-            ? `background:${uc}0d;`
-            : '';
+          // Item bg tint — only today/tomorrow
+          const itemBg = level === 'urgent' ? `background:${uc}0d;` : '';
 
-          // Badge style — heavier for urgent
-          const badgeBg   = `${uc}${isUrgent ? '2a' : '18'}`;
-          const badgeBorder = `${uc}${isUrgent ? '55' : '33'}`;
-          const badgeText  = uc;
+          // Badge — omit for distant (no label clutter needed)
+          const badgeHTML = isDistant ? '' : (() => {
+            const bg     = `${uc}${level === 'urgent' ? '2a' : '18'}`;
+            const border = `${uc}${level === 'urgent' ? '55' : '33'}`;
+            return `<span class="list-badge" style="color:${uc};background:${bg};border-color:${border};">${label}</span>`;
+          })();
 
           const sep = i < grouped.length - 1 ? ' sep' : '';
 
           return `
             <div class="list-item${sep}" data-date="${g.key}" style="${itemBg}">
-              <div class="urgency-bar" style="background:${uc};${barGlow}"></div>
+              <div class="urgency-bar" style="background:${uc};${barGlow}${barOpacity}"></div>
               <div class="list-body">
                 <div class="list-top">
-                  <span class="list-date">${dateStr}</span>
-                  <span class="list-badge" style="color:${badgeText};background:${badgeBg};border-color:${badgeBorder};">${label}</span>
+                  <span class="list-date${isDistant ? ' list-date-muted' : ''}">${dateStr}</span>
+                  ${badgeHTML}
                 </div>
                 <div class="list-chips">${g.items.map(it => this._renderChip(it)).join('')}</div>
               </div>
@@ -447,6 +458,10 @@ class WasteScheduleAppleCard extends HTMLElement {
         .list-date {
           font-size: 12px; font-weight: 500; color: ${_C.textSecondary};
           text-transform: capitalize; flex: 1; min-width: 0;
+        }
+        .list-date-muted {
+          color: ${_C.textTertiary};
+          font-weight: 400;
         }
 
         /* Badge pill */
