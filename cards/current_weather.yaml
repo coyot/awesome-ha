@@ -1,0 +1,1221 @@
+type: custom:button-card
+entity: weather.forecast_home
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: more-info
+styles:
+  card:
+    - padding: "0"
+    - background: transparent
+    - border-radius: 24px
+    - box-shadow: none
+    - overflow: hidden
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    // ╔══════════════════════════════════════════════════════════════════════╗
+    // ║  WEATHER CARD v2 — Fazy dnia · Nowe typy · Layout · Trend          ║
+    // ╚══════════════════════════════════════════════════════════════════════╝
+
+    // ── KONFIGURACJA ───────────────────────────────────────────────────────
+    const STATS_VISIBLE  = false;   // true = rozwinięty, false = zwinięty
+    const STATION_LABEL  = 'Ogród · Stacja główna';
+
+    // ── ENCJE ──────────────────────────────────────────────────────────────
+    const E_TEMP       = 'sensor.stacja_pogodowa_outdoor_temperature';
+    const E_FEELS      = 'sensor.stacja_pogodowa_feels_like_temperature';
+    const E_HUM        = 'sensor.stacja_pogodowa_humidity';
+    const E_PRES       = 'sensor.stacja_pogodowa_relative_pressure';
+    const E_WIND       = 'sensor.stacja_pogodowa_wind_speed';
+    const E_GUST       = 'sensor.stacja_pogodowa_wind_gust';
+    const E_WIND_DIR   = 'sensor.stacja_pogodowa_wind_direction';
+    const E_RAIN_RATE  = 'sensor.stacja_pogodowa_rain_rate_piezo';
+    const E_RAIN_DAY   = 'sensor.stacja_pogodowa_daily_rain_piezo';
+    const E_RAIN_STATE = 'binary_sensor.stacja_pogodowa_rain_state_piezo';
+    const E_UV         = 'sensor.stacja_pogodowa_uv_index';
+    const E_BAT        = 'sensor.stacja_pogodowa_wh90_battery';
+    const E_FORECAST_H = 'sensor.forecast_hourly_json';
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 1. POMOCNICZE
+    // ══════════════════════════════════════════════════════════════════════
+    const g   = id => states[id]?.state ?? '—';
+    const gf  = (id, dec=1) => { const v=parseFloat(g(id)); return isNaN(v)?'—':v.toFixed(dec); };
+    const gfn = id => { const v=parseFloat(g(id)); return isNaN(v)?null:v; };
+
+    function degToCompass(raw){
+      const n=parseFloat(raw); if(isNaN(n)) return '—';
+      return ['N','NE','E','SE','S','SW','W','NW'][Math.round(n/45)%8];
+    }
+    const WIND_PL={N:'Płn',NE:'Płn-Wsch',E:'Wsch',SE:'Płd-Wsch',S:'Płd',SW:'Płd-Zach',W:'Zach',NW:'Płn-Zach'};
+    const windDirPL = d => WIND_PL[d]||d;
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 2. FAZA DNIA (6 stanów z sun.elevation)
+    // ══════════════════════════════════════════════════════════════════════
+    const sunAttr = states['sun.sun']?.attributes ?? {};
+    const sunElev  = parseFloat(sunAttr.elevation ?? 999);
+    const sunAz    = parseFloat(sunAttr.azimuth   ?? 180);
+    const sunState = states['sun.sun']?.state ?? '';
+
+    // elevation:  <-6=night, -6..-0.5=astronomical twilight,
+    //             -0.5..6=civil twilight (świt/zmierzch), 6..15=golden, >15=day
+    function getDayPhase(){
+      if (sunElev < -6)   return 'night';
+      if (sunElev < -0.5) return sunAz < 180 ? 'astro-dawn' : 'astro-dusk';
+      if (sunElev < 6)    return sunAz < 180 ? 'dawn'        : 'dusk';
+      if (sunElev < 18)   return sunAz < 180 ? 'morning'     : 'golden';
+      return 'day';
+    }
+    const dayPhase = getDayPhase();
+    const isNight  = ['night','astro-dawn','astro-dusk'].includes(dayPhase);
+    const isDawn   = ['dawn','astro-dawn','morning'].includes(dayPhase);
+    const isGolden = dayPhase === 'golden';
+    const isDusk   = ['dusk','astro-dusk'].includes(dayPhase);
+    const isDay    = dayPhase === 'day';
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 3. WARTOŚCI SENSORÓW
+    // ══════════════════════════════════════════════════════════════════════
+    const temp        = gfn(E_TEMP);
+    const tempStr     = temp!==null ? temp.toFixed(1) : '—';
+    const feels       = gf(E_FEELS);
+    const feelsNum    = gfn(E_FEELS);
+    const humOut      = g(E_HUM);
+    const pres        = gf(E_PRES,0);
+    const wind        = gf(E_WIND,1);
+    const windNum     = parseFloat(wind)||0;
+    const gust        = gf(E_GUST,1);
+    const gustNum     = parseFloat(gust)||0;
+    const windDeg     = g(E_WIND_DIR);
+    const windDir     = degToCompass(windDeg);
+    const windDirPl   = windDirPL(windDir);
+    const rainRate    = gf(E_RAIN_RATE,1);
+    const rainRateNum = parseFloat(rainRate)||0;
+    const rainDay     = gf(E_RAIN_DAY,1);
+    const uv          = g(E_UV);
+    const uvNum       = parseFloat(uv)||0;
+    const batV        = gf(E_BAT,2);
+
+    // ── Trend temperatury z prognozy godzinowej ────────────────────────
+    let trendStr  = '';
+    let trendCol  = 'rgba(255,255,255,0.28)';
+    try {
+      const fcAttr = states[E_FORECAST_H]?.attributes?.forecast;
+      const fc = typeof fcAttr === 'string' ? JSON.parse(fcAttr) : fcAttr;
+      if (Array.isArray(fc) && fc.length >= 2 && temp !== null) {
+        const next = parseFloat(fc[1]?.temperature ?? fc[1]?.temperature_high);
+        const delta = next - temp;
+        if (!isNaN(delta)) {
+          if (Math.abs(delta) < 0.4)   { trendStr = '→ stała';     trendCol = 'rgba(255,255,255,0.25)'; }
+          else if (delta > 0) {
+            trendStr  = `↑ +${delta.toFixed(1)}° za godz.`;
+            trendCol  = delta > 3 ? '#FF9F0A' : '#FFD060';
+          } else {
+            trendStr  = `↓ ${delta.toFixed(1)}° za godz.`;
+            trendCol  = delta < -3 ? '#5AC8FA' : '#A0CCFF';
+          }
+        }
+      }
+    } catch(e){}
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 4. TYP WIZUALNY — macierz (pogoda × faza dnia)
+    // ══════════════════════════════════════════════════════════════════════
+    const haState = entity.state;
+
+    const rainClass = rainRateNum<0.5?'drizzle':rainRateNum<2.5?'light':rainRateNum<7.5?'moderate':rainRateNum<50?'heavy':'violent';
+    const isRaining = ['rainy','pouring'].includes(haState) || rainRateNum > 0.3;
+    const isSunny   = ['sunny','clear-night'].includes(haState);
+    const isCloudy  = ['cloudy','partlycloudy'].includes(haState);
+
+    // Specjalne warunki nadrzędne
+    const isBlizzard     = ['snowy','snowy-rainy'].includes(haState) && gustNum >= 35;
+    const isFreezingRain = isRaining && temp !== null && temp <= 1;
+    const isExtremeHeat  = temp !== null && temp >= 38;
+    const isAurora       = isNight && temp !== null && temp <= -5 && isSunny;
+
+    function resolveType(){
+      // --- nadrzędne ---
+      if (isBlizzard)                                              return 'blizzard';
+      if (['hail'].includes(haState))                             return 'hail';
+      if (['lightning','lightning-rainy','exceptional'].includes(haState)) {
+        if (isDawn)   return 'storm-dawn';
+        if (isGolden||isDusk) return 'storm-golden';
+        return isNight ? 'storm-night' : 'storm';
+      }
+      if (isFreezingRain)                                         return 'freezing-rain';
+      if (isExtremeHeat && isDay)                                 return 'extreme-heat';
+      if (isAurora)                                               return 'aurora';
+
+      // --- deszcz × faza dnia ---
+      if (isRaining){
+        if (isDawn)           return 'rain-dawn';
+        if (isGolden)         return 'rain-golden';
+        if (isDusk)           return 'rain-dusk';
+        if (isNight)          return 'rain-night';
+        return 'rain';
+      }
+
+      // --- śnieg ---
+      if (['snowy','snowy-rainy'].includes(haState)){
+        return isNight ? 'snow-night' : 'snow';
+      }
+
+      // --- mgła ---
+      if (['fog'].includes(haState)){
+        return isNight ? 'fog-night' : 'fog';
+      }
+
+      // --- wiatr ---
+      if (['windy','windy-variant'].includes(haState) || gustNum >= 50){
+        return isNight ? 'windy-night' : 'windy';
+      }
+
+      // --- słonecznie × faza dnia ---
+      if (isSunny){
+        if (dayPhase==='astro-dawn') return 'night-clear';
+        if (dayPhase==='dawn')       return 'dawn-clear';
+        if (dayPhase==='morning')    return 'morning-clear';
+        if (dayPhase==='golden')     return 'golden-clear';
+        if (dayPhase==='dusk')       return 'dusk-clear';
+        if (dayPhase==='astro-dusk') return 'astro-dusk-clear';
+        if (isNight)                 return 'night-clear';
+        return 'sun';
+      }
+
+      // --- zachmurzenie × faza dnia ---
+      if (isCloudy || ['partlycloudy'].includes(haState)){
+        if (isDawn||dayPhase==='astro-dawn') return 'cloud-dawn';
+        if (isGolden)                        return 'cloud-golden';
+        if (isDusk||dayPhase==='astro-dusk') return 'cloud-dusk';
+        if (isNight)                         return 'cloud-night';
+        return haState==='partlycloudy' ? 'partlycloudy' : 'cloud';
+      }
+
+      // --- fallback ---
+      return isNight ? 'cloud-night' : 'cloud';
+    }
+
+    const type = resolveType();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 5. KOLORY TŁA — per typ
+    // ══════════════════════════════════════════════════════════════════════
+    function tempDayBg(t){
+      if(t===null)return '#181818';
+      if(t>=40)return '#2E0505';if(t>=35)return '#280808';if(t>=30)return '#231205';
+      if(t>=25)return '#1E1808';if(t>=20)return '#171A12';if(t>=15)return '#131618';
+      if(t>=8) return '#101418';if(t>=0) return '#0C1A2A';return '#0A1425';
+    }
+
+    const BG = {
+      // Dzienne słońce
+      'sun':              tempDayBg(temp),
+      'extreme-heat':     '#1E0303',
+      // Poranki / świty
+      'dawn-clear':       '#0C1525',  // granat przechodzi w ciepły horyzont → via inline gradient
+      'morning-clear':    '#131820',
+      'astro-dawn':       '#090E1A',
+      // Wieczory
+      'golden-clear':     '#140C05',
+      'dusk-clear':       '#0B0E1E',
+      'astro-dusk-clear': '#070A14',
+      // Noc czysta
+      'night-clear':      '#07090F',
+      // Chmury
+      'partlycloudy':     tempDayBg(temp),
+      'cloud':            '#111620',
+      'cloud-dawn':       '#0E1320',
+      'cloud-golden':     '#12100A',
+      'cloud-dusk':       '#0A0E1C',
+      'cloud-night':      '#0A0D18',
+      // Deszcz
+      'rain':             '#0A1018',
+      'rain-dawn':        '#0C1220',
+      'rain-golden':      '#10100C',
+      'rain-dusk':        '#080C18',
+      'rain-night':       '#070A14',
+      // Śnieg
+      'snow':             '#0E1624',
+      'snow-night':       '#0A1220',
+      'blizzard':         '#080E1C',
+      'freezing-rain':    '#070C18',
+      // Burza
+      'storm':            '#080C10',
+      'storm-dawn':       '#0A0E14',
+      'storm-golden':     '#0C0A08',
+      'storm-night':      '#060810',
+      // Specjalne
+      'hail':             '#0C1020',
+      'fog':              '#101520',
+      'fog-night':        '#0A0E18',
+      'windy':            '#101828',
+      'windy-night':      '#0A1020',
+      'aurora':           '#030508',
+    };
+
+    const bg = BG[type] ?? '#0f0f0f';
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 6. KOLORY TEMPERATURY I AKCENTU
+    // ══════════════════════════════════════════════════════════════════════
+    function tempAccent(t){
+      if(t===null)return '#888';if(t>=40)return '#FF2020';if(t>=35)return '#FF3B30';
+      if(t>=30)return '#FF6820';if(t>=25)return '#FF9F0A';if(t>=20)return '#FFD60A';
+      if(t>=15)return '#34C759';if(t>=8)return '#30D158';if(t>=0)return '#5AC8FA';
+      if(t>=-8)return '#4DA6FF';if(t>=-18)return '#748FFF';return '#BF5AF2';
+    }
+    function tempColor(t){
+      if(t===null)return '#fff';if(t>=35)return '#FFB3AA';if(t>=28)return '#FFD4A0';
+      if(t>=20)return '#FFF0C0';if(t>=8)return '#FFFFFF';if(t>=0)return '#C8E8FF';
+      if(t>=-8)return '#A8D4FF';return '#C8AAFF';
+    }
+
+    // Kolor temperatury uwzględnia porę dnia
+    let tColor;
+    if (['dawn-clear','cloud-dawn','rain-dawn','storm-dawn'].includes(type))
+      tColor = '#FFD09A';  // ciepły pomarańcz o świcie
+    else if (['golden-clear','cloud-golden','rain-golden','storm-golden'].includes(type))
+      tColor = '#FFC070';  // głęboki złoty o zachodzie
+    else if (['dusk-clear','astro-dusk-clear','cloud-dusk','rain-dusk'].includes(type))
+      tColor = '#C8D0FF';  // chłodny niebieskofiolet blue hour
+    else if (isNight)
+      tColor = '#C8D8F0';  // zimna biel nocna
+    else
+      tColor = tempColor(temp);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 7. FAZA KSIĘŻYCA
+    // ══════════════════════════════════════════════════════════════════════
+    function getMoonPhase(){
+      const ref=new Date('2000-01-06T18:14:00Z').getTime();
+      const cycle=29.53059*86400000;
+      const p=((Date.now()-ref)%cycle)/cycle;
+      return p<0?p+1:p;
+    }
+    function moonShape(phase){
+      const p=((phase%1)+1)%1;
+      const cx=44,cy=44,r=22,ty=cy-r,by=cy+r;
+      if(p<0.03||p>0.97)
+        return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#0D1426"/>
+                <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2A3A5A" stroke-width="1"/>`;
+      if(p>0.47&&p<0.53)
+        return `<circle cx="${cx}" cy="${cy}" r="${r+5}" fill="#C8D8F0" opacity=".10"/>
+                <circle cx="${cx}" cy="${cy}" r="${r}" fill="#C8D8F0"/>
+                <circle cx="${cx}" cy="${cy}" r="${(r*0.74).toFixed(0)}" fill="#DDE8F8"/>`;
+      const waxing=p<0.5;
+      const hp=waxing?p*2:(p-0.5)*2;
+      const ex=Math.cos(hp*Math.PI)*r, aex=Math.abs(ex).toFixed(2), ts=ex>0?0:1;
+      let d;
+      if(waxing){
+        d=Math.abs(ex)<0.5?`M ${cx} ${ty} A ${r} ${r} 0 0 1 ${cx} ${by} L ${cx} ${ty} Z`
+          :`M ${cx} ${ty} A ${r} ${r} 0 0 1 ${cx} ${by} A ${aex} ${r} 0 0 ${ts} ${cx} ${ty} Z`;
+      } else {
+        d=Math.abs(ex)<0.5?`M ${cx} ${ty} A ${r} ${r} 0 0 0 ${cx} ${by} L ${cx} ${ty} Z`
+          :`M ${cx} ${ty} A ${r} ${r} 0 0 0 ${cx} ${by} A ${aex} ${r} 0 0 ${ts} ${cx} ${ty} Z`;
+      }
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#0D1426"/>
+              <path d="${d}" fill="#C8D8F0"/>`;
+    }
+    const moonPhase = getMoonPhase();
+    const ms = moonShape(moonPhase);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 8. SVG IKONY POGODY
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Słońce helper
+    function sunSVG(rays,coreR,glowR,rayLen,col){
+      col=col||'#F5A623';
+      const cx=44,cy=44;
+      const rl=rays.map(deg=>{
+        const r2=deg*Math.PI/180;
+        const x1=(cx+Math.cos(r2)*(coreR+3)).toFixed(1),y1=(cy+Math.sin(r2)*(coreR+3)).toFixed(1);
+        const x2=(cx+Math.cos(r2)*(coreR+3+rayLen)).toFixed(1),y2=(cy+Math.sin(r2)*(coreR+3+rayLen)).toFixed(1);
+        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
+      }).join('');
+      const lc=col==='#F5A623'?'#FFD060':'#FFE0A0';
+      return `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+        ${glowR?`<circle cx="44" cy="44" r="${glowR}" fill="${col}" opacity=".12"/>`:''}
+        ${rl}<circle cx="44" cy="44" r="${coreR}" fill="${col}"/>
+        <circle cx="44" cy="44" r="${(coreR*0.72).toFixed(0)}" fill="${lc}"/></svg>`;
+    }
+    function snowSVG(crystals,col){
+      col=col||'#55C0E8';
+      const cx=44,cy=44,arm=32,br=11;
+      const arms=[0,45,90,135,180,225,270,315].map(deg=>{
+        const r=deg*Math.PI/180;
+        const ex=(cx+Math.cos(r)*arm).toFixed(1),ey=(cy+Math.sin(r)*arm).toFixed(1);
+        const mx=(cx+Math.cos(r)*(arm*0.6)).toFixed(1),my=(cy+Math.sin(r)*(arm*0.6)).toFixed(1);
+        const p=r+Math.PI/2;
+        const br2=crystals?`<line x1="${mx}" y1="${my}" x2="${(parseFloat(mx)+Math.cos(p)*br).toFixed(1)}" y2="${(parseFloat(my)+Math.sin(p)*br).toFixed(1)}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="${mx}" y1="${my}" x2="${(parseFloat(mx)-Math.cos(p)*br).toFixed(1)}" y2="${(parseFloat(my)-Math.sin(p)*br).toFixed(1)}" stroke="${col}" stroke-width="1.5" stroke-linecap="round"/>`:'';
+        const dot=crystals?`<circle cx="${ex}" cy="${ey}" r="2.5" fill="${col}"/>`:'';
+        return `<line x1="44" y1="44" x2="${ex}" y2="${ey}" stroke="${col}" stroke-width="${crystals?2.5:2}" stroke-linecap="round"/>${br2}${dot}`;
+      }).join('');
+      return `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+        ${crystals?`<circle cx="44" cy="44" r="40" fill="${col}" opacity=".07"/>`:''}
+        ${arms}<circle cx="44" cy="44" r="${crystals?5:4}" fill="#0A1430" stroke="${col}" stroke-width="2.5"/></svg>`;
+    }
+
+    const R8=[0,45,90,135,180,225,270,315];
+    const R12=[0,30,60,90,120,150,180,210,240,270,300,330];
+
+    // Chmura SVG reużywalna
+    function cloudSVG(col1,col2,w,small){
+      const W=small?'48':'48';
+      const oc1=col1||'#4A5068',oc2=col2||oc1;
+      return `<svg viewBox="0 0 88 88" fill="none" width="${W}" height="${W}">
+        <circle cx="26" cy="52" r="14" fill="${oc1}"/><circle cx="44" cy="44" r="18" fill="${oc1}"/>
+        <circle cx="62" cy="52" r="12" fill="${oc2}"/><rect x="12" y="52" width="62" height="16" fill="${oc2}"/>
+        <rect x="12" y="62" width="62" height="6" rx="3" fill="${oc2}"/></svg>`;
+    }
+    function rainCloudSVG(cloudCol,dropCol){
+      cloudCol=cloudCol||'#3A7EC4'; dropCol=dropCol||'#5AC8FA';
+      return `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+        <circle cx="28" cy="38" r="14" fill="${cloudCol}"/><circle cx="46" cy="30" r="18" fill="${cloudCol}"/>
+        <circle cx="62" cy="38" r="12" fill="${cloudCol}"/><rect x="14" y="38" width="60" height="14" fill="${cloudCol}"/>
+        <rect x="14" y="46" width="60" height="6" rx="3" fill="${cloudCol}"/>
+        <line x1="26" y1="56" x2="23" y2="67" stroke="${dropCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="38" y1="54" x2="35" y2="65" stroke="${dropCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="50" y1="56" x2="47" y2="67" stroke="${dropCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="62" y1="54" x2="59" y2="65" stroke="${dropCol}" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+    }
+
+    // Słońce za chmurą (dla partlycloudy różnych pór)
+    function sunCloudSVG(sunCol){
+      sunCol=sunCol||'#F5A623';
+      return `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+        <circle cx="30" cy="32" r="14" fill="${sunCol}" opacity=".9"/>
+        <line x1="30" y1="13" x2="30" y2="17" stroke="${sunCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="42" y1="17" x2="40" y2="20" stroke="${sunCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="48" y1="28" x2="44" y2="29" stroke="${sunCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="18" y1="17" x2="20" y2="20" stroke="${sunCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="12" y1="32" x2="16" y2="32" stroke="${sunCol}" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="38" cy="55" r="12" fill="#4A5068"/><circle cx="53" cy="49" r="14" fill="#4A5068"/>
+        <circle cx="66" cy="55" r="10" fill="#4A5068"/><rect x="26" y="55" width="51" height="12" fill="#4A5068"/>
+        <rect x="26" y="62" width="51" height="5" rx="3" fill="#4A5068"/></svg>`;
+    }
+
+    // Ikona zorzy
+    const auroraSVG=`<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+      <ellipse cx="44" cy="38" rx="36" ry="10" fill="rgba(0,200,100,0.30)"/>
+      <ellipse cx="44" cy="48" rx="28" ry="8"  fill="rgba(0,160,200,0.22)"/>
+      <ellipse cx="44" cy="56" rx="20" ry="6"  fill="rgba(100,0,220,0.18)"/>
+      <circle cx="18" cy="18" r="1.5" fill="#C8D8F0" opacity=".7"/>
+      <circle cx="32" cy="10" r="1"   fill="#C8D8F0" opacity=".6"/>
+      <circle cx="56" cy="14" r="1.2" fill="#C8D8F0" opacity=".8"/>
+      <circle cx="70" cy="22" r="1"   fill="#C8D8F0" opacity=".5"/>
+      <circle cx="62" cy="8"  r="1.5" fill="#C8D8F0" opacity=".7"/>
+      <circle cx="78" cy="35" r="1"   fill="#C8D8F0" opacity=".4"/></svg>`;
+
+    // Ikona zamarzającego deszczu
+    const freezingRainSVG=`<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+      <circle cx="26" cy="36" r="13" fill="#3A6A9A"/><circle cx="44" cy="28" r="17" fill="#3A6A9A"/>
+      <circle cx="60" cy="36" r="11" fill="#3A6A9A"/><rect x="13" y="36" width="59" height="13" fill="#3A6A9A"/>
+      <rect x="13" y="44" width="59" height="5" rx="3" fill="#3A6A9A"/>
+      <line x1="28" y1="54" x2="22" y2="68" stroke="#A0D8FF" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="40" y1="52" x2="34" y2="66" stroke="#A0D8FF" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="52" y1="54" x2="46" y2="68" stroke="#A0D8FF" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="22" cy="70" r="3" fill="none" stroke="#A0D8FF" stroke-width="1.5"/>
+      <circle cx="34" cy="68" r="3" fill="none" stroke="#A0D8FF" stroke-width="1.5"/>
+      <circle cx="46" cy="70" r="3" fill="none" stroke="#A0D8FF" stroke-width="1.5"/></svg>`;
+
+    // Mapa ikon per typ
+    const ICON_MAP = {
+      'sun':           temp!==null&&temp>=35?sunSVG(R12,20,28,10):sunSVG(R8,14,0,8),
+      'extreme-heat':  sunSVG(R12,22,32,12,'#FF6030'),
+      'dawn-clear':    sunSVG([60,90,120],10,14,7,'#FF9040'),  // wschodzące słońce
+      'morning-clear': sunSVG(R8,12,18,7,'#F5C060'),
+      'golden-clear':  sunSVG([200,240,280,320],10,16,8,'#FF7020'), // zachodzące
+      'dusk-clear':    `<svg viewBox="0 0 88 88" fill="none" width="48" height="48"><circle cx="44" cy="70" r="22" fill="#3050A8" opacity=".25"/><circle cx="44" cy="70" r="14" fill="#4060C0" opacity=".4"/>${ms}</svg>`,
+      'astro-dusk-clear': `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">${ms}</svg>`,
+      'night-clear':   `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">${ms}</svg>`,
+      'partlycloudy':  sunCloudSVG('#F5A623'),
+      'cloud':         cloudSVG('#4A5068','#4A5068'),
+      'cloud-dawn':    cloudSVG('#7A6050','#604030'),  // chmury zaróżowione
+      'cloud-golden':  cloudSVG('#785040','#604030'),
+      'cloud-dusk':    cloudSVG('#3A4068','#2A3058'),
+      'cloud-night':   cloudSVG('#2A3040','#2A3040'),
+      'rain':          rainCloudSVG('#3A7EC4','#5AC8FA'),
+      'rain-dawn':     rainCloudSVG('#5A5A80','#A0B8E0'),
+      'rain-golden':   rainCloudSVG('#6A5040','#C0A070'),
+      'rain-dusk':     rainCloudSVG('#3A4080','#7090D0'),
+      'rain-night':    rainCloudSVG('#253045','#4870A0'),
+      'snow':          temp!==null&&temp<=-10?snowSVG(true):snowSVG(false),
+      'snow-night':    snowSVG(false,'#8899CC'),
+      'blizzard':      snowSVG(true,'#AEE4F8'),
+      'freezing-rain': freezingRainSVG,
+      'storm':         `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <circle cx="28" cy="34" r="14" fill="#282E3A"/><circle cx="46" cy="26" r="18" fill="#282E3A"/>
+                          <circle cx="62" cy="34" r="12" fill="#282E3A"/><rect x="14" y="34" width="60" height="14" fill="#282E3A"/>
+                          <rect x="14" y="44" width="60" height="6" rx="3" fill="#282E3A"/>
+                          <polygon points="50,52 41,70 49,70 43,86 59,62 51,62 57,52" fill="#FFD060"/></svg>`,
+      'storm-dawn':    `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <circle cx="28" cy="34" r="14" fill="#2A2830"/><circle cx="46" cy="26" r="18" fill="#2A2830"/>
+                          <circle cx="62" cy="34" r="12" fill="#2A2830"/><rect x="14" y="34" width="60" height="14" fill="#2A2830"/>
+                          <rect x="14" y="44" width="60" height="6" rx="3" fill="#2A2830"/>
+                          <polygon points="50,52 41,70 49,70 43,86 59,62 51,62 57,52" fill="#FFA040"/></svg>`,
+      'storm-golden':  `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <circle cx="28" cy="34" r="14" fill="#28221A"/><circle cx="46" cy="26" r="18" fill="#28221A"/>
+                          <circle cx="62" cy="34" r="12" fill="#28221A"/><rect x="14" y="34" width="60" height="14" fill="#28221A"/>
+                          <rect x="14" y="44" width="60" height="6" rx="3" fill="#28221A"/>
+                          <polygon points="50,52 41,70 49,70 43,86 59,62 51,62 57,52" fill="#FF8030"/></svg>`,
+      'storm-night':   `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <circle cx="28" cy="34" r="14" fill="#1A1E28"/><circle cx="46" cy="26" r="18" fill="#1A1E28"/>
+                          <circle cx="62" cy="34" r="12" fill="#1A1E28"/><rect x="14" y="34" width="60" height="14" fill="#1A1E28"/>
+                          <rect x="14" y="44" width="60" height="6" rx="3" fill="#1A1E28"/>
+                          <polygon points="50,52 41,70 49,70 43,86 59,62 51,62 57,52" fill="#C0D0FF"/></svg>`,
+      'hail':          `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <circle cx="26" cy="36" r="13" fill="#3A5080"/><circle cx="44" cy="28" r="17" fill="#3A5080"/>
+                          <circle cx="60" cy="36" r="11" fill="#3A5080"/><rect x="13" y="36" width="59" height="13" fill="#3A5080"/>
+                          <rect x="13" y="44" width="59" height="5" rx="3" fill="#3A5080"/>
+                          <circle cx="26" cy="58" r="4" fill="#A8D8F0"/><circle cx="42" cy="62" r="4" fill="#A8D8F0"/>
+                          <circle cx="58" cy="57" r="4" fill="#A8D8F0"/><circle cx="34" cy="70" r="3.5" fill="#A8D8F0"/>
+                          <circle cx="50" cy="72" r="3.5" fill="#A8D8F0"/></svg>`,
+      'fog':           `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <line x1="12" y1="26" x2="76" y2="26" stroke="#8899BB" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+                          <line x1="20" y1="38" x2="72" y2="38" stroke="#8899BB" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+                          <line x1="12" y1="50" x2="76" y2="50" stroke="#8899BB" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+                          <line x1="20" y1="62" x2="72" y2="62" stroke="#8899BB" stroke-width="4" stroke-linecap="round" opacity=".4"/>
+                          <line x1="12" y1="74" x2="58" y2="74" stroke="#8899BB" stroke-width="4" stroke-linecap="round" opacity=".25"/></svg>`,
+      'fog-night':     `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <line x1="12" y1="26" x2="76" y2="26" stroke="#5566AA" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+                          <line x1="20" y1="38" x2="72" y2="38" stroke="#5566AA" stroke-width="4" stroke-linecap="round" opacity=".4"/>
+                          <line x1="12" y1="50" x2="76" y2="50" stroke="#5566AA" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+                          <line x1="20" y1="62" x2="72" y2="62" stroke="#5566AA" stroke-width="4" stroke-linecap="round" opacity=".3"/>
+                          <g opacity=".5">${ms}</g></svg>`,
+      'windy':         `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <path d="M12 26 Q28 18 48 26 Q66 34 72 26" stroke="#7BAED4" stroke-width="3" stroke-linecap="round" fill="none"/>
+                          <path d="M12 40 Q33 32 58 40 Q70 44 76 38" stroke="#7BAED4" stroke-width="3" stroke-linecap="round" fill="none"/>
+                          <path d="M12 54 Q26 48 50 54 Q62 58 66 54" stroke="#7BAED4" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                          <path d="M12 66 Q22 62 42 66" stroke="#7BAED4" stroke-width="2" stroke-linecap="round" fill="none"/></svg>`,
+      'windy-night':   `<svg viewBox="0 0 88 88" fill="none" width="48" height="48">
+                          <path d="M12 26 Q28 18 48 26 Q66 34 72 26" stroke="#4466AA" stroke-width="3" stroke-linecap="round" fill="none"/>
+                          <path d="M12 40 Q33 32 58 40 Q70 44 76 38" stroke="#4466AA" stroke-width="3" stroke-linecap="round" fill="none"/>
+                          <path d="M12 54 Q26 48 50 54 Q62 58 66 54" stroke="#4466AA" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                          <g opacity=".6">${ms}</g></svg>`,
+      'aurora':        auroraSVG,
+    };
+
+    const iconHtml = ICON_MAP[type] ?? cloudSVG();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SUNBURST RAYS - obracające się promienie słońca
+    // ══════════════════════════════════════════════════════════════════════
+    function sunburstRays(count, col, duration, length = '20px') {
+      const rays = [];
+      for (let i = 0; i < count; i++) {
+        const angle = (360 / count) * i;
+        rays.push(`<div style="position:absolute;top:50%;left:50%;width:2.5px;height:${length};
+          background:linear-gradient(to bottom,${col}95,${col}00);
+          transform:translate(-50%,-100%) rotate(${angle}deg);transform-origin:center 100%;"></div>`);
+      }
+      return `<div style="position:absolute;width:48px;height:48px;
+        animation:wc-sun-rays ${duration} linear infinite;">${rays.join('')}</div>`;
+    }
+
+    // Animacja ikony z dodatkowymi efektami
+    let animatedIcon = iconHtml;
+    if (['sun', 'extreme-heat'].includes(type)) {
+      // Więcej promieni i szybsza rotacja przy normalnej temp
+      const rayCount = temp !== null && temp >= 35 ? 12 : 10;
+      const rayCol = temp !== null && temp >= 38 ? '#FF6030' : '#FFD060';
+      const duration = temp !== null && temp >= 38 ? '35s' : '50s'; // szybciej
+      const rayLength = temp !== null && temp >= 35 ? '20px' : '26px'; // dłuższe przy normalnej
+
+      animatedIcon = `<div style="position:relative;width:48px;height:48px;">
+        ${sunburstRays(rayCount, rayCol, duration, rayLength)}
+        <div style="position:absolute;inset:0;animation:wc-breathe 4s ease-in-out infinite;transform:scale(1.05);">${iconHtml}</div>
+      </div>`;
+    } else if (['dawn-clear', 'morning-clear', 'golden-clear'].includes(type)) {
+      const rayCol = type === 'golden-clear' ? '#FF7020' : '#FF9040';
+      animatedIcon = `<div style="position:relative;width:48px;height:48px;">
+        ${sunburstRays(6, rayCol, '80s', '22px')}
+        <div style="position:absolute;inset:0;animation:wc-breathe 5s ease-in-out infinite;">${iconHtml}</div>
+      </div>`;
+    } else if (['night-clear', 'astro-dusk-clear', 'dusk-clear'].includes(type)) {
+      animatedIcon = `<div style="animation:wc-breathe 5s ease-in-out infinite;">${iconHtml}</div>`;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 9. PILL KONTEKSTOWY
+    // ══════════════════════════════════════════════════════════════════════
+    function getMoonPill(phase){
+      const p=((phase%1)+1)%1;
+      if(p<0.03||p>0.97) return {text:'🌑 Nów',          bg:'rgba(60,80,140,0.22)',  border:'rgba(120,140,200,0.30)', color:'#8899BB'};
+      if(p<0.22)         return {text:'🌒 Sierp rośnie', bg:'rgba(130,160,210,0.18)',border:'rgba(190,210,240,0.25)', color:'#C8D8F0'};
+      if(p<0.28)         return {text:'🌓 I kwadra',     bg:'rgba(130,160,210,0.18)',border:'rgba(190,210,240,0.25)', color:'#C8D8F0'};
+      if(p<0.47)         return {text:'🌔 Garb rośnie',  bg:'rgba(160,190,235,0.20)',border:'rgba(190,210,240,0.28)', color:'#C8D8F0'};
+      if(p<0.53)         return {text:'🌕 Pełnia',       bg:'rgba(190,215,255,0.22)',border:'rgba(215,228,248,0.35)', color:'#DDE8F8'};
+      if(p<0.72)         return {text:'🌖 Garb maleje',  bg:'rgba(130,160,210,0.18)',border:'rgba(190,210,240,0.25)', color:'#C8D8F0'};
+      if(p<0.78)         return {text:'🌗 III kwadra',   bg:'rgba(130,160,210,0.18)',border:'rgba(190,210,240,0.25)', color:'#C8D8F0'};
+      return                    {text:'🌘 Sierp maleje', bg:'rgba(60,80,140,0.22)',  border:'rgba(120,140,200,0.30)', color:'#8899BB'};
+    }
+
+    function getPill(){
+      const mk=(text,bg,border,color)=>({text,bg,border,color});
+      // Specjalne
+      if(type==='aurora')        return mk('✦ Zorza polarna',   'rgba(0,180,100,0.20)','rgba(0,230,140,0.30)','#00E890');
+      if(type==='blizzard')      return mk('❄ Zamieć',          'rgba(80,130,220,0.20)','rgba(174,228,248,0.32)','#AEE4F8');
+      if(type==='freezing-rain') return mk('🌧 Szadź',          'rgba(50,110,200,0.20)','rgba(100,190,255,0.30)','#78BCFF');
+      if(type==='extreme-heat')  return mk('🔥 Ekstr. upał',    'rgba(255,20,10,0.24)','rgba(255,59,48,0.38)','#FF3B30');
+      // Fazy dnia
+      if(type==='dawn-clear'||type==='astro-dawn')
+        return mk('🌅 Świt',    'rgba(200,90,30,0.22)','rgba(255,140,60,0.38)','#FFA040');
+      if(type==='morning-clear')
+        return mk('🌤 Ranek',   'rgba(245,166,35,0.15)','rgba(245,200,60,0.25)','#F5C042');
+      if(type==='golden-clear'||type==='cloud-golden'||type==='rain-golden'||type==='storm-golden')
+        return mk('🌇 Złota godz.','rgba(210,80,20,0.22)','rgba(255,120,40,0.36)','#FF8030');
+      if(type==='dusk-clear'||type==='cloud-dusk'||type==='rain-dusk'||type==='astro-dusk-clear')
+        return mk('🌆 Zmierzch','rgba(40,70,180,0.22)','rgba(80,130,255,0.32)','#6090FF');
+      // Burza
+      if(['storm','storm-dawn','storm-golden','storm-night'].includes(type))
+        return mk('⚡ Burza',   'rgba(255,200,0,0.16)','rgba(255,208,96,0.28)','#FFD060');
+      if(type==='hail')
+        return mk('🌨 Grad',    'rgba(90,130,200,0.18)','rgba(168,216,240,0.28)','#A8D8F0');
+      // Temperatury nadrzędne
+      if(temp!==null&&temp>=40)  return mk('🔥 Ekstr. upał', 'rgba(255,30,10,0.22)','rgba(255,59,48,0.32)','#FF3B30');
+      if(temp!==null&&temp>=35)  return mk('🔥 Silny upał',  'rgba(255,60,20,0.18)','rgba(255,104,32,0.28)','#FF6820');
+      if(temp!==null&&temp>=30)  return mk('🌡 Upał',        'rgba(255,100,20,0.16)','rgba(255,159,10,0.26)','#FF9F0A');
+      // Deszcz
+      if(['rain','rain-dawn','rain-golden','rain-dusk','rain-night'].includes(type)){
+        const rc=rainClass;
+        if(rc==='violent') return mk('🌧 Ulewa',        'rgba(30,90,200,0.22)','rgba(90,200,250,0.30)','#5AC8FA');
+        if(rc==='heavy')   return mk('🌧 Silny deszcz', 'rgba(30,90,200,0.18)','rgba(90,200,250,0.25)','#5AC8FA');
+        if(rc==='moderate')return mk('🌧 Deszcz',       'rgba(30,90,200,0.15)','rgba(90,200,250,0.22)','#5AC8FA');
+        if(rc==='light')   return mk('🌦 Lekki deszcz', 'rgba(30,90,200,0.12)','rgba(120,170,210,0.22)','#7BAED4');
+        return mk('🌦 Mżawka','rgba(30,90,200,0.09)','rgba(120,170,210,0.18)','#7BAED4');
+      }
+      // Śnieg
+      if(['snow','snow-night'].includes(type)){
+        if(temp!==null&&temp<=-15) return mk('❄ Ekstr. mróz', 'rgba(90,150,255,0.18)','rgba(174,228,248,0.28)','#AEE4F8');
+        if(temp!==null&&temp<=-5)  return mk('❄ Silny mróz',  'rgba(90,150,255,0.15)','rgba(174,228,248,0.24)','#AEE4F8');
+        return mk('❄ Mróz / śnieg','rgba(90,150,255,0.13)','rgba(174,228,248,0.22)','#AEE4F8');
+      }
+      // Mgła
+      if(['fog','fog-night'].includes(type)) return mk('🌫 Mgła','rgba(130,150,200,0.18)','rgba(136,153,187,0.28)','#8899BB');
+      // Wiatr
+      if(gustNum>=75) return mk('🌪 Huragan',   'rgba(80,140,220,0.22)','rgba(90,200,250,0.30)','#5AC8FA');
+      if(gustNum>=60||['windy','windy-night'].includes(type)) return mk('💨 Wichura','rgba(80,140,220,0.16)','rgba(120,170,210,0.26)','#7BAED4');
+      if(gustNum>=40) return mk('💨 Silny wiatr','rgba(80,140,220,0.13)','rgba(120,170,210,0.22)','#7BAED4');
+      // UV
+      if(uvNum>=11) return mk('☀ UV ekstr.',      'rgba(180,30,30,0.22)','rgba(255,59,48,0.30)','#FF3B30');
+      if(uvNum>=8)  return mk('☀ UV b. wysokie',  'rgba(255,60,40,0.16)','rgba(255,104,32,0.26)','#FF6820');
+      if(uvNum>=6)  return mk('☀ UV wysokie',     'rgba(255,140,20,0.14)','rgba(255,159,10,0.22)','#FF9F0A');
+      // Noc
+      if(isNight) return getMoonPill(moonPhase);
+      // Temperatury niskie
+      if(temp!==null&&temp<=0)  return mk('🌨 Poniżej zera','rgba(90,150,255,0.13)','rgba(90,200,250,0.22)','#5AC8FA');
+      if(temp!==null&&temp<=5)  return mk('🌡 Zimno',       'rgba(90,150,255,0.11)','rgba(120,170,210,0.20)','#7BAED4');
+      // Słonecznie
+      if(['sun','morning-clear'].includes(type)) return mk('☀ Słonecznie','rgba(245,166,35,0.13)','rgba(245,166,35,0.22)','#F5A623');
+      // Pochmurno
+      return mk('☁ Pochmurno','rgba(110,130,165,0.15)','rgba(130,150,187,0.22)','#8899BB');
+    }
+
+    const pill = getPill();
+    const pillHtml = pill
+      ? `<div style="display:inline-flex;align-items:center;padding:3px 9px 3px 8px;
+            border-radius:20px;background:${pill.bg};border:1px solid ${pill.border};
+            font-size:10px;font-weight:600;color:${pill.color};letter-spacing:.02em;white-space:nowrap;line-height:1.4;">
+            ${pill.text}</div>`
+      : '';
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 10. EFEKTY ANIMOWANE
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Czas godzinowy
+    const now  = new Date();
+    const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+    // Deszcz / gradient tilt od wiatru
+    const windDegNum = parseFloat(windDeg);
+    const rainTilt = (!isNaN(windDegNum) && ['rain','rain-dawn','rain-golden','rain-dusk','rain-night',
+                        'storm','storm-dawn','storm-golden','storm-night','hail','freezing-rain','blizzard'].includes(type))
+      ? (-Math.sin(windDegNum*Math.PI/180)*16).toFixed(1) : 0;
+
+    let drops='';
+    let ripples='';
+    const isRainType = ['rain','rain-dawn','rain-golden','rain-dusk','rain-night',
+                         'storm','storm-dawn','storm-golden','storm-night','hail','freezing-rain'].includes(type);
+    if(isRainType){
+      const isStorm = type.startsWith('storm');
+      const isHail  = type==='hail';
+      const isFR    = type==='freezing-rain';
+      // WIĘCEJ kropli dla realizmu (2x-3x)
+      const dc  = isStorm?80:isHail?25:rainClass==='violent'?70:rainClass==='heavy'?55:rainClass==='moderate'?40:rainClass==='light'?25:15;
+      const wMin= isHail?4:isFR?1:isStorm||rainClass==='violent'?2.2:rainClass==='heavy'?1.8:rainClass==='moderate'?1.5:1.2;
+      const hBase=isHail?4:isFR?10:isStorm||rainClass==='violent'?22:rainClass==='heavy'?18:rainClass==='moderate'?14:10;
+      const dBase=isHail?0.55:isFR?0.9:isStorm||rainClass==='violent'?0.36:rainClass==='heavy'?0.44:rainClass==='moderate'?0.58:0.72;
+      const br  = isHail?'50%':'2px';
+      // Kolory kropel zależne od pory
+      let dropCol, rippleCol;
+      if(type==='rain-dawn')   {dropCol='rgba(160,140,200,0.50)';rippleCol='rgba(160,140,200,0.35)';}
+      else if(type==='rain-golden') {dropCol='rgba(180,140,80,0.45)';rippleCol='rgba(180,140,80,0.30)';}
+      else if(type==='rain-dusk')   {dropCol='rgba(80,100,200,0.50)';rippleCol='rgba(80,100,200,0.35)';}
+      else if(isFR)            {dropCol='rgba(160,210,255,0.65)';rippleCol='rgba(160,210,255,0.40)';}
+      else                     {dropCol=`rgba(120,180,255,${rainClass==='drizzle'?'0.35':'0.52'})`;rippleCol='rgba(120,180,255,0.30)';}
+
+      for(let i=0;i<dc;i++){
+        const l=(Math.random()*112-6).toFixed(1);
+        const h=(hBase+Math.random()*hBase*(isHail?0.3:0.7)).toFixed(0);
+        const dur=(dBase+Math.random()*dBase*0.7).toFixed(2);
+        const del=(Math.random()*2.2).toFixed(2);
+        drops+=`<div style="position:absolute;left:${l}%;top:-30px;width:${wMin}px;height:${h}px;
+          background:${dropCol};border-radius:${br};
+          animation:wc-fall ${dur}s ${del}s linear infinite;"></div>`;
+      }
+
+      // RIPPLES na dole karty
+      const rippleCount = isStorm?12:rainClass==='violent'?10:rainClass==='heavy'?8:6;
+      for(let i=0;i<rippleCount;i++){
+        const rl=(Math.random()*90+5).toFixed(1);
+        const rdur=(1.2+Math.random()*0.8).toFixed(2);
+        const rdel=(Math.random()*3).toFixed(2);
+        ripples+=`<div style="position:absolute;left:${rl}%;bottom:8%;width:3px;height:3px;
+          border:1px solid ${rippleCol};border-radius:50%;
+          animation:wc-ripple ${rdur}s ${rdel}s ease-out infinite;"></div>`;
+      }
+
+      // Efekt szronu dla freezing-rain
+      if(isFR){
+        drops+=`<div style="position:absolute;inset:0;border-radius:24px;pointer-events:none;
+          background:linear-gradient(135deg,rgba(160,220,255,0.06) 0%,transparent 50%,rgba(160,220,255,0.05) 100%);
+          animation:wc-shimmer 3s ease-in-out infinite alternate;"></div>`;
+      }
+    }
+
+    // Śnieg + zamieć (BOKEH EFFECT - 3 warstwy głębokości)
+    let snowFlakes='';
+    if(['snow','snow-night','blizzard'].includes(type)){
+      const fast = type==='blizzard';
+      // Warstwa 1: Background (małe, mocno rozmyte)
+      const cnt1 = fast?15:12;
+      for(let i=0;i<cnt1;i++){
+        const l=(Math.random()*110-5).toFixed(1);
+        const s=(1.5+Math.random()*2).toFixed(1);
+        const dur=(fast?(2.5+Math.random()*1.5):(4+Math.random()*2.5)).toFixed(2);
+        const del=(Math.random()*(fast?2:5)).toFixed(2);
+        const sw=fast?(Math.random()*60-30).toFixed(0):(Math.random()*30-15).toFixed(0);
+        snowFlakes+=`<div style="position:absolute;left:${l}%;top:-12px;width:${s}px;height:${s}px;
+          border-radius:50%;background:rgba(200,232,255,0.35);--sw:${sw}px;--op:.35;
+          filter:blur(2px);animation:wc-snow ${dur}s ${del}s ease-in-out infinite,wc-bokeh 3s ease-in-out infinite;"></div>`;
+      }
+      // Warstwa 2: Midground (średnie, lekko rozmyte)
+      const cnt2 = fast?25:18;
+      for(let i=0;i<cnt2;i++){
+        const l=(Math.random()*110-5).toFixed(1);
+        const s=(2.5+Math.random()*2.5).toFixed(1);
+        const dur=(fast?(1.5+Math.random()*1.2):(3+Math.random()*2)).toFixed(2);
+        const del=(Math.random()*(fast?2:4.5)).toFixed(2);
+        const sw=fast?(Math.random()*60-30).toFixed(0):(Math.random()*30-15).toFixed(0);
+        snowFlakes+=`<div style="position:absolute;left:${l}%;top:-12px;width:${s}px;height:${s}px;
+          border-radius:50%;background:rgba(200,232,255,0.70);--sw:${sw}px;--op:.70;
+          filter:blur(0.5px);animation:wc-snow ${dur}s ${del}s ease-in-out infinite,wc-bokeh 2.5s ease-in-out infinite;"></div>`;
+      }
+      // Warstwa 3: Foreground (duże, ostre)
+      const cnt3 = fast?20:12;
+      for(let i=0;i<cnt3;i++){
+        const l=(Math.random()*110-5).toFixed(1);
+        const s=(3.5+Math.random()*3).toFixed(1);
+        const dur=(fast?(0.8+Math.random()*0.8):(2+Math.random()*1.5)).toFixed(2);
+        const del=(Math.random()*(fast?1.5:4)).toFixed(2);
+        const sw=fast?(Math.random()*60-30).toFixed(0):(Math.random()*30-15).toFixed(0);
+        snowFlakes+=`<div style="position:absolute;left:${l}%;top:-12px;width:${s}px;height:${s}px;
+          border-radius:50%;background:rgba(200,232,255,0.92);--sw:${sw}px;--op:.92;
+          animation:wc-snow ${dur}s ${del}s ease-in-out infinite,wc-bokeh 2s ease-in-out infinite;"></div>`;
+      }
+      // Blizzard: dodatkowe poziome smugi wiatru
+      if(type==='blizzard'){
+        for(let i=0;i<8;i++){
+          const top=(5+i*12).toFixed(0);
+          snowFlakes+=`<div style="position:absolute;top:${top}%;left:-5%;width:${(50+Math.random()*50).toFixed(0)}px;height:1px;
+            background:rgba(200,225,255,0.28);border-radius:1px;filter:blur(0.5px);
+            animation:wc-bliz-streak ${(0.3+Math.random()*0.25).toFixed(2)}s ${(Math.random()*0.8).toFixed(2)}s linear infinite;"></div>`;
+        }
+      }
+    }
+
+    // Mgła (rolling volumetric layers)
+    let fogStripes='';
+    if(['fog','fog-night'].includes(type)){
+      const col1 = type==='fog-night'?'rgba(80,100,170,0.28)':'rgba(140,170,210,0.32)';
+      const col2 = type==='fog-night'?'rgba(70,90,160,0.22)':'rgba(130,160,200,0.26)';
+      const col3 = type==='fog-night'?'rgba(60,80,150,0.18)':'rgba(120,150,190,0.20)';
+
+      // Layer 1: Background (most blurred, slowest)
+      [[12,100,0],[28,90,8],[44,95,0],[60,85,10],[76,92,4]].forEach(([top,w,left],i)=>{
+        const dur=(10+i*1.5).toFixed(1),del=(i*1.2).toFixed(1);
+        fogStripes+=`<div style="position:absolute;top:${top}%;left:${left}%;width:${w}%;height:8px;
+          border-radius:8px;background:${col3};filter:blur(12px);
+          animation:wc-fog ${dur}s ${del}s cubic-bezier(0.4,0,0.2,1) infinite,wc-fog-roll 8s ${del}s ease-in-out infinite;"></div>`;
+      });
+
+      // Layer 2: Midground
+      [[18,95,5],[34,82,12],[50,90,2],[66,78,14]].forEach(([top,w,left],i)=>{
+        const dur=(8+i*1.2).toFixed(1),del=(i*1.0).toFixed(1);
+        fogStripes+=`<div style="position:absolute;top:${top}%;left:${left}%;width:${w}%;height:6px;
+          border-radius:6px;background:${col2};filter:blur(8px);
+          animation:wc-fog ${dur}s ${del}s cubic-bezier(0.4,0,0.2,1) infinite,wc-fog-roll 6s ${del}s ease-in-out infinite;"></div>`;
+      });
+
+      // Layer 3: Foreground (sharpest, fastest)
+      [[22,88,8],[38,76,16],[54,85,5],[70,72,18]].forEach(([top,w,left],i)=>{
+        const dur=(6+i*0.8).toFixed(1),del=(i*0.8).toFixed(1);
+        fogStripes+=`<div style="position:absolute;top:${top}%;left:${left}%;width:${w}%;height:5px;
+          border-radius:5px;background:${col1};filter:blur(5px);
+          animation:wc-fog ${dur}s ${del}s cubic-bezier(0.4,0,0.2,1) infinite,wc-fog-roll 5s ${del}s ease-in-out infinite;"></div>`;
+      });
+    }
+
+    // Chmury tła (wielowarstwowe, paralaksa)
+    let bgClouds='';
+    const cloudTypes=['cloud','partlycloudy','rain','rain-dawn','rain-golden','rain-dusk','rain-night',
+                       'cloud-dawn','cloud-golden','cloud-dusk','cloud-night',
+                       'storm','storm-dawn','storm-golden','storm-night','windy','windy-night','hail',
+                       'snow','snow-night','freezing-rain','fog','fog-night'];
+    if(cloudTypes.includes(type)){
+      const cc = {
+        'cloud':        ['rgba(210,222,240,0.32)','rgba(190,208,232,0.22)','rgba(220,230,245,0.16)'],
+        'partlycloudy': ['rgba(200,215,235,0.22)','rgba(180,200,225,0.14)','rgba(210,222,240,0.10)'],
+        'cloud-dawn':   ['rgba(200,160,120,0.28)','rgba(180,130,90,0.18)','rgba(220,180,140,0.14)'],
+        'cloud-golden': ['rgba(180,120,60,0.32)','rgba(160,100,50,0.22)','rgba(200,140,80,0.16)'],
+        'cloud-dusk':   ['rgba(80,100,180,0.32)','rgba(60,80,160,0.22)','rgba(100,120,200,0.16)'],
+        'cloud-night':  ['rgba(60,80,120,0.36)','rgba(45,62,100,0.24)','rgba(70,90,130,0.16)'],
+        'rain':         ['rgba(80,120,185,0.40)','rgba(60,100,168,0.28)','rgba(90,130,195,0.20)'],
+        'rain-dawn':    ['rgba(100,90,130,0.38)','rgba(80,70,110,0.26)','rgba(120,110,150,0.18)'],
+        'rain-golden':  ['rgba(120,80,40,0.38)','rgba(100,60,30,0.26)','rgba(140,100,60,0.18)'],
+        'rain-dusk':    ['rgba(50,70,160,0.40)','rgba(40,55,140,0.28)','rgba(60,85,175,0.20)'],
+        'rain-night':   ['rgba(35,55,100,0.42)','rgba(25,42,85,0.30)','rgba(45,65,115,0.20)'],
+        'storm':        ['rgba(30,36,52,0.65)','rgba(22,28,44,0.50)','rgba(40,48,64,0.35)'],
+        'storm-dawn':   ['rgba(38,32,48,0.60)','rgba(28,24,38,0.44)','rgba(48,40,58,0.30)'],
+        'storm-golden': ['rgba(40,28,18,0.60)','rgba(30,20,12,0.44)','rgba(50,36,24,0.30)'],
+        'storm-night':  ['rgba(20,24,38,0.68)','rgba(14,18,30,0.52)','rgba(26,32,48,0.36)'],
+        'hail':         ['rgba(72,110,175,0.42)','rgba(55,90,158,0.30)','rgba(82,120,185,0.22)'],
+        'windy':        ['rgba(180,205,230,0.20)','rgba(160,188,218,0.14)','rgba(195,215,238,0.10)'],
+        'windy-night':  ['rgba(50,70,120,0.30)','rgba(40,55,100,0.20)','rgba(60,80,130,0.14)'],
+        'snow':         ['rgba(190,210,240,0.28)','rgba(170,195,228,0.18)','rgba(200,218,245,0.14)'],
+        'snow-night':   ['rgba(60,80,130,0.30)','rgba(45,62,110,0.20)','rgba(70,92,140,0.14)'],
+        'freezing-rain':['rgba(60,100,170,0.38)','rgba(45,82,150,0.26)','rgba(70,115,185,0.18)'],
+        'fog':          ['rgba(160,180,210,0.30)','rgba(140,165,200,0.20)','rgba(170,190,220,0.14)'],
+        'fog-night':    ['rgba(50,65,110,0.34)','rgba(40,52,94,0.22)','rgba(58,74,120,0.16)'],
+      }[type];
+
+      if(cc){
+        const wNum = parseFloat(wind)||0;
+        const bDur = Math.max(8,40-wNum*0.35);
+        const wdN  = parseFloat(windDeg)||270;
+        const dkf  = ((wdN+180)%360)<180?'wc-drift':'wc-drift-rtl';
+        const dkfMid = ((wdN+180)%360)<180?'wc-drift-mid':'wc-drift-rtl';
+
+        // 8 warstw chmur z WYRAŹNYM parallax effect (background wolno → foreground szybko)
+        // [width, height, top%, speed_mult, blur]
+        const layers=[
+          [240,90,2,2.20,38],   // najdalej, wolno, mocny blur
+          [200,75,8,1.85,34],
+          [180,65,15,1.50,30],
+          [220,80,6,1.25,26],   // mid
+          [165,60,22,1.00,22],
+          [190,70,12,0.75,18],
+          [150,55,28,0.55,14],  // bliżej, szybciej, mniejszy blur
+          [175,65,18,0.40,10],  // najbliżej, najszybciej
+        ];
+        const startX=['-15%','18%','48%','72%','35%','-8%','55%','28%'];
+
+        bgClouds='<div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;">';
+        layers.forEach(([w,h,top,sm,blur],i)=>{
+          const col=cc[i%cc.length];
+          const dur=(bDur*sm).toFixed(1);
+          const del=(-(parseFloat(dur)*(i*0.15+0.05))).toFixed(1);
+          const anim = i<4 ? dkf : (i<6 ? dkfMid : dkf); // różne animacje dla depth
+          bgClouds+=`<div style="position:absolute;top:${top}%;left:${startX[i]};width:${w}px;height:${h}px;
+            border-radius:50%;background:${col};filter:blur(${blur}px);
+            animation:${anim} ${dur}s ${del}s linear infinite;"></div>`;
+        });
+        bgClouds+='</div>';
+      }
+    }
+
+    // Gwiazdy (noc czysta) - PARALLAX 3 warstwy + shooting stars
+    let stars='';
+    if(['night-clear','astro-dusk-clear','aurora'].includes(type)){
+      stars='<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:1;">';
+
+      // Warstwa 1: Background stars (małe, ciemne, wolno migają)
+      const cnt1 = type==='aurora'?15:12;
+      for(let i=0;i<cnt1;i++){
+        const x=(Math.random()*88+2).toFixed(1),y=(Math.random()*65+2).toFixed(1);
+        const s=(0.5+Math.random()*1).toFixed(1),op=(0.18+Math.random()*.25).toFixed(2);
+        const dl=(Math.random()*6).toFixed(1),spd=(5.0+Math.random()*4).toFixed(1);
+        stars+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;
+          border-radius:50%;background:#A0B8D8;--op:${op};
+          animation:wc-twinkle ${spd}s ${dl}s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+      }
+
+      // Warstwa 2: Mid stars (średnie, normalne)
+      const cnt2 = type==='aurora'?18:15;
+      for(let i=0;i<cnt2;i++){
+        const x=(Math.random()*88+2).toFixed(1),y=(Math.random()*60+2).toFixed(1);
+        const s=(0.8+Math.random()*1.4).toFixed(1),op=(0.28+Math.random()*.35).toFixed(2);
+        const dl=(Math.random()*5).toFixed(1),spd=(3.5+Math.random()*3.5).toFixed(1);
+        stars+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;
+          border-radius:50%;background:#C8D8F0;--op:${op};
+          animation:wc-twinkle ${spd}s ${dl}s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+      }
+
+      // Warstwa 3: Foreground stars (duże, jasne, szybko migają)
+      const cnt3 = type==='aurora'?10:8;
+      for(let i=0;i<cnt3;i++){
+        const x=(Math.random()*88+2).toFixed(1),y=(Math.random()*55+2).toFixed(1);
+        const s=(1.2+Math.random()*1.8).toFixed(1),op=(0.45+Math.random()*.45).toFixed(2);
+        const dl=(Math.random()*4).toFixed(1),spd=(2.5+Math.random()*3).toFixed(1);
+        stars+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;
+          border-radius:50%;background:#E8F0FF;--op:${op};
+          animation:wc-twinkle ${spd}s ${dl}s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+      }
+
+      // SHOOTING STARS (1-2 co 20-30s)
+      const shootCount = type==='aurora'?2:1;
+      for(let i=0;i<shootCount;i++){
+        const sx=(Math.random()*60+10).toFixed(1),sy=(Math.random()*40+5).toFixed(1);
+        const sdel=(20+Math.random()*15).toFixed(1);
+        stars+=`<div style="position:absolute;left:${sx}%;top:${sy}%;width:2px;height:2px;
+          border-radius:50%;background:#FFF;box-shadow:0 0 4px #C8D8F0;
+          animation:wc-shoot 1.2s ${sdel}s ease-out infinite;"></div>`;
+        // Tail
+        stars+=`<div style="position:absolute;left:${sx}%;top:${sy}%;width:20px;height:1px;
+          background:linear-gradient(to right,rgba(255,255,255,0.8),transparent);
+          transform-origin:left center;transform:rotate(35deg);
+          animation:wc-shoot 1.2s ${sdel}s ease-out infinite;"></div>`;
+      }
+
+      stars+='</div>';
+    }
+
+    // Zorza polarna
+    let auroraFx='';
+    if(type==='aurora'){
+      auroraFx='<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:2;">';
+      const bands=[
+        ['rgba(0,200,100,0.28)','-20%','18%','130%','22px','5px','5s','0s'],
+        ['rgba(0,160,200,0.20)','10%','28%','120%','18px','7px','6.5s','1.2s'],
+        ['rgba(120,0,220,0.16)','40%','38%','90%','14px','9px','8s','0.6s'],
+        ['rgba(0,220,120,0.18)','60%','22%','100%','20px','6px','7s','2s'],
+      ];
+      bands.forEach(([col,left,top,width,h,blur,dur,del])=>{
+        auroraFx+=`<div style="position:absolute;left:${left};top:${top};width:${width};height:${h};border-radius:60%;
+          background:${col};filter:blur(${blur});animation:wc-aurora ${dur} ${del} cubic-bezier(0.4,0,0.2,1) infinite;opacity:.8;"></div>`;
+      });
+      auroraFx+='</div>';
+    }
+
+    // GOD RAYS (crepuscular rays) dla wschodu/zachodu
+    let godRays='';
+    if(['dawn-clear','morning-clear','golden-clear'].includes(type)){
+      const rayCol = type==='golden-clear' ? 'rgba(255,112,32,0.18)' : 'rgba(255,148,48,0.18)';
+      godRays='<div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;">';
+      // 6-7 promieni słonecznych przebijających się
+      const rayCount = 7;
+      for(let i=0;i<rayCount;i++){
+        const angle = -35 + (i * 12); // spread -35° do +35°
+        const width = (60+Math.random()*40).toFixed(0);
+        const opacity = (0.12+Math.random()*0.10).toFixed(2);
+        const delay = (i*0.8).toFixed(1);
+        godRays+=`<div style="position:absolute;bottom:-10%;left:50%;width:${width}px;height:140%;
+          background:linear-gradient(to top,${rayCol} 0%,transparent 65%);
+          transform:translateX(-50%) rotate(${angle}deg);transform-origin:center bottom;
+          opacity:${opacity};animation:wc-god-ray 6s ${delay}s ease-in-out infinite;"></div>`;
+      }
+      godRays+='</div>';
+    }
+
+    // Poświata słońca (wschód / złota godzina) — zauważalna, Apple-like
+    let horizonGlow='';
+    if(['dawn-clear','morning-clear'].includes(type)){
+      const col=dayPhase==='dawn'?'#FF8030':'#FFC060';
+      horizonGlow=`<div style="position:absolute;bottom:0;left:-10%;right:-10%;height:45%;pointer-events:none;z-index:1;
+        background:radial-gradient(ellipse at 50% 110%,${col}45 0%,${col}22 35%,transparent 70%);
+        animation:wc-sun-pulse 4.5s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+    }
+    if(['golden-clear','cloud-golden','rain-golden','storm-golden'].includes(type)){
+      horizonGlow=`<div style="position:absolute;bottom:0;left:-10%;right:-10%;height:55%;pointer-events:none;z-index:1;
+        background:radial-gradient(ellipse at 50% 110%,#FF501842 0%,#FF701820 40%,transparent 70%);
+        animation:wc-sun-pulse 4s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+    }
+    if(['dusk-clear','astro-dusk-clear','cloud-dusk','rain-dusk'].includes(type)){
+      horizonGlow=`<div style="position:absolute;bottom:0;left:-10%;right:-10%;height:40%;pointer-events:none;z-index:1;
+        background:radial-gradient(ellipse at 50% 110%,#30409038 0%,transparent 70%);
+        animation:wc-moon-pulse 6s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+    }
+
+    // Brak dodatkowych efektów - same promienie wystarczą
+    const sunGlow = '';
+
+    // Poświata księżyca — zauważalna, Apple-like
+    const moonGlow = ['night-clear','astro-dusk-clear','cloud-night','fog-night','windy-night','snow-night','rain-night','storm-night','aurora'].includes(type)
+      ? `<div style="position:absolute;width:64px;height:64px;border-radius:50%;
+            background:radial-gradient(circle,rgba(180,210,255,0.22) 0%,transparent 70%);
+            top:6px;right:6px;z-index:2;animation:wc-moon-pulse 5s cubic-bezier(0.4,0,0.2,1) infinite;pointer-events:none;"></div>`
+      : '';
+
+    // Piorun (burze) - realistic branching lightning + cloud charging
+    let lightning = '';
+    if(type.startsWith('storm')){
+      const lightCol = type==='storm-night' ? 'rgba(180,200,255,0.95)' : 'rgba(255,245,200,0.92)';
+      const interval = type==='storm-night' ? '10s' : '12s';
+
+      lightning = '<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:4;">';
+
+      // Cloud charging effect (pre-flash glow)
+      lightning += `<div style="position:absolute;top:10%;left:30%;width:180px;height:80px;
+        border-radius:50%;background:radial-gradient(circle,${lightCol.replace('0.95','0.20').replace('0.92','0.18')} 0%,transparent 70%);
+        filter:blur(20px);animation:wc-charge ${interval} infinite;"></div>`;
+
+      // Main lightning bolt (branching SVG path)
+      const boltX = 55 + Math.random()*20; // pozycja X (55-75%)
+      lightning += `<svg style="position:absolute;top:0;left:${boltX}%;width:3px;height:100%;
+        animation:wc-lightning ${interval} infinite;" viewBox="0 0 3 300" fill="none">
+        <path d="M1.5 0 L1.5 40 L2.2 60 L1.2 80 L2.0 100 L0.8 120 L1.5 150"
+          stroke="${lightCol}" stroke-width="0.3" stroke-linecap="round"/>
+        <path d="M1.5 60 L2.8 75" stroke="${lightCol}" stroke-width="0.15" stroke-linecap="round"/>
+        <path d="M1.2 100 L0.2 115" stroke="${lightCol}" stroke-width="0.15" stroke-linecap="round"/>
+        <path d="M1.5 0 L1.5 40 L2.2 60 L1.2 80 L2.0 100 L0.8 120 L1.5 150"
+          stroke="#FFF" stroke-width="0.12" stroke-linecap="round" opacity="0.8"/>
+      </svg>`;
+
+      // Flash overlay (full screen brief flash)
+      lightning += `<div style="position:absolute;inset:0;background:${lightCol.replace('0.95','0.08').replace('0.92','0.06')};
+        animation:wc-lightning ${interval} infinite;"></div>`;
+
+      lightning += '</div>';
+    }
+
+    // Efekt skwaru (extreme-heat) — heatwave z 3 warstwami
+    let heatHaze = '';
+    if(type==='extreme-heat'){
+      const heatCol = tempAccent(temp);
+      heatHaze = '<div style="position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden;">';
+      // Warstwa 1: Top gradient
+      heatHaze += `<div style="position:absolute;inset:0;
+        background:radial-gradient(ellipse at 70% 5%,${heatCol}35 0%,transparent 60%);
+        animation:wc-heatwave 2.5s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+      // Warstwa 2: Mid shimmer
+      heatHaze += `<div style="position:absolute;inset:0;
+        background:radial-gradient(ellipse at 30% 50%,${heatCol}18 0%,transparent 50%);
+        animation:wc-heatwave 3.2s 0.8s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+      // Warstwa 3: Bottom wave
+      heatHaze += `<div style="position:absolute;bottom:0;left:0;right:0;height:40%;
+        background:linear-gradient(to top,${heatCol}22 0%,transparent 100%);
+        animation:wc-heatwave 2.8s 0.4s cubic-bezier(0.4,0,0.2,1) infinite;"></div>`;
+      heatHaze += '</div>';
+    }
+
+    // Bateria (ostrzeżenie)
+    const batNum=parseFloat(batV);
+    const batWarn=(!isNaN(batNum)&&batNum<2.4)
+      ?`<div style="position:absolute;bottom:10px;right:14px;font-size:10px;font-weight:600;color:#FF9F0A;z-index:10;letter-spacing:.01em;">⚡ bateria ${batV}V</div>`:'';
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 11. STATYSTYKI (kafelki)
+    // ══════════════════════════════════════════════════════════════════════
+    const SICONS={
+      hum:  `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0C19 10 12 2 12 2z" fill="rgba(120,200,255,0.75)"/></svg>`,
+      pres: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="rgba(170,190,220,0.7)" stroke-width="2"/><path d="M12 8v4l3 3" stroke="rgba(170,190,220,0.9)" stroke-width="2" stroke-linecap="round"/></svg>`,
+      wind: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 10h14a3 3 0 100-6 3 3 0 00-3 3" stroke="rgba(140,185,230,0.8)" stroke-width="2" stroke-linecap="round"/><path d="M3 14h10a3 3 0 110 6 3 3 0 01-3-3" stroke="rgba(140,185,230,0.8)" stroke-width="2" stroke-linecap="round"/></svg>`,
+      gust: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 9l4-4 4 4M9 5v14M14 14l4 4-4 4" stroke="rgba(140,185,230,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      uv:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="rgba(255,200,50,0.85)"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="rgba(255,200,50,0.8)" stroke-width="2" stroke-linecap="round"/></svg>`,
+      rain: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M8 19v2M12 21v2M16 19v2" stroke="rgba(100,180,255,0.8)" stroke-width="2" stroke-linecap="round"/><path d="M6 15a6 6 0 1112 0H6z" fill="rgba(80,140,210,0.65)"/></svg>`,
+      feels:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2a3 3 0 013 3v7a5 5 0 11-6 0V5a3 3 0 013-3z" stroke="rgba(200,160,255,0.8)" stroke-width="2"/><circle cx="12" cy="17" r="2" fill="rgba(200,160,255,0.7)"/></svg>`,
+      moon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="rgba(180,210,255,0.7)"/></svg>`,
+      snow: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><line x1="12" y1="2" x2="12" y2="22" stroke="rgba(174,228,248,0.8)" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="12" x2="22" y2="12" stroke="rgba(174,228,248,0.8)" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="5" x2="19" y2="19" stroke="rgba(174,228,248,0.8)" stroke-width="2" stroke-linecap="round"/><line x1="19" y1="5" x2="5" y2="19" stroke="rgba(174,228,248,0.8)" stroke-width="2" stroke-linecap="round"/></svg>`,
+      temp: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z" stroke="rgba(255,160,80,0.8)" stroke-width="2"/></svg>`,
+      aurora:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 8c3 0 5 4 9 4s6-4 9-4M3 13c3 0 5 4 9 4s6-4 9-4" stroke="rgba(0,200,120,0.8)" stroke-width="2" stroke-linecap="round"/></svg>`,
+    };
+
+    const statsMap = {
+      'sun':           [[humOut+'%','Wilgotn.','hum'],[`UV ${uv}`,'Indeks UV','uv'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'extreme-heat':  [[humOut+'%','Wilgotn.','hum'],[`UV ${uv}`,'Indeks UV','uv'],[feels+'°','Odcz.','feels']],
+      'dawn-clear':    [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'morning-clear': [[humOut+'%','Wilgotn.','hum'],[`UV ${uv}`,'Indeks UV','uv'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'golden-clear':  [[humOut+'%','Wilgotn.','hum'],[feels+'°','Odcz.','feels'],[pres+' hPa','Ciśn.','pres']],
+      'dusk-clear':    [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[feels+'°','Odcz.','feels']],
+      'astro-dusk-clear':[[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[feels+'°','Odcz.','feels']],
+      'night-clear':   [[humOut+'%','Wilgotn.','hum'],[feels+'°','Odcz.','feels'],[pres+' hPa','Ciśn.','pres']],
+      'partlycloudy':  [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'cloud':         [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'cloud-dawn':    [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'cloud-golden':  [[humOut+'%','Wilgotn.','hum'],[feels+'°','Odcz.','feels'],[pres+' hPa','Ciśn.','pres']],
+      'cloud-dusk':    [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[feels+'°','Odcz.','feels']],
+      'cloud-night':   [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'rain':          [[humOut+'%','Wilgotn.','hum'],[rainDay+' mm','Dziś','rain'],[rainRate+' mm/h','Natęż.','rain']],
+      'rain-dawn':     [[humOut+'%','Wilgotn.','hum'],[rainDay+' mm','Dziś','rain'],[rainRate+' mm/h','Natęż.','rain']],
+      'rain-golden':   [[humOut+'%','Wilgotn.','hum'],[rainDay+' mm','Dziś','rain'],[feels+'°','Odcz.','feels']],
+      'rain-dusk':     [[humOut+'%','Wilgotn.','hum'],[rainDay+' mm','Dziś','rain'],[pres+' hPa','Ciśn.','pres']],
+      'rain-night':    [[humOut+'%','Wilgotn.','hum'],[rainDay+' mm','Dziś','rain'],[rainRate+' mm/h','Natęż.','rain']],
+      'snow':          [[humOut+'%','Wilgotn.','hum'],[feels+'°','Odcz.','feels'],[pres+' hPa','Ciśn.','pres']],
+      'snow-night':    [[humOut+'%','Wilgotn.','hum'],[feels+'°','Odcz.','feels'],[pres+' hPa','Ciśn.','pres']],
+      'blizzard':      [[humOut+'%','Wilgotn.','hum'],[gust+' km/h','Poryw, '+windDirPl,'gust'],[feels+'°','Odcz.','feels']],
+      'freezing-rain': [[humOut+'%','Wilgotn.','hum'],[rainRate+' mm/h','Natęż.','rain'],[feels+'°','Odcz.','feels']],
+      'storm':         [[humOut+'%','Wilgotn.','hum'],[gust+' km/h','Poryw, '+windDirPl,'gust'],[rainDay+' mm','Deszcz','rain']],
+      'storm-dawn':    [[humOut+'%','Wilgotn.','hum'],[gust+' km/h','Poryw','gust'],[pres+' hPa','Ciśn.','pres']],
+      'storm-golden':  [[humOut+'%','Wilgotn.','hum'],[gust+' km/h','Poryw','gust'],[rainDay+' mm','Deszcz','rain']],
+      'storm-night':   [[humOut+'%','Wilgotn.','hum'],[gust+' km/h','Poryw, '+windDirPl,'gust'],[rainDay+' mm','Deszcz','rain']],
+      'hail':          [[humOut+'%','Wilgotn.','hum'],[rainDay+' mm','Dziś','rain'],[wind+' km/h','Wiatr, '+windDirPl,'wind']],
+      'fog':           [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[feels+'°','Odcz.','feels']],
+      'fog-night':     [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[feels+'°','Odcz.','feels']],
+      'windy':         [[humOut+'%','Wilgotn.','hum'],[wind+' km/h','Wiatr, '+windDirPl,'wind'],[gust+' km/h','Poryw','gust']],
+      'windy-night':   [[humOut+'%','Wilgotn.','hum'],[wind+' km/h','Wiatr, '+windDirPl,'wind'],[gust+' km/h','Poryw','gust']],
+      'aurora':        [[humOut+'%','Wilgotn.','hum'],[feels+'°','Odcz.','feels'],[pres+' hPa','Ciśn.','pres']],
+    };
+    const sData = statsMap[type] ?? [[humOut+'%','Wilgotn.','hum'],[pres+' hPa','Ciśn.','pres'],[wind+' km/h','Wiatr','wind']];
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 12. RENDER
+    // ══════════════════════════════════════════════════════════════════════
+    const keyframes=`
+      @keyframes wc-fall      {0%{transform:translateY(-20px) translateX(0);opacity:0}8%{opacity:1}92%{opacity:.7}100%{transform:translateY(310px) translateX(-8px);opacity:0}}
+      @keyframes wc-ripple    {0%{transform:scale(0);opacity:.6}100%{transform:scale(4);opacity:0}}
+      @keyframes wc-sun-rays  {from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+      @keyframes wc-sun-pulse {0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(1.15);opacity:.55}}
+      @keyframes wc-heatwave  {0%{transform:translateY(0) scaleY(1)}33%{transform:translateY(-3px) scaleY(1.02)}66%{transform:translateY(2px) scaleY(.98)}100%{transform:translateY(0) scaleY(1)}}
+      @keyframes wc-moon-pulse{0%,100%{transform:scale(1);opacity:.28}50%{transform:scale(1.10);opacity:.42}}
+      @keyframes wc-breathe   {0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.03);opacity:.92}}
+      @keyframes wc-lightning {0%,93%{opacity:0}94%{opacity:1}95%{opacity:0}96%{opacity:.8}97%,100%{opacity:0}}
+      @keyframes wc-charge    {0%,90%{opacity:.2}92%{opacity:.6}94%,100%{opacity:.2}}
+      @keyframes wc-snow      {0%{transform:translateY(-10px) translateX(0);opacity:0}12%{opacity:.88}88%{opacity:.55}100%{transform:translateY(310px) translateX(var(--sw,0px));opacity:0}}
+      @keyframes wc-bokeh     {0%,100%{filter:blur(0px);opacity:var(--op,.7)}50%{filter:blur(2px);opacity:calc(var(--op,.7)*1.3)}}
+      @keyframes wc-bliz-streak{from{transform:translateX(-10%)}to{transform:translateX(130%)}}
+      @keyframes wc-drift     {from{transform:translateX(-180%)}to{transform:translateX(100%)}}
+      @keyframes wc-drift-rtl {from{transform:translateX(100%)}to{transform:translateX(-180%)}}
+      @keyframes wc-drift-mid {from{transform:translateX(-140%)}to{transform:translateX(100%)}}
+      @keyframes wc-twinkle   {0%,100%{opacity:var(--op,.4);transform:scale(1)}50%{opacity:calc(var(--op,.4)*2);transform:scale(1.2)}}
+      @keyframes wc-shoot     {0%{transform:translateX(0) translateY(0);opacity:1}70%{opacity:.4}100%{transform:translateX(120px) translateY(80px);opacity:0}}
+      @keyframes wc-fog       {0%,100%{opacity:.58;transform:translateX(0)}50%{opacity:.30;transform:translateX(15px)}}
+      @keyframes wc-fog-roll  {0%{transform:translateY(10px);opacity:.3}50%{transform:translateY(-5px);opacity:.6}100%{transform:translateY(10px);opacity:.3}}
+      @keyframes wc-aurora    {0%,100%{opacity:.58;transform:scaleX(1) translateY(0)}50%{opacity:.82;transform:scaleX(1.10) translateY(-6px)}}
+      @keyframes wc-god-ray   {0%,100%{opacity:.15}50%{opacity:.35}}
+    `;
+
+    if(!STATS_VISIBLE){
+
+      // ── ZWINIĘTY ─────────────────────────────────────────────────────
+      const cVals={
+        'sun':         [humOut+'%','UV '+uv,wind+' km/h'],
+        'extreme-heat':[humOut+'%','UV '+uv,feels+'° odcz.'],
+        'dawn-clear':  [humOut+'%',pres+' hPa',wind+' km/h'],
+        'golden-clear':[humOut+'%',feels+'° odcz.',pres+' hPa'],
+        'dusk-clear':  [humOut+'%',pres+' hPa',feels+'° odcz.'],
+        'night-clear': [humOut+'%',feels+'° odcz.',pres+' hPa'],
+        'rain':        [humOut+'%',rainDay+' mm dziś',rainRate+' mm/h'],
+        'blizzard':    [humOut+'%',gust+' km/h poryw',feels+'° odcz.'],
+        'freezing-rain':[humOut+'%',rainRate+' mm/h',feels+'° odcz.'],
+        'storm':       [humOut+'%',gust+' km/h poryw',rainDay+' mm'],
+        'aurora':      [humOut+'%',feels+'° odcz.',pres+' hPa'],
+        'fog':         [humOut+'%',pres+' hPa',feels+'° odcz.'],
+        'windy':       [humOut+'%',wind+' km/h',gust+' km/h poryw'],
+      };
+      const vv=cVals[type]??[humOut+'%',pres+' hPa',wind+' km/h'];
+      const compactHTML=vv.map(v=>
+        `<span style="font-size:11px;font-weight:500;color:rgba(255,255,255,.38);white-space:nowrap;">${v}</span>`
+      ).join(`<span style="color:rgba(255,255,255,.13);font-size:10px;margin:0 5px;">·</span>`);
+
+      return `
+        <style>${keyframes}</style>
+        <div style="background:${bg};border-radius:24px;padding:16px 18px;position:relative;overflow:hidden;
+                    min-height:190px;display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;">
+          ${bgClouds}${stars}${auroraFx}${godRays}${sunGlow}${heatHaze}${moonGlow}${horizonGlow}${lightning}${batWarn}
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;transform:rotate(${rainTilt}deg);transform-origin:top center;">${drops}</div>
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;">${ripples}</div>
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;">${snowFlakes}</div>
+          <div style="position:absolute;inset:0;pointer-events:none;z-index:3;">${fogStripes}</div>
+          <!-- Nagłówek -->
+          <div style="display:flex;justify-content:flex-end;align-items:flex-start;position:relative;z-index:10;gap:4px;flex-direction:column;align-items:flex-end;">
+            ${pillHtml}
+            <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.22);">${time}</span>
+          </div>
+          <!-- Środek: temperatura + ikona -->
+          <div style="flex:1;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:10;padding:8px 2px 10px;">
+            <div>
+              <div style="font-size:60px;font-weight:700;letter-spacing:-3px;line-height:.95;color:${tColor};">${tempStr}°</div>
+              ${trendStr?`<div style="font-size:11px;font-weight:600;color:${trendCol};margin-top:4px;letter-spacing:.01em;">${trendStr}</div>`:''}
+            </div>
+            <div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;opacity:.88;">
+              ${animatedIcon}
+            </div>
+          </div>
+          <!-- Stopka -->
+          <div style="position:relative;z-index:10;display:flex;align-items:center;justify-content:center;
+                      padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;">
+            ${compactHTML}
+          </div>
+        </div>`;
+
+    } else {
+
+      // ── ROZWINIĘTY — Apple Home style ────────────────────────────────
+      const statsHTML=sData.map(([v,l,ico])=>
+        `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+            flex:1;min-width:58px;padding:9px 6px 8px;
+            background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.09);
+            border-radius:14px;">
+           <div style="display:flex;align-items:center;justify-content:center;height:14px;">${SICONS[ico]||SICONS.pres}</div>
+           <span style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.88);letter-spacing:-.3px;white-space:nowrap;line-height:1.1;">${v}</span>
+           <span style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.30);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">${l}</span>
+         </div>`
+      ).join('');
+
+      return `
+        <style>${keyframes}</style>
+        <div style="background:${bg};border-radius:24px;padding:18px 18px 16px;position:relative;overflow:hidden;
+                    min-height:240px;display:flex;flex-direction:column;gap:0;
+                    font-family:-apple-system,system-ui,sans-serif;">
+
+          ${bgClouds}${stars}${auroraFx}${godRays}${sunGlow}${heatHaze}${moonGlow}${horizonGlow}${lightning}${batWarn}
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;transform:rotate(${rainTilt}deg);transform-origin:top center;">${drops}</div>
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;">${ripples}</div>
+          <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;">${snowFlakes}</div>
+          <div style="position:absolute;inset:0;pointer-events:none;z-index:3;">${fogStripes}</div>
+
+          <!-- Nagłówek: label + pill + czas -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:10;margin-bottom:14px;">
+            <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.28);letter-spacing:.02em;">${STATION_LABEL}</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              ${pillHtml}
+              <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.20);">${time}</span>
+            </div>
+          </div>
+
+          <!-- Środek: temperatura (dominant) + ikona (supporting, top-right) -->
+          <div style="flex:1;display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:10;padding-bottom:14px;">
+            <!-- Lewa: temperatura + odczuwalna + trend -->
+            <div style="display:flex;flex-direction:column;justify-content:center;gap:0;">
+              <div style="font-size:80px;font-weight:700;letter-spacing:-5px;line-height:.90;color:${tColor};">${tempStr}°</div>
+              ${feelsNum!==null&&Math.abs(feelsNum-temp)>=1
+                ?`<div style="font-size:12px;font-weight:500;color:rgba(255,255,255,.30);margin-top:6px;letter-spacing:.01em;">Odcz. ${feels}°</div>`:''}
+              ${trendStr
+                ?`<div style="font-size:11px;font-weight:600;color:${trendCol};margin-top:3px;letter-spacing:.01em;">${trendStr}</div>`:''}
+            </div>
+            <!-- Prawa: ikona 52px (supporting, nie dominuje) -->
+            <div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;opacity:.88;margin-top:2px;">
+              ${animatedIcon}
+            </div>
+          </div>
+
+          <!-- Statystyki — szklane kafelki Apple Home -->
+          <div style="position:relative;z-index:10;display:flex;gap:6px;flex-wrap:nowrap;">
+            ${statsHTML}
+          </div>
+        </div>`;
+    }
+  ]]]

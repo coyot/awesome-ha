@@ -1,0 +1,273 @@
+type: custom:button-card
+entity: vacuum.wariot
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: more-info
+styles:
+  card:
+    - padding: "0"
+    - background: "#1C1C1E"
+    - border-radius: 16px
+    - overflow: hidden
+    - border: |
+        [[[
+          const active = ['cleaning','returning'].includes(entity.state);
+          if (active) return '1px solid rgba(151,196,89,0.35)';
+          return '0.5px solid rgba(255,255,255,0.08)';
+        ]]]
+    - animation: |
+        [[[
+          const active = ['cleaning','returning'].includes(entity.state);
+          return active ? 'vac-pulse-green 2.4s ease-in-out infinite' : 'none';
+        ]]]
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    // ── entities & state ───────────────────────────────────────────────
+    const state = entity.state || 'idle';
+    const battery = entity.attributes.battery_level ?? null;
+    const fanSpeed = entity.attributes.fan_speed || 'standard';
+    const mopMode = entity.attributes.mop_mode || 'standard';
+    const mopIntensity = entity.attributes.mop_intensity ?? 0;
+
+    // Sensors
+    const batterySensor = states['sensor.wariot_battery'];
+    const areaSensor = states['sensor.wariot_area_cleaned'];
+    const timeSensor = states['sensor.wariot_cleaning_time'];
+
+    const batteryPct = battery !== null ? battery : (batterySensor?.state ? parseInt(batterySensor.state) : null);
+    const areaCleaned = areaSensor?.state ?? '—';
+    const cleaningTime = timeSensor?.state ?? null;
+
+    const cleaning = state === 'cleaning';
+    const returning = state === 'returning';
+    const docked = state === 'docked';
+    const paused = state === 'paused';
+    const error = state === 'error';
+    const active = cleaning || returning;
+    const isMopping = cleaning && mopIntensity > 0;
+
+    // ── colors ─────────────────────────────────────────────────────────
+    const accentCol = cleaning ? '#97C459'
+                    : returning ? '#85B7EB'
+                    : docked ? '#5F5E5A'
+                    : paused ? '#EF9F27'
+                    : error ? '#E24B4A'
+                    : '#3D3D3B';
+
+    const batteryCol = batteryPct !== null
+                     ? (batteryPct > 60 ? '#97C459' : batteryPct > 30 ? '#EF9F27' : '#E24B4A')
+                     : '#5F5E5A';
+
+    // ── battery progress ───────────────────────────────────────────────
+    const batteryProgress = batteryPct !== null ? batteryPct : 0;
+    const barGrad = batteryProgress > 60 ? 'linear-gradient(90deg,#5F8932,#97C459)'
+                  : batteryProgress > 30 ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
+                  : 'linear-gradient(90deg,#8F2320,#E24B4A)';
+
+    const progressLabel = cleaning ? 'sprząta'
+                        : returning ? 'wraca do bazy'
+                        : docked ? 'naładowana'
+                        : paused ? 'wstrzymana'
+                        : 'bateria';
+
+    // ── mode labels ────────────────────────────────────────────────────
+    const fanMap = {
+      silent: { label: 'cichy', col: '#7BAED4', bg: 'rgba(123,174,212,0.12)' },
+      standard: { label: 'normalny', col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      medium: { label: 'mocny', col: '#EF9F27', bg: 'rgba(239,159,39,0.12)' },
+      turbo: { label: 'turbo', col: '#E24B4A', bg: 'rgba(226,75,74,0.12)' },
+    };
+    const fanInfo = fanMap[fanSpeed.toLowerCase()] ?? {
+      label: fanSpeed,
+      col: '#85B7EB',
+      bg: 'rgba(133,183,235,0.12)'
+    };
+
+    const mopMap = {
+      low: { label: 'mop: lekko', col: '#7BAED4', bg: 'rgba(123,174,212,0.12)' },
+      standard: { label: 'mop: średnio', col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      high: { label: 'mop: mocno', col: '#C97A50', bg: 'rgba(201,122,80,0.12)' },
+    };
+    const mopInfo = mopMap[mopMode.toLowerCase()] ?? {
+      label: `mop: ${mopMode}`,
+      col: '#85B7EB',
+      bg: 'rgba(133,183,235,0.12)'
+    };
+
+    // ── SVG icons ──────────────────────────────────────────────────────
+    const svgIdle = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+      <circle cx="10" cy="10" r="6" stroke="#3D3D3B" stroke-width="1.4"/>
+      <circle cx="10" cy="10" r="2.5" fill="#3D3D3B"/>
+    </svg>`;
+
+    const svgClean = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+        style="flex-shrink:0;animation:vac-spin 2s linear infinite;">
+      <circle cx="10" cy="10" r="7" stroke="#97C459" stroke-width="1.4" stroke-dasharray="3 2"/>
+      <circle cx="10" cy="10" r="3" fill="#97C459"/>
+      <path d="M10 3 L10 7" stroke="#97C459" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M17 10 L13 10" stroke="#97C459" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M10 17 L10 13" stroke="#97C459" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M3 10 L7 10" stroke="#97C459" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>`;
+
+    const svgReturn = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+        style="flex-shrink:0;animation:vac-move 1.5s ease-in-out infinite alternate;">
+      <path d="M4 10 L12 10" stroke="#85B7EB" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M8 6 L4 10 L8 14" stroke="#85B7EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="15" cy="10" r="2" fill="#85B7EB"/>
+    </svg>`;
+
+    const svgDocked = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+      <rect x="5" y="7" width="10" height="8" rx="1.5" stroke="#5F5E5A" stroke-width="1.3"/>
+      <path d="M8 5 L8 7 M12 5 L12 7" stroke="#5F5E5A" stroke-width="1.3" stroke-linecap="round"/>
+      <circle cx="10" cy="11" r="1.5" fill="#97C459"/>
+    </svg>`;
+
+    const svgPaused = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+      <rect x="7" y="5" width="2" height="10" rx="1" fill="#EF9F27"/>
+      <rect x="11" y="5" width="2" height="10" rx="1" fill="#EF9F27"/>
+    </svg>`;
+
+    const svgError = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+      <circle cx="10" cy="10" r="7" stroke="#E24B4A" stroke-width="1.4"/>
+      <path d="M10 6 L10 11" stroke="#E24B4A" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="10" cy="14" r="0.8" fill="#E24B4A"/>
+    </svg>`;
+
+    const svgMop = isMopping
+      ? `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+          style="flex-shrink:0;animation:vac-mop 1.2s ease-in-out infinite alternate;">
+          <path d="M8 4 L12 4 L12 8 Q12 10 10 12 Q8 10 8 8 Z"
+                stroke="#85B7EB" stroke-width="1.2" fill="rgba(133,183,235,0.15)"/>
+          <path d="M6 14 Q10 12 14 14" stroke="#85B7EB" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="7" cy="15" r="0.8" fill="#85B7EB" opacity="0.6"/>
+          <circle cx="10" cy="16" r="0.8" fill="#85B7EB" opacity="0.6"/>
+          <circle cx="13" cy="15" r="0.8" fill="#85B7EB" opacity="0.6"/>
+        </svg>`
+      : null;
+
+    const svgIcon = error ? svgError
+                  : paused ? svgPaused
+                  : docked ? svgDocked
+                  : returning ? svgReturn
+                  : cleaning ? (svgMop || svgClean)
+                  : svgIdle;
+
+    // ── badge ──────────────────────────────────────────────────────────
+    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;`;
+    const badgeLabel = cleaning ? (isMopping ? 'mopuje' : 'sprząta')
+                     : returning ? 'wraca'
+                     : docked ? 'w bazie'
+                     : paused ? 'pauza'
+                     : error ? 'błąd'
+                     : 'czeka';
+    const badgeCol = accentCol;
+    const badgeBg = active ? `rgba(${cleaning?'151,196,89':'133,183,235'},0.14)`
+                  : error ? 'rgba(226,75,74,0.14)'
+                  : 'rgba(95,94,90,0.12)';
+    const badge = active || error
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+                      font-size:10px;font-weight:600;white-space:nowrap;
+                      background:${badgeBg};color:${badgeCol};">
+           <span style="${dotBase}background:${badgeCol};animation:vac-dot 1.8s ease-in-out infinite;"></span>${badgeLabel}</span>`
+      : `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;
+                      font-size:10px;font-weight:600;white-space:nowrap;
+                      background:${badgeBg};color:${badgeCol};">
+           <span style="${dotBase}background:${badgeCol};"></span>${badgeLabel}</span>`;
+
+    // ── time display ───────────────────────────────────────────────────
+    let timeStr = '—';
+    let timeLabel = '';
+    if (cleaning && cleaningTime !== null) {
+      // cleaningTime może być w minutach lub formacie "HH:MM:SS"
+      const timeNum = parseInt(cleaningTime);
+      if (!isNaN(timeNum)) {
+        const h = Math.floor(timeNum / 60);
+        const m = timeNum % 60;
+        timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        timeLabel = 'czas sprzątania';
+      } else {
+        timeStr = cleaningTime;
+        timeLabel = 'czas';
+      }
+    } else if (batteryPct !== null) {
+      timeStr = `${batteryPct}%`;
+      timeLabel = 'bateria';
+    }
+
+    // ── render ─────────────────────────────────────────────────────────
+    return `
+      <style>
+        @keyframes vac-pulse-green {
+          0%,100% { box-shadow: 0 0 0 0   rgba(151,196,89,0); }
+          50%     { box-shadow: 0 0 0 5px rgba(151,196,89,0.18); }
+        }
+        @keyframes vac-spin { to { transform: rotate(360deg); } }
+        @keyframes vac-move {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-3px); }
+        }
+        @keyframes vac-mop {
+          0%   { transform: translateX(-2px); }
+          100% { transform: translateX(2px); }
+        }
+        @keyframes vac-dot {
+          0%,100% { opacity: 1;   }
+          50%     { opacity: 0.2; }
+        }
+      </style>
+
+      <div style="display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;
+                  align-items:stretch;padding:14px 16px;
+                  font-family:-apple-system,system-ui,sans-serif;">
+
+        <div style="width:4px;border-radius:99px;background:${accentCol};align-self:stretch;"></div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${svgIcon}
+            <span style="font-size:13px;font-weight:500;color:#F1EFE8;flex:1;min-width:0;">WARIOT</span>
+            ${badge}
+          </div>
+
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${!docked && !paused && !error ? `<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                         background:${fanInfo.bg};color:${fanInfo.col};white-space:nowrap;">${fanInfo.label}</span>` : ''}
+            ${isMopping ? `<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                         background:${mopInfo.bg};color:${mopInfo.col};white-space:nowrap;">${mopInfo.label}</span>` : ''}
+            ${areaCleaned !== '—' && cleaning ? `<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                         background:rgba(151,196,89,0.10);color:#97C459;white-space:nowrap;">
+                         ${areaCleaned} m²</span>` : ''}
+          </div>
+
+          ${batteryPct !== null ? `
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="height:3px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;">
+              <div style="height:100%;width:${batteryProgress}%;border-radius:99px;background:${barGrad};transition:width 1s ease;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:10px;color:rgba(255,255,255,0.28);">${progressLabel}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.28);">${batteryProgress}%</span>
+            </div>
+          </div>
+          ` : ''}
+
+        </div>
+
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;min-width:52px;">
+          <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;color:${batteryCol};">${timeStr}</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">${timeLabel}</span>
+        </div>
+
+      </div>`;
+  ]]]

@@ -98,20 +98,131 @@ label: |
     else if(elev>=-18) {phaseKey=isR?'astR':'astS';  phaseName=isR?'Świt astronomiczny':'Zmierzch astronomiczny';}
     else               {phaseKey='night';  phaseName='Noc';}
 
+    // ═══════════════════════════════════════════════════════════════════
+    // DYNAMICZNE TŁO - reaguje na porę dnia, temperaturę, pogodę
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Pobierz temperaturę i pogodę (jeśli dostępne)
+    const tempSensor = 'sensor.stacja_pogodowa_outdoor_temperature';
+    const weatherEntity = 'weather.forecast_home';
+    const tempRaw = states[tempSensor]?.state;
+    const temp = tempRaw ? parseFloat(tempRaw) : null;
+    const weatherState = states[weatherEntity]?.state || 'unknown';
+
+    // Funkcja generująca dynamiczny gradient na podstawie elevation + temp + weather
+    function generateDynamicBg(elev, temp, weather, phase) {
+      let c1, c2, c3; // kolory gradientu
+
+      // NOC (elev < -18)
+      if (elev < -18) {
+        c1 = '#010204'; c2 = '#020408'; c3 = '#030610';
+      }
+      // ŚWIT ASTRONOMICZNY (-18 do -12)
+      else if (elev < -12) {
+        const t = (elev + 18) / 6; // 0->1
+        if (phase.includes('R')) { // wschód
+          c1 = `rgb(${2+Math.floor(t*4)},${4+Math.floor(t*6)},${14+Math.floor(t*12)})`;
+          c2 = `rgb(${5+Math.floor(t*8)},${8+Math.floor(t*12)},${24+Math.floor(t*20)})`;
+          c3 = `rgb(${3+Math.floor(t*5)},${6+Math.floor(t*8)},${16+Math.floor(t*14)})`;
+        } else { // zachód
+          c1 = '#030410'; c2 = '#060618'; c3 = '#040512';
+        }
+      }
+      // ŚWIT ŻEGLARSKI (-12 do -6)
+      else if (elev < -6) {
+        const t = (elev + 12) / 6;
+        if (phase.includes('R')) {
+          c1 = `rgb(${6+Math.floor(t*20)},${10+Math.floor(t*15)},${26+Math.floor(t*30)})`;
+          c2 = `rgb(${7+Math.floor(t*35)},${12+Math.floor(t*20)},${44+Math.floor(t*40)})`;
+          c3 = `rgb(${5+Math.floor(t*18)},${8+Math.floor(t*12)},${24+Math.floor(t*28)})`;
+        } else {
+          c1 = `rgb(${26-Math.floor(t*20)},${16-Math.floor(t*10)},${24-Math.floor(t*14)})`;
+          c2 = `rgb(${44-Math.floor(t*32)},${28-Math.floor(t*18)},${30-Math.floor(t*20)})`;
+          c3 = `rgb(${22-Math.floor(t*16)},${18-Math.floor(t*12)},${22-Math.floor(t*14)})`;
+        }
+      }
+      // ŚWIT CYWILNY / GOLDEN (-6 do 0)
+      else if (elev < 0) {
+        const t = (elev + 6) / 6;
+        if (phase.includes('R')) {
+          c1 = `rgb(${Math.floor(6+t*18)},${Math.floor(7+t*18)},${Math.floor(24+t*14)})`;
+          c2 = `rgb(${Math.floor(20+t*34)},${Math.floor(10+t*30)},${Math.floor(38+t*8)})`;
+          c3 = `rgb(${Math.floor(30+t*24)},${Math.floor(12+t*18)},${Math.floor(8+t*10)})`;
+        } else {
+          c1 = `rgb(${Math.floor(28-t*8)},${Math.floor(6+t*6)},${Math.floor(6+t*2)})`;
+          c2 = `rgb(${Math.floor(60-t*20)},${Math.floor(14-t*4)},${Math.floor(8+t*2)})`;
+          c3 = `rgb(${Math.floor(24-t*6)},${Math.floor(6+t*4)},${Math.floor(6+t*10)})`;
+        }
+      }
+      // WSCHÓD/ZACHÓD (0 do 4)
+      else if (elev < 4) {
+        const t = elev / 4;
+        if (phase.includes('R')) {
+          c1 = `rgb(${Math.floor(24+t*30)},${Math.floor(25+t*20)},${Math.floor(38-t*18)})`;
+          c2 = `rgb(${Math.floor(54+t*50)},${Math.floor(40+t*30)},${Math.floor(46-t*26)})`;
+          c3 = `rgb(${Math.floor(54+t*40)},${Math.floor(30+t*25)},${Math.floor(18-t*8)})`;
+        } else {
+          c1 = `rgb(${Math.floor(28-t*8)},${Math.floor(12-t*6)},${Math.floor(8-t*2)})`;
+          c2 = `rgb(${Math.floor(60-t*20)},${Math.floor(14-t*8)},${Math.floor(10-t*4)})`;
+          c3 = `rgb(${Math.floor(24-t*6)},${Math.floor(10-t*4)},${Math.floor(16+t*4)})`;
+        }
+      }
+      // DZIEŃ (4+)
+      else {
+        const intensity = Math.min((elev - 4) / 30, 1); // 0 at 4°, 1 at 34°+
+        // Bazowy niebieski dzień
+        let r1 = 4, g1 = 12, b1 = 32;
+        let r2 = 7, g2 = 18, b2 = 48;
+
+        // Modyfikacja na podstawie temperatury
+        if (temp !== null) {
+          if (temp >= 30) { // ciepło
+            r1 += Math.floor((temp - 30) * 0.8); g1 += Math.floor((temp - 30) * 0.4);
+            r2 += Math.floor((temp - 30) * 1.2); g2 += Math.floor((temp - 30) * 0.6);
+          } else if (temp <= 5) { // zimno
+            b1 += Math.floor((5 - temp) * 0.6);
+            b2 += Math.floor((5 - temp) * 1.0);
+          }
+        }
+
+        c1 = `rgb(${r1},${g1},${b1})`;
+        c2 = `rgb(${r2},${g2},${b2})`;
+        c3 = `rgb(${Math.floor(r1*0.8)},${Math.floor(g1*0.9)},${Math.floor(b1*1.1)})`;
+      }
+
+      // Modyfikacja na podstawie pogody
+      if (['rainy', 'pouring', 'lightning', 'lightning-rainy'].includes(weather)) {
+        // Ciemniej + bardziej szaro
+        c1 = c1.replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g, b) =>
+          `rgb(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.8)})`);
+        c2 = c2.replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g, b) =>
+          `rgb(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.8)})`);
+      } else if (['cloudy'].includes(weather)) {
+        // Lekko przyciemnione
+        c1 = c1.replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g, b) =>
+          `rgb(${Math.floor(r*0.85)},${Math.floor(g*0.85)},${Math.floor(b*0.90)})`);
+      }
+
+      return `linear-gradient(158deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
+    }
+
+    const dynamicBg = generateDynamicBg(elev, temp, weatherState, phaseKey);
+
+    // Zachowaj akcenty z oryginalnego theme
     const TH={
-      night:   {bg:'linear-gradient(158deg,#010204 0%,#020408 100%)',acc:'#38486E',tc:'#8898BE',gr:'38,52,110'},
-      astR:    {bg:'linear-gradient(158deg,#02040E 0%,#050818 100%)',acc:'#4858A0',tc:'#B0BAE0',gr:'58,68,162'},
-      astS:    {bg:'linear-gradient(158deg,#030410 0%,#060618 100%)',acc:'#404898',tc:'#A8B0D8',gr:'50,55,152'},
-      navR:    {bg:'linear-gradient(158deg,#03051A 0%,#070C2C 100%)',acc:'#4078C8',tc:'#BCCEF5',gr:'55,105,202'},
-      navS:    {bg:'linear-gradient(158deg,#060310 0%,#0C071E 100%)',acc:'#9055C0',tc:'#D0C0F5',gr:'140,78,195'},
-      civR:    {bg:'linear-gradient(158deg,#060718 0%,#140A26 42%,#1E0C08 100%)',acc:'#AA52F8',tc:'#E8D2FF',gr:'170,78,248'},
-      civS:    {bg:'linear-gradient(158deg,#1C0708 0%,#2C0C0A 42%,#160610 100%)',acc:'#FF4C4C',tc:'#FFCECE',gr:'255,68,68'},
-      sunrise: {bg:'linear-gradient(158deg,#180908 0%,#361408 36%,#200810 100%)',acc:'#FF8038',tc:'#FFE0BE',gr:'255,118,44'},
-      sunset:  {bg:'linear-gradient(158deg,#1C0606 0%,#3C0E08 36%,#180610 100%)',acc:'#FF4418',tc:'#FFCAA8',gr:'255,62,20'},
-      goldenR: {bg:'linear-gradient(158deg,#0C0908 0%,#281408 48%,#180C02 100%)',acc:'#FFAA38',tc:'#FFE8BE',gr:'255,162,40'},
-      goldenS: {bg:'linear-gradient(158deg,#140808 0%,#2E1008 48%,#1C0805 100%)',acc:'#FF7E1E',tc:'#FFD4A0',gr:'255,112,26'},
-      day:     {bg:'linear-gradient(158deg,#040C20 0%,#071220 100%)',acc:'#52C4F8',tc:'#FFFFFF',gr:'82,196,250'},
-      noon:    {bg:'linear-gradient(158deg,#050E26 0%,#091830 100%)',acc:'#68D5FF',tc:'#FFFFFF',gr:'95,215,255'},
+      night:   {acc:'#38486E',tc:'#8898BE',gr:'38,52,110'},
+      astR:    {acc:'#4858A0',tc:'#B0BAE0',gr:'58,68,162'},
+      astS:    {acc:'#404898',tc:'#A8B0D8',gr:'50,55,152'},
+      navR:    {acc:'#4078C8',tc:'#BCCEF5',gr:'55,105,202'},
+      navS:    {acc:'#9055C0',tc:'#D0C0F5',gr:'140,78,195'},
+      civR:    {acc:'#AA52F8',tc:'#E8D2FF',gr:'170,78,248'},
+      civS:    {acc:'#FF4C4C',tc:'#FFCECE',gr:'255,68,68'},
+      sunrise: {acc:'#FF8038',tc:'#FFE0BE',gr:'255,118,44'},
+      sunset:  {acc:'#FF4418',tc:'#FFCAA8',gr:'255,62,20'},
+      goldenR: {acc:'#FFAA38',tc:'#FFE8BE',gr:'255,162,40'},
+      goldenS: {acc:'#FF7E1E',tc:'#FFD4A0',gr:'255,112,26'},
+      day:     {acc:'#52C4F8',tc:'#FFFFFF',gr:'82,196,250'},
+      noon:    {acc:'#68D5FF',tc:'#FFFFFF',gr:'95,215,255'},
     };
     const TM=TH[phaseKey]||TH.day;
 
@@ -200,15 +311,22 @@ label: |
 
     const dotX=hToX(nowH).toFixed(2),dotY=eToY(elev).toFixed(2);
     const ss=sunStyle(elev,isR);
-    const ringsEl=ss.rings.map(g=>`<ellipse cx="${dotX}" cy="${dotY}" rx="${g.rx}" ry="${g.rx}" fill="${g.c}" opacity="${g.op}"/>`).join('');
-    const sunEl=`<circle cx="${dotX}" cy="${dotY}" r="${ss.rad}" fill="${ss.col}"${ss.shadow?` filter="${ss.shadow}"`:''}/>`
+    const ringsEl=ss.rings.map((g,i)=>`<ellipse cx="${dotX}" cy="${dotY}" rx="${g.rx}" ry="${g.rx}" fill="${g.c}" opacity="${g.op}">
+      <animate attributeName="rx" values="${g.rx};${(g.rx*1.08).toFixed(1)};${g.rx}" dur="${3+i*0.5}s" repeatCount="indefinite"/>
+      <animate attributeName="ry" values="${g.rx};${(g.rx*1.08).toFixed(1)};${g.rx}" dur="${3+i*0.5}s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="${g.op};${(g.op*1.3).toFixed(2)};${g.op}" dur="${3+i*0.5}s" repeatCount="indefinite"/>
+    </ellipse>`).join('');
+    const sunEl=`<circle cx="${dotX}" cy="${dotY}" r="${ss.rad}" fill="${ss.col}"${ss.shadow?` filter="${ss.shadow}"`:''}>
+      <animate attributeName="r" values="${ss.rad};${(ss.rad*1.04).toFixed(1)};${ss.rad}" dur="3.5s" repeatCount="indefinite"/>
+    </circle>`
 
     const vLine=`<line x1="${dotX}" y1="${(parseFloat(dotY)+ss.rad+1).toFixed(2)}" x2="${dotX}" y2="${horizY.toFixed(2)}"
       stroke="${elev>=0?'rgba(255,245,178,0.13)':'rgba(130,130,255,0.08)'}"
       stroke-width="0.7" stroke-dasharray="2 3.5"/>`;
 
     const hGlow=(elev>-4&&elev<6)?`<ellipse cx="${dotX}" cy="${horizY.toFixed(2)}" rx="100" ry="14"
-      fill="${isR?'rgba(255,165,42,0.12)':'rgba(255,68,18,0.12)'}"/>`:''
+      fill="${isR?'rgba(255,165,42,0.18)':'rgba(255,68,18,0.18)'}">
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="3.5s" repeatCount="indefinite"/></ellipse>`:''
 
     const xLbls=[0,6,12,18,24].map(h=>{
       const x=hToX(h).toFixed(1),l=h===24?'24':pad(h);
@@ -244,30 +362,105 @@ label: |
 
     return `
       <style>
-        .sc{background:${TM.bg};border-radius:24px;padding:20px 20px 16px;
-            position:relative;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;min-height:228px;}
+        @keyframes sc-glow-pulse{0%,100%{opacity:.28;transform:scale(1)}50%{opacity:.48;transform:scale(1.12)}}
+        @keyframes sc-breathe{0%,100%{opacity:1}50%{opacity:.85}}
+        @keyframes sc-shimmer{0%,100%{opacity:.65}50%{opacity:.90}}
+        @keyframes sc-bg-shift{0%,100%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(5deg) brightness(1.05)}}
+        @keyframes sc-cloud-drift{from{transform:translateX(-50px)}to{transform:translateX(50px)}}
+        @keyframes sc-rain-fall{0%{transform:translateY(-10px);opacity:0}10%{opacity:0.5}90%{opacity:0.3}100%{transform:translateY(240px);opacity:0}}
+        @keyframes sc-snow-fall{0%{transform:translateY(-10px) translateX(0);opacity:0}10%{opacity:0.7}90%{opacity:0.5}100%{transform:translateY(240px) translateX(var(--drift,10px));opacity:0}}
+
+        .sc{background:${dynamicBg};border-radius:24px;padding:20px 20px 16px;
+            position:relative;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;min-height:228px;
+            transition:background 10s cubic-bezier(0.4,0,0.2,1);
+            animation:sc-bg-shift 30s ease-in-out infinite;}
         .sc::before{content:'';position:absolute;top:-55px;left:50%;transform:translateX(-50%);
             width:270px;height:210px;
-            background:radial-gradient(ellipse,rgba(${TM.gr},0.11) 0%,transparent 72%);
-            pointer-events:none;}
-        .sc-top{display:flex;justify-content:space-between;align-items:flex-start;}
+            background:radial-gradient(ellipse,rgba(${TM.gr},0.18) 0%,transparent 72%);
+            pointer-events:none;
+            animation:sc-glow-pulse ${elev>=0?'3.5s':'5s'} cubic-bezier(0.4,0,0.2,1) infinite;}
+        .sc::after{content:'';position:absolute;inset:0;
+            background:radial-gradient(ellipse at ${(nowH/24)*100}% 35%,rgba(${TM.gr},0.12) 0%,transparent 65%);
+            pointer-events:none;
+            animation:sc-shimmer 4s cubic-bezier(0.4,0,0.2,1) infinite;}
+        .sc-top{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;}
         .sc-dc{display:flex;flex-direction:column;gap:1px;}
         .sc-day{font-size:11px;font-weight:600;color:${TM.acc};text-transform:uppercase;letter-spacing:.12em;}
         .sc-date{font-size:11px;color:${TM.acc}88;letter-spacing:.03em;}
         .sc-badge{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
             white-space:nowrap;line-height:1.65;color:${TM.acc};
-            border:1px solid ${TM.acc}44;padding:2px 8px;border-radius:12px;background:${TM.acc}14;}
+            border:1px solid ${TM.acc}44;padding:2px 8px;border-radius:12px;background:${TM.acc}14;
+            animation:sc-breathe 3s ease-in-out infinite;}
         .sc-time{font-size:65px;font-weight:200;letter-spacing:-3px;line-height:1;
-            color:${TM.tc};margin:3px 0 0;font-variant-numeric:tabular-nums;}
+            color:${TM.tc};margin:3px 0 0;font-variant-numeric:tabular-nums;position:relative;z-index:1;}
         .sc-sec{font-size:18px;font-weight:300;color:${TM.tc}48;vertical-align:super;margin-left:1px;}
-        .sc-chart{margin:10px 0 4px;}
-        .sc-bot{display:flex;justify-content:space-between;align-items:flex-start;margin-top:7px;}
+        .sc-chart{margin:10px 0 4px;position:relative;z-index:1;}
+        .sc-bot{display:flex;justify-content:space-between;align-items:flex-start;margin-top:7px;position:relative;z-index:1;}
         .sc-stat{display:flex;flex-direction:column;}
         .sc-sv{font-size:14px;font-weight:600;color:rgba(255,255,255,0.82);letter-spacing:-.2px;}
         .sc-sl{font-size:9px;font-weight:500;color:rgba(255,255,255,0.28);
             text-transform:uppercase;letter-spacing:.07em;margin-top:1px;}
       </style>
       <div class="sc">
+        <!-- Atmospheric clouds background -->
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;opacity:${elev>=0?'0.15':'0.08'};">
+          <div style="position:absolute;top:15%;left:-10%;width:180px;height:60px;border-radius:50%;
+            background:radial-gradient(ellipse,rgba(255,255,255,0.08) 0%,transparent 70%);
+            filter:blur(25px);animation:sc-cloud-drift 45s linear infinite;"></div>
+          <div style="position:absolute;top:40%;left:20%;width:220px;height:70px;border-radius:50%;
+            background:radial-gradient(ellipse,rgba(255,255,255,0.06) 0%,transparent 70%);
+            filter:blur(30px);animation:sc-cloud-drift 60s -10s linear infinite;"></div>
+          <div style="position:absolute;top:65%;left:-5%;width:160px;height:55px;border-radius:50%;
+            background:radial-gradient(ellipse,rgba(255,255,255,0.07) 0%,transparent 70%);
+            filter:blur(28px);animation:sc-cloud-drift 52s -25s linear infinite;"></div>
+        </div>
+        ${temp !== null && temp >= 30 && elev > 10 ? `
+        <!-- Heat shimmer effect -->
+        <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
+          background:radial-gradient(ellipse at 60% 20%,rgba(255,160,60,0.06) 0%,transparent 60%);
+          animation:sc-shimmer 2.5s ease-in-out infinite;"></div>
+        ` : ''}
+        ${elev > 15 && elev < 50 && (weatherState === 'sunny' || weatherState === 'clear-night') ? `
+        <!-- Dust particles in sunlight -->
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
+          <div style="position:absolute;top:20%;left:30%;width:2px;height:2px;border-radius:50%;
+            background:rgba(255,240,200,0.35);animation:sc-breathe 4s 0s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:45%;left:65%;width:2px;height:2px;border-radius:50%;
+            background:rgba(255,240,200,0.30);animation:sc-breathe 3.5s 1s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:70%;left:20%;width:2px;height:2px;border-radius:50%;
+            background:rgba(255,240,200,0.25);animation:sc-breathe 4.2s 0.5s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:35%;left:80%;width:2px;height:2px;border-radius:50%;
+            background:rgba(255,240,200,0.28);animation:sc-breathe 3.8s 1.5s ease-in-out infinite;"></div>
+        </div>
+        ` : ''}
+        ${['rainy', 'pouring', 'lightning', 'lightning-rainy'].includes(weatherState) ? `
+        <!-- Rain effect -->
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
+          ${[...Array(12)].map((_, i) => {
+            const left = (Math.random() * 100).toFixed(1);
+            const delay = (Math.random() * 2).toFixed(2);
+            const duration = (0.8 + Math.random() * 0.6).toFixed(2);
+            return `<div style="position:absolute;left:${left}%;top:-10px;width:1.5px;height:14px;
+              background:linear-gradient(to bottom,rgba(120,180,255,0.4),rgba(120,180,255,0));
+              animation:sc-rain-fall ${duration}s ${delay}s linear infinite;"></div>`;
+          }).join('')}
+        </div>
+        ` : ''}
+        ${['snowy', 'snowy-rainy'].includes(weatherState) || (temp !== null && temp < 0) ? `
+        <!-- Snow effect -->
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
+          ${[...Array(10)].map((_, i) => {
+            const left = (Math.random() * 100).toFixed(1);
+            const delay = (Math.random() * 3).toFixed(2);
+            const duration = (2 + Math.random() * 2).toFixed(2);
+            const size = (2 + Math.random() * 2).toFixed(1);
+            const drift = (Math.random() * 20 - 10).toFixed(0);
+            return `<div style="position:absolute;left:${left}%;top:-10px;width:${size}px;height:${size}px;
+              border-radius:50%;background:rgba(220,235,255,0.6);--drift:${drift}px;
+              animation:sc-snow-fall ${duration}s ${delay}s ease-in-out infinite;"></div>`;
+          }).join('')}
+        </div>
+        ` : ''}
         <div class="sc-top">
           <div class="sc-dc">
             <span class="sc-day">${DAYS[now.getDay()]}</span>
