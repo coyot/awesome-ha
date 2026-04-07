@@ -24,10 +24,18 @@ const _C = {
   textPrimary:   '#F5F5F7',
   textSecondary: '#AEAEB2',
   textTertiary:  '#636366',
+  // Urgent = today or tomorrow → vivid red
   urgent:        '#FF453A',
+  // Soon = same calendar week, ≤3 days → vivid amber
   soon:          '#FF9F0A',
-  later:         '#FFD60A',
+  // Later = next calendar week → soft blue (clearly distinct from amber)
+  later:         '#4DA6FF',
+  // Upcoming = 8–14 days → calm green
+  upcoming:      '#4ade8a',
 };
+
+// Cutoff hour: if today's pickup is past this hour, treat as done
+const _DONE_HOUR = 7.5; // 7:30
 
 const _ICONS = {
   'trash-2':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
@@ -38,6 +46,7 @@ const _ICONS = {
   'droplet':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
   'glass':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 7H9z"/><path d="M9 9c0 3 3 5 3 9"/><path d="M15 9c0 3-3 5-3 9"/><line x1="7" y1="22" x2="17" y2="22"/></svg>`,
   'armchair': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 00-2-2H7a2 2 0 00-2 2v3"/><path d="M3 11v5a2 2 0 002 2h14a2 2 0 002-2v-5a2 2 0 00-2-2H5a2 2 0 00-2 2z"/><path d="M5 18v2"/><path d="M19 18v2"/></svg>`,
+  'check':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
 };
 
 // Mon-indexed (index 0 = Monday, 6 = Sunday)
@@ -103,21 +112,45 @@ class WasteScheduleAppleCard extends HTMLElement {
     return `za ${n} dni`;
   }
 
-  // Returns { color, level } based on calendar-week proximity, not raw day count.
-  // level: 'urgent' | 'soon' | 'later' | 'distant'
+  /**
+   * Is today's pickup already "done"?
+   * Returns true when n === 0 AND current time >= _DONE_HOUR.
+   */
+  _isTodayDone(n) {
+    if (n !== 0) return false;
+    const now = new Date();
+    const hours = now.getHours() + now.getMinutes() / 60;
+    return hours >= _DONE_HOUR;
+  }
+
+  /**
+   * Returns { color, level } based on calendar-week proximity.
+   * level: 'done' | 'urgent' | 'soon' | 'later' | 'upcoming' | 'distant'
+   *
+   * Color palette:
+   *   urgent   → red    (#FF453A) — today/tomorrow, not yet done
+   *   soon     → amber  (#FF9F0A) — ≤3 days, same calendar week
+   *   later    → blue   (#4DA6FF) — next calendar week (distinct from amber)
+   *   upcoming → green  (#4ade8a) — 8–14 days, calm
+   *   distant  → gray             — beyond 14 days, muted
+   *   done     → gray (dimmed)   — today's pickup past 7:30
+   */
   _urgencyMeta(n, date) {
+    if (this._isTodayDone(n)) return { color: '#636366', level: 'done' };
+
     const today = this._today();
     const nextMonday = this._weekMonday(today);
-    nextMonday.setDate(nextMonday.getDate() + 7);          // start of next week
+    nextMonday.setDate(nextMonday.getDate() + 7);
     const weekAfterNext = new Date(nextMonday);
-    weekAfterNext.setDate(weekAfterNext.getDate() + 7);   // start of week after next
+    weekAfterNext.setDate(weekAfterNext.getDate() + 7);
 
     const d = new Date(date); d.setHours(0, 0, 0, 0);
 
-    if (n <= 1)                      return { color: _C.urgent, level: 'urgent' };  // today / tomorrow
-    if (n <= 3 && d < nextMonday)    return { color: _C.soon,   level: 'soon'   };  // ≤3 days, same week
-    if (d < weekAfterNext)           return { color: _C.later,  level: 'later'  };  // next calendar week
-    return                                  { color: '#636366', level: 'distant' }; // beyond — no emphasis
+    if (n <= 1)                   return { color: _C.urgent,   level: 'urgent'   };
+    if (n <= 3 && d < nextMonday) return { color: _C.soon,     level: 'soon'     };
+    if (d < weekAfterNext)        return { color: _C.later,    level: 'later'    };
+    if (n <= 14)                  return { color: _C.upcoming, level: 'upcoming' };
+    return                               { color: '#636366',   level: 'distant'  };
   }
 
   /* ── Data ── */
@@ -188,27 +221,30 @@ class WasteScheduleAppleCard extends HTMLElement {
   /* ── Render helpers ── */
 
   _renderCalCell(date, items, { isToday, isPast }) {
-    const dow = date.getDay(); // 0=Sun
+    const dow = date.getDay();
     const isWeekend = dow === 0 || dow === 6;
     const letter = _DAY_LETTERS[dow === 0 ? 6 : dow - 1];
     const hasItems = items.length > 0;
+    const isDone = isToday && this._isTodayDone(0);
 
     const dots = items.slice(0, 3).map(it =>
-      `<span class="cal-dot" style="background:${it.color}"></span>`
+      `<span class="cal-dot" style="background:${isDone ? '#636366' : it.color}"></span>`
     ).join('') + (items.length > 3 ? '<span class="cal-dot-more">+</span>' : '');
 
     const cls = [
       'cal-cell',
-      isToday && 'cal-today',
-      isPast  && 'cal-past',
+      isToday   && 'cal-today',
+      isPast    && 'cal-past',
       isWeekend && 'cal-weekend',
-      hasItems && !isPast && 'cal-has-items',
+      hasItems && !isPast && !isDone && 'cal-has-items',
+      isDone    && 'cal-done',
     ].filter(Boolean).join(' ');
 
     const key = this._dateKey(date);
+    const interactive = hasItems && !isPast && !isDone;
 
     return `
-      <div class="${cls}" data-date="${key}" data-has-items="${hasItems && !isPast}">
+      <div class="${cls}" data-date="${key}" data-has-items="${interactive}">
         <span class="cal-letter">${letter}</span>
         <span class="cal-num">${date.getDate()}</span>
         <div class="cal-dots">${hasItems && !isPast ? dots : ''}</div>
@@ -265,38 +301,69 @@ class WasteScheduleAppleCard extends HTMLElement {
           const n = this._daysFrom(g.date);
           const { color: uc, level } = this._urgencyMeta(n, g.date);
           const label = this._relLabel(n);
-          const isDistant = level === 'distant';
+
+          const isDone     = level === 'done';
+          const isUpcoming = level === 'upcoming';
+          const isDistant  = level === 'distant';
+          const isMuted    = isDone || isDistant;
+          const isSoft     = isUpcoming;
 
           const dateStr = g.date.toLocaleDateString('pl-PL', {
             weekday: 'long', day: 'numeric', month: 'short',
           });
 
-          // Left bar — glow only for urgent/soon, invisible-ish for distant
+          /* Urgency bar */
           const barGlow = level === 'urgent'
             ? `box-shadow:0 0 10px ${uc}99,0 0 4px ${uc}cc;`
             : level === 'soon'
             ? `box-shadow:0 0 6px ${uc}66;`
+            : level === 'later'
+            ? `box-shadow:0 0 4px ${uc}44;`
             : '';
-          const barOpacity = isDistant ? 'opacity:0.3;' : '';
+          const barOpacity = isDone
+            ? 'opacity:0.15;'
+            : isDistant
+            ? 'opacity:0.25;'
+            : isSoft
+            ? 'opacity:0.5;'
+            : '';
 
-          // Item bg tint — only today/tomorrow
-          const itemBg = level === 'urgent' ? `background:${uc}0d;` : '';
+          /* Row tint */
+          const itemBg = isDone
+            ? 'background:rgba(255,255,255,0.02);'
+            : level === 'urgent'
+            ? `background:${uc}0d;`
+            : '';
 
-          // Badge — omit for distant (no label clutter needed)
-          const badgeHTML = isDistant ? '' : (() => {
+          /* Badge — only for urgent / soon / later */
+          let badgeHTML = '';
+          if (!isMuted && !isSoft) {
             const bg     = `${uc}${level === 'urgent' ? '2a' : '18'}`;
             const border = `${uc}${level === 'urgent' ? '55' : '33'}`;
-            return `<span class="list-badge" style="color:${uc};background:${bg};border-color:${border};">${label}</span>`;
-          })();
+            badgeHTML = `<span class="list-badge" style="color:${uc};background:${bg};border-color:${border};">${label}</span>`;
+          }
+
+          /* Done checkmark */
+          const checkHTML = isDone
+            ? `<span class="done-check">${_ICONS['check']}</span>`
+            : '';
+
+          /* Date text style */
+          const dateCls = isDone || isDistant
+            ? 'list-date list-date-muted'
+            : isSoft
+            ? 'list-date list-date-soft'
+            : 'list-date';
 
           const sep = i < grouped.length - 1 ? ' sep' : '';
 
           return `
-            <div class="list-item${sep}" data-date="${g.key}" style="${itemBg}">
+            <div class="list-item${sep}${isDone ? ' list-item-done' : ''}" data-date="${g.key}" style="${itemBg}">
               <div class="urgency-bar" style="background:${uc};${barGlow}${barOpacity}"></div>
               <div class="list-body">
                 <div class="list-top">
-                  <span class="list-date${isDistant ? ' list-date-muted' : ''}">${dateStr}</span>
+                  <span class="${dateCls}">${dateStr}</span>
+                  ${checkHTML}
                   ${badgeHTML}
                 </div>
                 <div class="list-chips">${g.items.map(it => this._renderChip(it)).join('')}</div>
@@ -361,9 +428,7 @@ class WasteScheduleAppleCard extends HTMLElement {
           transition: background 0.15s, transform 0.15s;
           cursor: default;
         }
-        .cal-has-items {
-          cursor: pointer;
-        }
+        .cal-has-items { cursor: pointer; }
         .cal-has-items:hover, .cal-hover {
           background: rgba(255,255,255,0.1);
           transform: scale(1.07);
@@ -377,17 +442,10 @@ class WasteScheduleAppleCard extends HTMLElement {
         .cal-today:hover, .cal-today.cal-hover {
           background: rgba(255,255,255,0.18);
         }
-        /* Past days — subtle fade */
-        .cal-past {
-          opacity: 0.28;
-        }
-        /* Weekends — muted but not invisible */
-        .cal-weekend:not(.cal-today) {
-          opacity: 0.38;
-        }
-        .cal-weekend.cal-past {
-          opacity: 0.18;
-        }
+        .cal-past    { opacity: 0.28; }
+        .cal-done    { opacity: 0.30; }
+        .cal-weekend:not(.cal-today) { opacity: 0.38; }
+        .cal-weekend.cal-past        { opacity: 0.18; }
 
         .cal-letter {
           font-size: 9px; font-weight: 500; color: ${_C.textTertiary};
@@ -418,17 +476,14 @@ class WasteScheduleAppleCard extends HTMLElement {
         .list-item {
           display: flex;
           align-items: stretch;
-          gap: 0;
           padding: 11px 0;
           border-radius: 10px;
           position: relative;
           transition: background 0.2s;
         }
-        /* Soft hover on list rows (direct hover, not from calendar) */
         .list-item:hover {
           background: rgba(255,255,255,0.03) !important;
         }
-        /* Highlight triggered from calendar hover */
         .list-item.highlighted {
           background: rgba(255,255,255,0.05) !important;
         }
@@ -438,6 +493,14 @@ class WasteScheduleAppleCard extends HTMLElement {
         .list-item.sep {
           border-bottom: 1px solid rgba(255,255,255,0.06);
           border-radius: 10px 10px 0 0;
+        }
+
+        /* Done row: dim everything */
+        .list-item-done {
+          opacity: 0.38;
+        }
+        .list-item-done .list-chips .chip {
+          filter: saturate(0.3);
         }
 
         .urgency-bar {
@@ -463,6 +526,19 @@ class WasteScheduleAppleCard extends HTMLElement {
           color: ${_C.textTertiary};
           font-weight: 400;
         }
+        /* Upcoming (8-14d): subtle green tint on date text */
+        .list-date-soft {
+          color: rgba(74, 222, 138, 0.65);
+          font-weight: 400;
+        }
+
+        /* Done checkmark */
+        .done-check {
+          width: 14px; height: 14px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #636366;
+        }
+        .done-check svg { width: 12px; height: 12px; }
 
         /* Badge pill */
         .list-badge {
