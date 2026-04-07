@@ -1,0 +1,336 @@
+type: custom:button-card
+entity: vacuum.wariot
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: more-info
+styles:
+  card:
+    - padding: "0"
+    - background: "#1C1C1E"
+    - border-radius: 16px
+    - overflow: hidden
+    - border: |
+        [[[
+          const s = entity.state;
+          if (s === 'cleaning')  return '1px solid rgba(151,196,89,0.35)';
+          if (s === 'returning') return '1px solid rgba(133,183,235,0.28)';
+          if (s === 'paused')    return '1px solid rgba(239,159,39,0.28)';
+          if (s === 'error')     return '1px solid rgba(226,75,74,0.35)';
+          return '0.5px solid rgba(255,255,255,0.08)';
+        ]]]
+    - animation: |
+        [[[
+          const s = entity.state;
+          if (s === 'cleaning')  return 'vac-pulse-green 2.4s ease-in-out infinite';
+          if (s === 'returning') return 'vac-pulse-blue  2.4s ease-in-out infinite';
+          return 'none';
+        ]]]
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    // ── state ─────────────────────────────────────────────────────────
+    const s         = entity.state || 'idle';
+    const cleaning  = s === 'cleaning';
+    const returning = s === 'returning';
+    const docked    = s === 'docked';
+    const paused    = s === 'paused';
+    const error     = s === 'error';
+    const active    = cleaning || returning;
+
+    // ── sensors ───────────────────────────────────────────────────────
+    const battery     = parseInt(states['sensor.wariot_battery']?.state ?? '0');
+    const area        = parseFloat(states['sensor.wariot_area_cleaned']?.state ?? '0');
+    const duration    = parseFloat(states['sensor.wariot_cleaning_duration']?.state ?? '0') / 60; // min→h
+    const mopOn       = states['binary_sensor.wariot_mop_attached']?.state === 'on';
+    const activeMap   = states['select.wariot_active_map']?.state || null;
+    const waterFlow   = states['select.wariot_water_flow_level']?.state || 'off';
+
+    // consumables — 100 = new, 0 = replace, negative = overdue
+    const filterLife    = parseFloat(states['sensor.wariot_filter_lifespan']?.state    ?? '0');
+    const mainBrush     = parseFloat(states['sensor.wariot_main_brush_lifespan']?.state ?? '0');
+    const sideBrush     = parseFloat(states['sensor.wariot_side_brush_lifespan']?.state ?? '0');
+    const unitCare      = parseFloat(states['sensor.wariot_unit_care_lifespan']?.state  ?? '0');
+
+    // lifetime
+    const totalArea      = parseFloat(states['sensor.wariot_total_area_cleaned']?.state       ?? '0');
+    const totalHours     = parseFloat(states['sensor.wariot_total_cleaning_duration']?.state  ?? '0') / 60; // min→h
+    const totalCleanings = parseInt(states['sensor.wariot_total_cleanings']?.state            ?? '0');
+
+    // ── formatters ────────────────────────────────────────────────────
+    function fmtHours(h) {
+      if (h < 1/60) return '—';
+      if (h < 1)    return Math.round(h * 60) + ' min';
+      const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+      return mm > 0 ? `${hh} h ${mm} min` : `${hh} h`;
+    }
+    function fmtArea(m2) {
+      return m2 >= 1000
+        ? (m2 / 1000).toFixed(1).replace('.', ',') + ' tys. m²'
+        : Math.round(m2) + ' m²';
+    }
+    function fmtNum(n) {
+      return n.toLocaleString('pl-PL');
+    }
+
+    // ── consumable helpers ────────────────────────────────────────────
+    function cCol(v) {
+      if (v <= 0)  return '#E24B4A';   // red   — overdue
+      if (v <= 50) return '#FFD60A';   // yellow — below half
+      return '#97C459';                // green  — ok
+    }
+    function cTipVal(v) {
+      return v <= 0
+        ? `⚠\u00A0${Math.abs(Math.round(v))}% po terminie`
+        : `${Math.round(v)}%`;
+    }
+    function cIcon(svg, label, v) {
+      const col  = cCol(v);
+      const pct  = Math.max(0, Math.min(100, v));
+      const glow = v <= 0  ? `filter:drop-shadow(0 0 5px ${col}99);` : '';
+      return `
+        <div class="ci">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="${col}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+               style="${glow}">${svg}</svg>
+          <div class="ct">
+            <div style="font-size:11px;font-weight:600;color:#F5F5F7;margin-bottom:6px;">${label}</div>
+            <div style="height:3px;border-radius:99px;background:rgba(255,255,255,0.12);overflow:hidden;margin-bottom:5px;">
+              <div style="height:100%;width:${pct}%;border-radius:99px;background:${col};"></div>
+            </div>
+            <div style="font-size:11px;color:${col};">${cTipVal(v)}</div>
+          </div>
+        </div>`;
+    }
+
+    const svgFilter   = `<path d="M3 4h18l-7 9v6l-4-2v-4L3 4z"/>`;
+    const svgMainBrush= `<rect x="2" y="9" width="20" height="6" rx="3"/>
+                         <line x1="7"  y1="15" x2="6.5" y2="20"/>
+                         <line x1="11" y1="15" x2="11"  y2="20"/>
+                         <line x1="15" y1="15" x2="15"  y2="20"/>
+                         <line x1="19" y1="15" x2="19.5" y2="20"/>`;
+    const svgSideBrush= `<circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+                         <line x1="12" y1="10" x2="12" y2="3"/>
+                         <line x1="10.3" y1="13" x2="4.2" y2="16.5"/>
+                         <line x1="13.7" y1="13" x2="19.8" y2="16.5"/>`;
+    const svgUnitCare = `<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>`;
+
+    // any consumable needing attention?
+    const maintenanceAlert = [filterLife, mainBrush, sideBrush, unitCare].some(v => v <= 20);
+
+    // ── colors ────────────────────────────────────────────────────────
+    const accentCol  = cleaning  ? '#97C459'
+                     : returning ? '#85B7EB'
+                     : paused    ? '#EF9F27'
+                     : error     ? '#E24B4A'
+                     : '#5F5E5A';
+
+    const batteryCol = docked
+      ? (battery > 90 ? '#7A8A75' : battery > 60 ? '#8A7A60' : '#8A6A60')
+      : (battery > 60 ? '#97C459' : battery > 30 ? '#EF9F27' : '#E24B4A');
+
+    const batteryGrad = docked
+      ? 'linear-gradient(90deg,#5A6356,#7A8A75)'
+      : battery > 60 ? 'linear-gradient(90deg,#5F8932,#97C459)'
+      : battery > 30 ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
+      : 'linear-gradient(90deg,#8F2320,#E24B4A)';
+
+    // ── chips ─────────────────────────────────────────────────────────
+    function chip(text, col, bg) {
+      return `<span style="display:inline-flex;align-items:center;font-size:11px;font-weight:500;
+                           padding:3px 8px;border-radius:6px;background:${bg};color:${col};
+                           white-space:nowrap;">${text}</span>`;
+    }
+
+    const waterMap = { off:'woda wyłączona', low:'woda: niski', medium:'woda: średni',
+                       high:'woda: wysoki', ultrahigh:'woda: ultra' };
+
+    const fanSpeed = entity.attributes.fan_speed || 'standard';
+    const fanMap = {
+      silent:   { label: 'cichy',    col: '#7BAED4', bg: 'rgba(123,174,212,0.12)' },
+      quiet:    { label: 'cichy',    col: '#7BAED4', bg: 'rgba(123,174,212,0.12)' },
+      standard: { label: 'normalny', col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      normal:   { label: 'normalny', col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' },
+      medium:   { label: 'mocny',    col: '#EF9F27', bg: 'rgba(239,159,39,0.12)'  },
+      turbo:    { label: 'turbo',    col: '#E24B4A', bg: 'rgba(226,75,74,0.12)'   },
+      max:      { label: 'max',      col: '#E24B4A', bg: 'rgba(226,75,74,0.12)'   },
+    };
+    const fanInfo = fanMap[fanSpeed.toLowerCase()] ?? { label: fanSpeed, col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' };
+
+    let chips = '';
+    if (activeMap) chips += chip(activeMap, '#5E9CF5', 'rgba(94,156,245,0.12)');
+    chips += chip(fanInfo.label, fanInfo.col, fanInfo.bg);
+    if (mopOn)     chips += chip('mop ✓', '#85B7EB', 'rgba(133,183,235,0.12)');
+    else           chips += chip('bez mopa', '#5F5E5A', 'rgba(95,94,90,0.10)');
+    if (mopOn && waterFlow !== 'off')
+                   chips += chip(waterMap[waterFlow] || waterFlow, '#7BAED4', 'rgba(123,174,212,0.10)');
+
+    // ── badge ─────────────────────────────────────────────────────────
+    const dotBase = 'width:5px;height:5px;border-radius:50%;flex-shrink:0;';
+    const badgeLabel = cleaning  ? 'sprząta'
+                     : returning ? 'wraca'
+                     : docked    ? 'w bazie'
+                     : paused    ? 'pauza'
+                     : error     ? 'błąd'
+                     : 'czeka';
+    const badgeBg = cleaning  ? 'rgba(151,196,89,0.14)'
+                  : returning ? 'rgba(133,183,235,0.14)'
+                  : paused    ? 'rgba(239,159,39,0.14)'
+                  : error     ? 'rgba(226,75,74,0.14)'
+                  : 'rgba(95,94,90,0.12)';
+    const badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+                                border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap;
+                                background:${badgeBg};color:${accentCol};">
+        <span style="${dotBase}background:${accentCol};${active?'animation:vac-dot 1.8s ease-in-out infinite;':''}"></span>
+        ${badgeLabel}</span>`;
+
+    // ── SVG icon ──────────────────────────────────────────────────────
+    const svgIcon = cleaning
+      ? `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;animation:vac-spin 2s linear infinite;">
+           <circle cx="10" cy="10" r="7" stroke="#97C459" stroke-width="1.4" stroke-dasharray="3 2"/>
+           <circle cx="10" cy="10" r="3" fill="#97C459"/>
+         </svg>`
+      : returning
+      ? `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;animation:vac-move 1.5s ease-in-out infinite alternate;">
+           <path d="M4 10L12 10" stroke="#85B7EB" stroke-width="1.5" stroke-linecap="round"/>
+           <path d="M8 6L4 10L8 14" stroke="#85B7EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+           <circle cx="15" cy="10" r="2" fill="#85B7EB"/>
+         </svg>`
+      : docked
+      ? `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+           <rect x="5" y="7" width="10" height="8" rx="1.5" stroke="#5F5E5A" stroke-width="1.3"/>
+           <path d="M8 5L8 7M12 5L12 7" stroke="#5F5E5A" stroke-width="1.3" stroke-linecap="round"/>
+           <circle cx="10" cy="11" r="1.5" fill="${maintenanceAlert ? '#EF9F27' : '#97C459'}"/>
+         </svg>`
+      : `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;">
+           <circle cx="10" cy="10" r="6" stroke="#5F5E5A" stroke-width="1.4"/>
+           <circle cx="10" cy="10" r="2.5" fill="#5F5E5A"/>
+         </svg>`;
+
+    // ── session row — zawsze widoczna ─────────────────────────────────
+    const sessionLabel = cleaning ? 'trwa' : 'ostatnie';
+    const areaStr      = area > 0     ? fmtArea(area)      : '—';
+    const durStr       = duration > 0 ? fmtHours(duration) : '—';
+    const sessionHTML = `
+      <div style="display:flex;gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:15px;font-weight:600;letter-spacing:-0.4px;color:${accentCol};line-height:1;">${areaStr}</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">${sessionLabel} · obszar</span>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,0.07);align-self:stretch;"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:15px;font-weight:600;letter-spacing:-0.4px;color:${accentCol};line-height:1;">${durStr}</span>
+          <span style="font-size:10px;color:rgba(255,255,255,0.28);">${sessionLabel} · czas</span>
+        </div>
+      </div>`;
+
+    // ── separator ─────────────────────────────────────────────────────
+    const sep = `<div style="height:1px;background:rgba(255,255,255,0.06);margin:0 -2px;"></div>`;
+
+    // ── lifetime footer ───────────────────────────────────────────────
+    const lifetimeHTML = `
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="font-size:10px;color:rgba(255,255,255,0.20);">${fmtNum(totalCleanings)}× · ${fmtArea(totalArea)} · ${fmtHours(totalHours)}</span>
+      </div>`;
+
+    // ── render ────────────────────────────────────────────────────────
+    return `
+      <style>
+        @keyframes vac-pulse-green {
+          0%,100% { box-shadow:0 0 0 0   rgba(151,196,89,0); }
+          50%     { box-shadow:0 0 0 5px rgba(151,196,89,0.18); }
+        }
+        @keyframes vac-pulse-blue {
+          0%,100% { box-shadow:0 0 0 0   rgba(133,183,235,0); }
+          50%     { box-shadow:0 0 0 5px rgba(133,183,235,0.18); }
+        }
+        @keyframes vac-spin { to { transform:rotate(360deg); } }
+        @keyframes vac-move {
+          from { transform:translateX(0); }
+          to   { transform:translateX(-3px); }
+        }
+        @keyframes vac-dot {
+          0%,100% { opacity:1; }
+          50%     { opacity:0.2; }
+        }
+        .ci {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px 0;
+          cursor: default;
+          border-radius: 10px;
+          transition: background 0.15s;
+        }
+        .ci:hover { background: rgba(255,255,255,0.05); }
+        .ct {
+          display: none;
+          position: absolute;
+          bottom: calc(100% + 8px);
+          left: 50%;
+          transform: translateX(-50%);
+          min-width: 130px;
+          background: rgba(38,38,40,0.97);
+          border: 1px solid rgba(255,255,255,0.10);
+          border-radius: 10px;
+          padding: 10px 12px;
+          z-index: 20;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+          pointer-events: none;
+        }
+        .ci:hover .ct { display: block; }
+      </style>
+
+      <div style="display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;
+                  align-items:stretch;padding:14px 16px;
+                  font-family:-apple-system,system-ui,sans-serif;">
+
+        <div style="width:4px;border-radius:99px;background:${accentCol};align-self:stretch;"></div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0;">
+
+          <!-- name + badge -->
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${svgIcon}
+            <span style="font-size:13px;font-weight:500;color:#F1EFE8;flex:1;min-width:0;">WARIOT</span>
+            ${badge}
+          </div>
+
+          <!-- chips -->
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${chips}</div>
+
+          <!-- session stats -->
+          ${sessionHTML}${sep}
+
+          <!-- consumables + lifetime stats -->
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${cIcon(svgFilter,    'Filtr',             filterLife)}
+            ${cIcon(svgMainBrush, 'Szczotka główna',   mainBrush)}
+            ${cIcon(svgSideBrush, 'Szczotka boczna',   sideBrush)}
+            ${cIcon(svgUnitCare,  'Konserwacja jedn.', unitCare)}
+            <div style="width:1px;height:14px;background:rgba(255,255,255,0.07);flex-shrink:0;"></div>
+            ${lifetimeHTML}
+          </div>
+
+        </div>
+
+        <!-- right: battery -->
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;
+                    gap:6px;min-width:44px;padding-top:2px;">
+          <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;color:${batteryCol};">${battery}%</span>
+          <span style="font-size:9px;color:rgba(255,255,255,0.28);">${docked ? 'ładuje' : 'bateria'}</span>
+          <div style="width:100%;height:3px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;margin-top:2px;">
+            <div style="height:100%;width:${battery}%;border-radius:99px;background:${batteryGrad};"></div>
+          </div>
+        </div>
+
+      </div>`;
+  ]]]
