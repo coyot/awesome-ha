@@ -1,7 +1,7 @@
 type: custom:button-card
 entity: switch.porecz_klatka_schodowa_socket_1
 variables:
-  card_name: "Poręcz"   # ← krótka nazwa wyświetlana na kafelku
+  card_name: Poręcz schody
 show_name: false
 show_icon: false
 show_state: false
@@ -38,54 +38,59 @@ styles:
     - padding: "0"
     - margin: "0"
     - width: 100%
-    - height: 100%
-    - white-space: normal
-    - line-height: "1"
+    - display: block
 label: |
   [[[
     const on   = entity.state === 'on';
     const name = variables?.card_name || entity.attributes.friendly_name || 'Gniazdko';
-
     const accentCol = on ? '#FFD60A' : '#3D3D3B';
     const nameCol   = on ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.30)';
 
-    const svgIcon = on
-      ? `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-              style="filter:drop-shadow(0 0 6px rgba(255,214,10,0.55));">
-           <path d="M8 6v2M16 6v2" stroke="#FFD60A" stroke-width="1.8" stroke-linecap="round"/>
-           <path d="M6 8h12v4a6 6 0 01-12 0V8z" stroke="#FFD60A" stroke-width="1.5"/>
-           <line x1="12" y1="18" x2="12" y2="22" stroke="#FFD60A" stroke-width="1.8" stroke-linecap="round"/>
-           <line x1="9" y1="22" x2="15" y2="22" stroke="#FFD60A" stroke-width="1.8" stroke-linecap="round"/>
-         </svg>`
-      : `<svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-           <path d="M8 6v2M16 6v2" stroke="#3D3D3B" stroke-width="1.8" stroke-linecap="round"/>
-           <path d="M6 8h12v4a6 6 0 01-12 0V8z" stroke="#3D3D3B" stroke-width="1.5"/>
-           <line x1="12" y1="18" x2="12" y2="22" stroke="#3D3D3B" stroke-width="1.8" stroke-linecap="round"/>
-           <line x1="9" y1="22" x2="15" y2="22" stroke="#3D3D3B" stroke-width="1.8" stroke-linecap="round"/>
-         </svg>`;
+    const svgOn = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+        style="filter:drop-shadow(0 0 5px rgba(255,214,10,0.5));flex-shrink:0;">
+      <circle cx="12" cy="10" r="5" stroke="#FFD60A" stroke-width="1.6"/>
+      <path d="M9 15h6l-.5 3a1 1 0 01-1 .8h-3a1 1 0 01-1-.8L9 15z"
+            stroke="#FFD60A" stroke-width="1.4" fill="rgba(255,214,10,0.15)"/>
+      <line x1="9.5" y1="18.5" x2="14.5" y2="18.5"
+            stroke="#FFD60A" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="12" y1="5" x2="12" y2="3.5"
+            stroke="#FFD60A" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="16.5" y1="6.5" x2="17.5" y2="5.5"
+            stroke="#FFD60A" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="7.5" y1="6.5" x2="6.5" y2="5.5"
+            stroke="#FFD60A" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`;
+
+    const svgOff = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+        style="flex-shrink:0;">
+      <circle cx="12" cy="10" r="5" stroke="#3D3D3B" stroke-width="1.6"/>
+      <path d="M9 15h6l-.5 3a1 1 0 01-1 .8h-3a1 1 0 01-1-.8L9 15z"
+            stroke="#3D3D3B" stroke-width="1.4"/>
+      <line x1="9.5" y1="18.5" x2="14.5" y2="18.5"
+            stroke="#3D3D3B" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="4" y1="4" x2="20" y2="20"
+            stroke="#3D3D3B" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>`;
 
     const statusDot = `<span style="width:5px;height:5px;border-radius:50%;
-                                    background:${accentCol};flex-shrink:0;
-                                    ${on ? 'animation:sw-dot 2s ease-in-out infinite;box-shadow:0 0 4px rgba(255,214,10,0.6);' : ''}"></span>`;
+      background:${accentCol};flex-shrink:0;display:inline-block;
+      ${on ? 'animation:sw-dot 2s ease-in-out infinite;box-shadow:0 0 4px rgba(255,214,10,0.6);' : ''}"></span>`;
 
     return `
       <style>
         @keyframes sw-pulse {
           0%,100% { box-shadow: 0 0 0 0   rgba(255,214,10,0); }
-          50%     { box-shadow: 0 0 0 6px rgba(255,214,10,0.12); }
+          50%      { box-shadow: 0 0 0 6px rgba(255,214,10,0.12); }
         }
         @keyframes sw-dot {
           0%,100% { opacity:1; }
-          50%     { opacity:0.25; }
+          50%      { opacity:0.25; }
         }
       </style>
-
       <div style="display:flex;flex-direction:column;justify-content:space-between;
-                  padding:14px 12px 12px;height:100%;box-sizing:border-box;
+                  padding:14px 12px 12px;aspect-ratio:1/1;box-sizing:border-box;
                   font-family:-apple-system,system-ui,sans-serif;">
-
-        <div>${svgIcon}</div>
-
+        <div>${on ? svgOn : svgOff}</div>
         <div style="display:flex;flex-direction:column;gap:5px;">
           <span style="font-size:12px;font-weight:500;color:${nameCol};
                        line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;
@@ -97,6 +102,5 @@ label: |
             </span>
           </div>
         </div>
-
       </div>`;
   ]]]

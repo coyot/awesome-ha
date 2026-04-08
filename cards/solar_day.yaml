@@ -22,6 +22,8 @@ styles:
 label: |
   [[[
     const LAT = 52.40, LON = 16.87;
+    const SHOW_PLANETS = true;
+
     const DAYS   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
     const MONTHS = ['stycznia','lutego','marca','kwietnia','maja','czerwca',
                     'lipca','sierpnia','września','października','listopada','grudnia'];
@@ -99,36 +101,29 @@ label: |
     else               {phaseKey='night';  phaseName='Noc';}
 
     // ═══════════════════════════════════════════════════════════════════
-    // DYNAMICZNE TŁO - reaguje na porę dnia, temperaturę, pogodę
+    // DYNAMICZNE TŁO
     // ═══════════════════════════════════════════════════════════════════
-
-    // Pobierz temperaturę i pogodę (jeśli dostępne)
     const tempSensor = 'sensor.stacja_pogodowa_outdoor_temperature';
     const weatherEntity = 'weather.forecast_home';
     const tempRaw = states[tempSensor]?.state;
     const temp = tempRaw ? parseFloat(tempRaw) : null;
     const weatherState = states[weatherEntity]?.state || 'unknown';
 
-    // Funkcja generująca dynamiczny gradient na podstawie elevation + temp + weather
     function generateDynamicBg(elev, temp, weather, phase) {
-      let c1, c2, c3; // kolory gradientu
-
-      // NOC (elev < -18)
+      let c1, c2, c3;
       if (elev < -18) {
         c1 = '#010204'; c2 = '#020408'; c3 = '#030610';
       }
-      // ŚWIT ASTRONOMICZNY (-18 do -12)
       else if (elev < -12) {
-        const t = (elev + 18) / 6; // 0->1
-        if (phase.includes('R')) { // wschód
+        const t = (elev + 18) / 6;
+        if (phase.includes('R')) {
           c1 = `rgb(${2+Math.floor(t*4)},${4+Math.floor(t*6)},${14+Math.floor(t*12)})`;
           c2 = `rgb(${5+Math.floor(t*8)},${8+Math.floor(t*12)},${24+Math.floor(t*20)})`;
           c3 = `rgb(${3+Math.floor(t*5)},${6+Math.floor(t*8)},${16+Math.floor(t*14)})`;
-        } else { // zachód
+        } else {
           c1 = '#030410'; c2 = '#060618'; c3 = '#040512';
         }
       }
-      // ŚWIT ŻEGLARSKI (-12 do -6)
       else if (elev < -6) {
         const t = (elev + 12) / 6;
         if (phase.includes('R')) {
@@ -141,7 +136,6 @@ label: |
           c3 = `rgb(${22-Math.floor(t*16)},${18-Math.floor(t*12)},${22-Math.floor(t*14)})`;
         }
       }
-      // ŚWIT CYWILNY / GOLDEN (-6 do 0)
       else if (elev < 0) {
         const t = (elev + 6) / 6;
         if (phase.includes('R')) {
@@ -154,7 +148,6 @@ label: |
           c3 = `rgb(${Math.floor(24-t*6)},${Math.floor(6+t*4)},${Math.floor(6+t*10)})`;
         }
       }
-      // WSCHÓD/ZACHÓD (0 do 4)
       else if (elev < 4) {
         const t = elev / 4;
         if (phase.includes('R')) {
@@ -167,48 +160,119 @@ label: |
           c3 = `rgb(${Math.floor(24-t*6)},${Math.floor(10-t*4)},${Math.floor(16+t*4)})`;
         }
       }
-      // DZIEŃ (4+)
       else {
-        const intensity = Math.min((elev - 4) / 30, 1); // 0 at 4°, 1 at 34°+
-        // Bazowy niebieski dzień
-        let r1 = 4, g1 = 12, b1 = 32;
-        let r2 = 7, g2 = 18, b2 = 48;
-
-        // Modyfikacja na podstawie temperatury
-        if (temp !== null) {
-          if (temp >= 30) { // ciepło
-            r1 += Math.floor((temp - 30) * 0.8); g1 += Math.floor((temp - 30) * 0.4);
-            r2 += Math.floor((temp - 30) * 1.2); g2 += Math.floor((temp - 30) * 0.6);
-          } else if (temp <= 5) { // zimno
-            b1 += Math.floor((5 - temp) * 0.6);
-            b2 += Math.floor((5 - temp) * 1.0);
-          }
+        let r1=4,g1=12,b1=32,r2=7,g2=18,b2=48;
+        if(temp!==null){
+          if(temp>=30){r1+=Math.floor((temp-30)*0.8);g1+=Math.floor((temp-30)*0.4);r2+=Math.floor((temp-30)*1.2);g2+=Math.floor((temp-30)*0.6);}
+          else if(temp<=5){b1+=Math.floor((5-temp)*0.6);b2+=Math.floor((5-temp)*1.0);}
         }
-
-        c1 = `rgb(${r1},${g1},${b1})`;
-        c2 = `rgb(${r2},${g2},${b2})`;
-        c3 = `rgb(${Math.floor(r1*0.8)},${Math.floor(g1*0.9)},${Math.floor(b1*1.1)})`;
+        c1=`rgb(${r1},${g1},${b1})`;c2=`rgb(${r2},${g2},${b2})`;
+        c3=`rgb(${Math.floor(r1*0.8)},${Math.floor(g1*0.9)},${Math.floor(b1*1.1)})`;
       }
-
-      // Modyfikacja na podstawie pogody
-      if (['rainy', 'pouring', 'lightning', 'lightning-rainy'].includes(weather)) {
-        // Ciemniej + bardziej szaro
-        c1 = c1.replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g, b) =>
-          `rgb(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.8)})`);
-        c2 = c2.replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g, b) =>
-          `rgb(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.8)})`);
-      } else if (['cloudy'].includes(weather)) {
-        // Lekko przyciemnione
-        c1 = c1.replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g, b) =>
-          `rgb(${Math.floor(r*0.85)},${Math.floor(g*0.85)},${Math.floor(b*0.90)})`);
+      if(['rainy','pouring','lightning','lightning-rainy'].includes(weather)){
+        c1=c1.replace(/rgb\((\d+),(\d+),(\d+)\)/,(m,r,g,b)=>`rgb(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.8)})`);
+        c2=c2.replace(/rgb\((\d+),(\d+),(\d+)\)/,(m,r,g,b)=>`rgb(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.8)})`);
+      } else if(['cloudy'].includes(weather)){
+        c1=c1.replace(/rgb\((\d+),(\d+),(\d+)\)/,(m,r,g,b)=>`rgb(${Math.floor(r*0.85)},${Math.floor(g*0.85)},${Math.floor(b*0.90)})`);
       }
-
-      return `linear-gradient(158deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
+      return `linear-gradient(158deg,${c1} 0%,${c2} 50%,${c3} 100%)`;
     }
 
-    const dynamicBg = generateDynamicBg(elev, temp, weatherState, phaseKey);
+    const dynamicBg = generateDynamicBg(elev,temp,weatherState,phaseKey);
 
-    // Zachowaj akcenty z oryginalnego theme
+    // ═══════════════════════════════════════════════════════════════════
+    // POZYCJE PLANET (tylko nocą)
+    // ═══════════════════════════════════════════════════════════════════
+    const isNight = elev < -6;
+
+    function julianDay(date){return date.getTime()/86400000+2440587.5;}
+
+    function planetPosition(name,date,lat,lon){
+      const JD=julianDay(date);
+      const T=(JD-2451545.0)/36525;
+      const d=JD-2451543.5;
+      const planets={
+        Merkury:{e:0.20563,L0:252.251,Ldot:4.09234, w:77.456 },
+        Wenus:  {e:0.00677,L0:181.980,Ldot:1.60214, w:131.564},
+        Mars:   {e:0.09340,L0:355.433,Ldot:0.52403, w:336.060},
+        Jowisz: {e:0.04839,L0:34.396, Ldot:0.08309, w:14.728 },
+        Saturn: {e:0.05415,L0:49.954, Ldot:0.03346, w:92.432 },
+      };
+      const p=planets[name];
+      if(!p)return null;
+      const L=((p.L0+p.Ldot*d)%360+360)%360;
+      const M=(L-p.w+360)%360;
+      const Mr=M*Math.PI/180;
+      const C=(2*p.e-p.e**3/4)*Math.sin(Mr)+(5/4)*p.e**2*Math.sin(2*Mr)+(13/12)*p.e**3*Math.sin(3*Mr);
+      const lon_ecl=(L+C*180/Math.PI+360)%360;
+      const eps=23.4393-0.0130*T;
+      const er=eps*Math.PI/180;
+      const lr=lon_ecl*Math.PI/180;
+      const RA=Math.atan2(Math.sin(lr)*Math.cos(er),Math.cos(lr))*180/Math.PI;
+      const Dec=Math.asin(Math.sin(er)*Math.sin(lr))*180/Math.PI;
+      const LST0=100.4606+36000.7701*T+lon/15;
+      const nowH2=date.getHours()+date.getMinutes()/60+date.getSeconds()/3600;
+      const LST=((LST0+nowH2*15)%360+360)%360;
+      const HA=((LST-RA)%360+360)%360;
+      const HAr=HA*Math.PI/180;
+      const latr=lat*Math.PI/180;
+      const Decr=Dec*Math.PI/180;
+      const sinAlt=Math.sin(latr)*Math.sin(Decr)+Math.cos(latr)*Math.cos(Decr)*Math.cos(HAr);
+      const alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)))*180/Math.PI;
+      const cosAlt=Math.cos(alt*Math.PI/180);
+      const cosAz=cosAlt>0.0001?(Math.sin(Decr)-Math.sin(latr)*sinAlt)/(Math.cos(latr)*cosAlt):0;
+      const azRaw=Math.acos(Math.max(-1,Math.min(1,cosAz)))*180/Math.PI;
+      const az=Math.sin(HAr)>0?360-azRaw:azRaw;
+      const dirs=['N','NE','E','SE','S','SW','W','NW'];
+      const dir=dirs[Math.round(az/45)%8];
+      const magMap={Merkury:-0.5,Wenus:-4.0,Mars:0.5,Jowisz:-2.5,Saturn:0.8};
+      return{alt:Math.round(alt*10)/10,az:Math.round(az),dir,mag:magMap[name],visible:alt>5};
+    }
+
+    const PLANET_NAMES   = ['Wenus','Jowisz','Mars','Saturn','Merkury'];
+    const PLANET_SYMBOLS = {Wenus:'♀',Jowisz:'♃',Mars:'♂',Saturn:'♄',Merkury:'☿'};
+    const PLANET_COLORS  = {Wenus:'255,220,80',Jowisz:'255,195,120',Mars:'255,100,60',Saturn:'215,175,80',Merkury:'150,195,220'};
+
+    const visiblePlanets = (SHOW_PLANETS && isNight)
+      ? PLANET_NAMES
+          .map(name=>({name,pos:planetPosition(name,now,LAT,LON)}))
+          .filter(p=>p.pos&&p.pos.visible)
+          .sort((a,b)=>b.pos.alt-a.pos.alt)
+      : [];
+
+    const planetsHtml = visiblePlanets.length > 0
+      ? `<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;margin-top:5px;">
+          ${visiblePlanets.map(({name,pos})=>{
+            const col=PLANET_COLORS[name];
+            const sym=PLANET_SYMBOLS[name];
+            return `<div
+              style="display:flex;flex-direction:column;align-items:center;gap:1px;cursor:default;
+                background:rgba(${col},0.12);border:1px solid rgba(${col},0.30);
+                border-radius:10px;padding:3px 7px;position:relative;"
+              onmouseenter="this.querySelector('.ptip').style.display='block'"
+              onmouseleave="this.querySelector('.ptip').style.display='none'">
+              <span style="font-size:13px;color:rgba(${col},1);line-height:1;">${sym}</span>
+              <span style="font-size:7px;font-weight:600;color:rgba(${col},0.80);
+                text-transform:uppercase;letter-spacing:.04em;line-height:1.2;">${name.slice(0,3)}</span>
+              <div class="ptip" style="display:none;position:absolute;bottom:calc(100% + 6px);right:0;
+                background:rgba(8,12,30,0.97);border:1px solid rgba(${col},0.45);
+                border-radius:10px;padding:7px 11px;white-space:nowrap;z-index:999;pointer-events:none;
+                box-shadow:0 4px 20px rgba(0,0,0,0.7);">
+                <div style="font-size:11px;font-weight:700;color:rgba(${col},1);margin-bottom:4px;">${sym} ${name}</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.50);line-height:1.8;">
+                  Wysokość:&nbsp;<b style="color:rgba(255,255,255,0.88);">${pos.alt>0?'+':''}${pos.alt}°</b><br>
+                  Kierunek:&nbsp;<b style="color:rgba(255,255,255,0.88);">${pos.dir}&nbsp;(${pos.az}°)</b><br>
+                  Jasność:&nbsp;<b style="color:rgba(255,255,255,0.88);">${pos.mag>0?'+':''}${pos.mag}&nbsp;mag</b>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`
+      : '';
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MOTYWY KOLORYSTYCZNE
+    // ═══════════════════════════════════════════════════════════════════
     const TH={
       night:   {acc:'#38486E',tc:'#8898BE',gr:'38,52,110'},
       astR:    {acc:'#4858A0',tc:'#B0BAE0',gr:'58,68,162'},
@@ -227,73 +291,14 @@ label: |
     const TM=TH[phaseKey]||TH.day;
 
     function sunStyle(e,r){
-      if(e<-18) return {
-        col:'rgba(120,148,220,0.90)', rad:3.2,
-        rings:[{rx:9,op:0.18,c:'rgba(100,130,210,1)'}],
-        shadow:'drop-shadow(0 0 3px rgba(100,130,220,0.70))'
-      };
-      if(e<-12) return {
-        col:r?'rgba(55,70,155,0.70)':'rgba(50,50,140,0.70)', rad:2.8,
-        rings:[{rx:8,op:0.18,c:r?'rgba(65,85,195,1)':'rgba(58,58,175,1)'}],
-        shadow:r?'drop-shadow(0 0 2px rgba(65,90,210,0.55))':'drop-shadow(0 0 2px rgba(55,55,185,0.55))'
-      };
-      if(e<-6) return {
-        col:r?'rgba(68,105,210,0.88)':'rgba(138,62,210,0.88)', rad:3.5,
-        rings:[
-          {rx:13,op:0.12,c:r?'rgba(68,105,230,1)':'rgba(155,55,230,1)'},
-          {rx:7, op:0.28,c:r?'rgba(78,118,240,1)':'rgba(168,62,240,1)'},
-        ],
-        shadow:r?'drop-shadow(0 0 4px rgba(68,108,230,0.80))':'drop-shadow(0 0 4px rgba(158,52,228,0.80))'
-      };
-      if(e<0) return {
-        col:r?'rgba(255,145,45,0.95)':'rgba(255,72,32,0.95)', rad:4.8,
-        rings:[
-          {rx:24,op:0.04,c:r?'rgba(255,148,42,1)':'rgba(255,75,28,1)'},
-          {rx:15,op:0.10,c:r?'rgba(255,158,55,1)':'rgba(255,88,38,1)'},
-          {rx:9, op:0.24,c:r?'rgba(255,172,72,1)':'rgba(255,105,52,1)'},
-        ],
-        shadow:r?'drop-shadow(0 0 7px rgba(255,148,38,0.92))':'drop-shadow(0 0 7px rgba(255,62,22,0.92))'
-      };
-      if(e<4) return {
-        col:r?'rgba(255,215,90,1)':'rgba(255,128,42,1)', rad:6.8,
-        rings:[
-          {rx:44,op:0.025,c:r?'rgba(255,205,55,1)':'rgba(255,105,25,1)'},
-          {rx:30,op:0.060,c:r?'rgba(255,212,68,1)':'rgba(255,118,35,1)'},
-          {rx:20,op:0.135,c:r?'rgba(255,220,88,1)':'rgba(255,135,50,1)'},
-          {rx:12,op:0.260,c:r?'rgba(255,228,112,1)':'rgba(255,155,68,1)'},
-        ],
-        shadow:r?'drop-shadow(0 0 12px rgba(255,205,48,1))':'drop-shadow(0 0 12px rgba(255,95,16,1))'
-      };
-      if(e<13) return {
-        col:'rgba(255,235,108,1)', rad:5.5,
-        rings:[
-          {rx:32,op:0.035,c:'rgba(255,225,55,1)'},
-          {rx:22,op:0.082,c:'rgba(255,230,75,1)'},
-          {rx:14,op:0.185,c:'rgba(255,238,105,1)'},
-          {rx:8, op:0.355,c:'rgba(255,244,145,1)'},
-        ],
-        shadow:'drop-shadow(0 0 7px rgba(255,220,42,0.92))'
-      };
-      if(e<40) return {
-        col:'rgba(255,248,175,1)', rad:5.0,
-        rings:[
-          {rx:26,op:0.038,c:'rgba(255,240,88,1)'},
-          {rx:17,op:0.090,c:'rgba(255,244,110,1)'},
-          {rx:11,op:0.200,c:'rgba(255,248,148,1)'},
-          {rx:6.5,op:0.385,c:'rgba(255,252,195,1)'},
-        ],
-        shadow:'drop-shadow(0 0 6px rgba(255,236,78,0.88))'
-      };
-      return {
-        col:'rgba(255,254,225,1)', rad:5.8,
-        rings:[
-          {rx:30,op:0.040,c:'rgba(255,250,168,1)'},
-          {rx:20,op:0.092,c:'rgba(255,252,185,1)'},
-          {rx:13,op:0.200,c:'rgba(255,253,205,1)'},
-          {rx:8, op:0.395,c:'rgba(255,255,228,1)'},
-        ],
-        shadow:'drop-shadow(0 0 9px rgba(255,248,148,1))'
-      };
+      if(e<-18)return{col:'rgba(120,148,220,0.90)',rad:3.2,rings:[{rx:9,op:0.18,c:'rgba(100,130,210,1)'}],shadow:'drop-shadow(0 0 3px rgba(100,130,220,0.70))'};
+      if(e<-12)return{col:r?'rgba(55,70,155,0.70)':'rgba(50,50,140,0.70)',rad:2.8,rings:[{rx:8,op:0.18,c:r?'rgba(65,85,195,1)':'rgba(58,58,175,1)'}],shadow:r?'drop-shadow(0 0 2px rgba(65,90,210,0.55))':'drop-shadow(0 0 2px rgba(55,55,185,0.55))'};
+      if(e<-6)return{col:r?'rgba(68,105,210,0.88)':'rgba(138,62,210,0.88)',rad:3.5,rings:[{rx:13,op:0.12,c:r?'rgba(68,105,230,1)':'rgba(155,55,230,1)'},{rx:7,op:0.28,c:r?'rgba(78,118,240,1)':'rgba(168,62,240,1)'}],shadow:r?'drop-shadow(0 0 4px rgba(68,108,230,0.80))':'drop-shadow(0 0 4px rgba(158,52,228,0.80))'};
+      if(e<0)return{col:r?'rgba(255,145,45,0.95)':'rgba(255,72,32,0.95)',rad:4.8,rings:[{rx:24,op:0.04,c:r?'rgba(255,148,42,1)':'rgba(255,75,28,1)'},{rx:15,op:0.10,c:r?'rgba(255,158,55,1)':'rgba(255,88,38,1)'},{rx:9,op:0.24,c:r?'rgba(255,172,72,1)':'rgba(255,105,52,1)'}],shadow:r?'drop-shadow(0 0 7px rgba(255,148,38,0.92))':'drop-shadow(0 0 7px rgba(255,62,22,0.92))'};
+      if(e<4)return{col:r?'rgba(255,215,90,1)':'rgba(255,128,42,1)',rad:6.8,rings:[{rx:44,op:0.025,c:r?'rgba(255,205,55,1)':'rgba(255,105,25,1)'},{rx:30,op:0.060,c:r?'rgba(255,212,68,1)':'rgba(255,118,35,1)'},{rx:20,op:0.135,c:r?'rgba(255,220,88,1)':'rgba(255,135,50,1)'},{rx:12,op:0.260,c:r?'rgba(255,228,112,1)':'rgba(255,155,68,1)'}],shadow:r?'drop-shadow(0 0 12px rgba(255,205,48,1))':'drop-shadow(0 0 12px rgba(255,95,16,1))'};
+      if(e<13)return{col:'rgba(255,235,108,1)',rad:5.5,rings:[{rx:32,op:0.035,c:'rgba(255,225,55,1)'},{rx:22,op:0.082,c:'rgba(255,230,75,1)'},{rx:14,op:0.185,c:'rgba(255,238,105,1)'},{rx:8,op:0.355,c:'rgba(255,244,145,1)'}],shadow:'drop-shadow(0 0 7px rgba(255,220,42,0.92))'};
+      if(e<40)return{col:'rgba(255,248,175,1)',rad:5.0,rings:[{rx:26,op:0.038,c:'rgba(255,240,88,1)'},{rx:17,op:0.090,c:'rgba(255,244,110,1)'},{rx:11,op:0.200,c:'rgba(255,248,148,1)'},{rx:6.5,op:0.385,c:'rgba(255,252,195,1)'}],shadow:'drop-shadow(0 0 6px rgba(255,236,78,0.88))'};
+      return{col:'rgba(255,254,225,1)',rad:5.8,rings:[{rx:30,op:0.040,c:'rgba(255,250,168,1)'},{rx:20,op:0.092,c:'rgba(255,252,185,1)'},{rx:13,op:0.200,c:'rgba(255,253,205,1)'},{rx:8,op:0.395,c:'rgba(255,255,228,1)'}],shadow:'drop-shadow(0 0 9px rgba(255,248,148,1))'};
     }
 
     const W=280,H=108,EMIN=-30,EMAX=65,ERANGE=EMAX-EMIN;
@@ -318,7 +323,7 @@ label: |
     </ellipse>`).join('');
     const sunEl=`<circle cx="${dotX}" cy="${dotY}" r="${ss.rad}" fill="${ss.col}"${ss.shadow?` filter="${ss.shadow}"`:''}>
       <animate attributeName="r" values="${ss.rad};${(ss.rad*1.04).toFixed(1)};${ss.rad}" dur="3.5s" repeatCount="indefinite"/>
-    </circle>`
+    </circle>`;
 
     const vLine=`<line x1="${dotX}" y1="${(parseFloat(dotY)+ss.rad+1).toFixed(2)}" x2="${dotX}" y2="${horizY.toFixed(2)}"
       stroke="${elev>=0?'rgba(255,245,178,0.13)':'rgba(130,130,255,0.08)'}"
@@ -326,7 +331,7 @@ label: |
 
     const hGlow=(elev>-4&&elev<6)?`<ellipse cx="${dotX}" cy="${horizY.toFixed(2)}" rx="100" ry="14"
       fill="${isR?'rgba(255,165,42,0.18)':'rgba(255,68,18,0.18)'}">
-      <animate attributeName="opacity" values="0.6;1;0.6" dur="3.5s" repeatCount="indefinite"/></ellipse>`:''
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="3.5s" repeatCount="indefinite"/></ellipse>`:'';
 
     const xLbls=[0,6,12,18,24].map(h=>{
       const x=hToX(h).toFixed(1),l=h===24?'24':pad(h);
@@ -342,10 +347,10 @@ label: |
           </linearGradient>
           <clipPath id="abz"><rect x="0" y="0" width="${W}" height="${horizY.toFixed(2)}"/></clipPath>
         </defs>
-        <rect x="0" y="${horizY.toFixed(2)}" width="${W}" height="${(y6  -horizY).toFixed(2)}" fill="rgba(100,30,165,0.08)"/>
-        <rect x="0" y="${y6.toFixed(2)}"     width="${W}" height="${(y12 -y6   ).toFixed(2)}" fill="rgba(30,50,165,0.10)"/>
-        <rect x="0" y="${y12.toFixed(2)}"    width="${W}" height="${(y18 -y12  ).toFixed(2)}" fill="rgba(10,14,58,0.14)"/>
-        <rect x="0" y="${y18.toFixed(2)}"    width="${W}" height="${(H   -y18+4).toFixed(2)}" fill="rgba(2,3,10,0.20)"/>
+        <rect x="0" y="${horizY.toFixed(2)}" width="${W}" height="${(y6-horizY).toFixed(2)}"   fill="rgba(100,30,165,0.08)"/>
+        <rect x="0" y="${y6.toFixed(2)}"     width="${W}" height="${(y12-y6).toFixed(2)}"      fill="rgba(30,50,165,0.10)"/>
+        <rect x="0" y="${y12.toFixed(2)}"    width="${W}" height="${(y18-y12).toFixed(2)}"     fill="rgba(10,14,58,0.14)"/>
+        <rect x="0" y="${y18.toFixed(2)}"    width="${W}" height="${(H-y18+4).toFixed(2)}"     fill="rgba(2,3,10,0.20)"/>
         <path d="${fillD}" fill="url(#sf)"/>
         <path d="${pathD}" fill="none" stroke="rgba(82,198,250,0.16)" stroke-width="1.2" stroke-linejoin="round"/>
         <path d="${pathD}" fill="none" stroke="rgba(82,198,250,0.88)" stroke-width="1.75" stroke-linejoin="round" clip-path="url(#abz)"/>
@@ -360,20 +365,396 @@ label: |
         ${sunEl}
       </svg>`;
 
+    // ═══════════════════════════════════════════════════════════════════
+    // SYSTEM ALERTÓW ASTRONOMICZNYCH
+    // ═══════════════════════════════════════════════════════════════════
+    const EVENTS = [
+      {
+        date: '2026-08-12',
+        type: 'eclipse',
+        label: 'Zaćmienie Słońca',
+        sublabel: '~80% tarczy w Polsce · godz. 19:15 · całkowite w Hiszpanii',
+        sublabelToday: 'Start 19:15 · max 19:56 (~80%) · nie patrz bez okularów ISO 12312-2',
+        sublabelTomorrow: 'Jutro godz. 19:15 · ~80% tarczy · kup okulary ISO 12312-2',
+        hasMeteors: true,
+      },
+      {
+        date: '2027-08-02',
+        type: 'eclipse',
+        label: 'Zaćmienie Słońca 2027',
+        sublabel: 'Najdłuższe w XXI w. · 6 min 23 s · Egipt, S. Hiszpania',
+        sublabelToday: 'Całkowite zaćmienie — najdłuższe w XXI w. · nie patrz bez okularów',
+        sublabelTomorrow: 'Jutro zaćmienie 2027 · całkowite w Egipcie 6 min 23 s',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-08-28',
+        type: 'lunar_eclipse',
+        label: 'Zaćmienie Księżyca',
+        sublabel: 'Częściowe ~96% · widoczne z Polski · godz. 04:12',
+        sublabelToday: 'Częściowe zaćmienie 96% — wschodzi czerwonawy Księżyc · godz. 04:12',
+        sublabelTomorrow: 'Jutro rano godz. 04:12 · częściowe zaćmienie 96% · bez sprzętu',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-04-22',
+        type: 'meteors',
+        label: 'Liridy',
+        sublabel: 'Do 20 meteorów/h · korzystne warunki (księżyc 27%)',
+        sublabelToday: 'Maksimum Lirydów tej nocy · ok. 20 meteorów/h · księżyc umiarkowany',
+        sublabelTomorrow: 'Jutro noc: Liridy · 20 meteorów/h · wyjdź po północy',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-08-12',
+        type: 'meteors',
+        label: 'Perseidy 2026',
+        sublabel: 'Do 60 meteorów/h · bezksiężycowa noc — idealne warunki!',
+        sublabelToday: 'Perseidy + zaćmienie tej samej nocy! 60/h · nów — czarne niebo',
+        sublabelTomorrow: 'Jutro noc: Perseidy 60/h + zaćmienie Słońca — wyjątkowa noc!',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-10-21',
+        type: 'meteors',
+        label: 'Orionidy',
+        sublabel: 'Do 20 meteorów/h · księżyc 72% — obserwuj po 2:00',
+        sublabelToday: 'Maksimum Orionidów · 20/h · najlepiej po godz. 02:00 gdy księżyc zajdzie',
+        sublabelTomorrow: 'Jutro noc: Orionidy 20/h · wyjdź po godz. 02:00',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-11-12',
+        type: 'meteors',
+        label: 'Taurydy Północne',
+        sublabel: 'Wolne, jasne bolidy · księżyc 7% — prawie idealne warunki',
+        sublabelToday: 'Taurydy Północne — wolne efektowne bolidy · ciemne niebo',
+        sublabelTomorrow: 'Jutro noc: Taurydy — jasne powolne bolidy, warto wyglądać',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-11-17',
+        type: 'meteors',
+        label: 'Leonidy',
+        sublabel: 'Do 15 meteorów/h · księżyc 45% · obserwuj po 01:00',
+        sublabelToday: 'Maksimum Leonidów · szybkie meteory z Lwa · wyjdź po 01:00',
+        sublabelTomorrow: 'Jutro noc: Leonidy · 15/h · wyjdź po godz. 01:00',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-12-13',
+        type: 'meteors',
+        label: 'Geminidy 2026',
+        sublabel: 'Do 120 meteorów/h · księżyc 21% — doskonałe warunki!',
+        sublabelToday: 'Geminidy — NAJLEPSZY rój roku! 120/h · prawie ciemne niebo · WYJDŹ!',
+        sublabelTomorrow: 'Jutro noc: Geminidy 120/h · księżyc nie przeszkadza — nie przegap!',
+        hasMeteors: false,
+      },
+      {
+        date: '2027-01-03',
+        type: 'meteors',
+        label: 'Kwadrantydy 2027',
+        sublabel: 'Do 80 meteorów/h · księżyc 20% — dobre warunki',
+        sublabelToday: 'Kwadrantydy — ostry szczyt kilka godzin! 80/h · obserwuj ok. 03:00',
+        sublabelTomorrow: 'Jutro 3 stycznia: Kwadrantydy 80/h · szczyt trwa tylko kilka godzin',
+        hasMeteors: false,
+      },
+      {
+        date: '2027-08-12',
+        type: 'meteors',
+        label: 'Perseidy 2027',
+        sublabel: 'Do 100 meteorów/h · sprawdź fazę księżyca',
+        sublabelToday: 'Perseidy 2027 · do 100 meteorów/h · klasyczna letnia noc ze spadającymi gwiazdami',
+        sublabelTomorrow: 'Jutro noc: Perseidy 2027 · do 100/h',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-03-08',
+        type: 'conjunction',
+        label: 'Koniunkcja Wenus i Saturna',
+        sublabel: 'Odległość ~1° · wieczorne niebo na zachodzie po zachodzie Słońca',
+        sublabelToday: 'Wenus i Saturn ~1° od siebie dziś wieczór · patrz na zachód po zmierzchu',
+        sublabelTomorrow: 'Jutro wieczór: Wenus blisko Saturna (~1°) na zachodnim niebie',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-06-09',
+        type: 'conjunction',
+        label: 'Koniunkcja Wenus i Jowisza',
+        sublabel: 'Dwa najjaśniejsze planety ~1.6° od siebie · wieczór na zachodzie',
+        sublabelToday: 'Wenus i Jowisz dziś wieczór ~1.6° od siebie — spektakularny widok!',
+        sublabelTomorrow: 'Jutro wieczór: Wenus + Jowisz razem na niebie — najjaśniejsza para!',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-11-15',
+        type: 'conjunction',
+        label: 'Koniunkcja Marsa i Jowisza',
+        sublabel: 'Tuż przed świtem · południe nieba · łatwa do obserwacji',
+        sublabelToday: 'Mars i Jowisz blisko siebie dziś przed świtem · patrz na południe',
+        sublabelTomorrow: 'Jutro przed świtem: Mars + Jowisz w bliskiej koniunkcji',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-02-28',
+        type: 'planet',
+        label: 'Parada 6 planet',
+        sublabel: 'Merkury, Wenus, Saturn, Jowisz gołym okiem · godz. ~17:30 po zachodzie',
+        sublabelToday: '6 planet na niebie dziś wieczór! Wenus, Jowisz, Saturn, Merkury — patrz na zachód!',
+        sublabelTomorrow: 'Jutro wieczór: 4 planety gołym okiem + Uran i Neptun · 30 min po zachodzie Słońca',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-01-03',
+        type: 'moon',
+        label: 'Superksiężyc — Wilczy Księżyc',
+        sublabel: 'Pierwszy superksiężyc 2026 · przy Jowiszu na niebie',
+        sublabelToday: 'Dziś superksiężyc! Pełnia + blisko Ziemi — duża i jasna · obok Jowisza',
+        sublabelTomorrow: 'Jutro superksiężyc (Wilczy Księżyc) · pełnia przy Jowiszu',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-11-24',
+        type: 'moon',
+        label: 'Superksiężyc — listopad',
+        sublabel: 'Drugi superksiężyc 2026 · wyraźnie większy i jaśniejszy',
+        sublabelToday: 'Dziś superksiężyc! Księżyc wyjątkowo blisko Ziemi — obserwuj wschód',
+        sublabelTomorrow: 'Jutro superksiężyc listopadowy · wyjdź na wschód księżyca',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-12-23',
+        type: 'moon',
+        label: 'Superksiężyc — rekord 2026',
+        sublabel: 'Najbliższy księżyc od 2019 r. · 221 668 km od Ziemi',
+        sublabelToday: 'Rekordowy superksiężyc! Największy i najjaśniejszy od 2019 r. — wyjdź na zewnątrz!',
+        sublabelTomorrow: 'Jutro rekordowy superksiężyc 2026 · najbliższy od 7 lat!',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-01-10',
+        type: 'planet',
+        label: 'Jowisz w opozycji',
+        sublabel: 'Najjaśniejszy i największy w roku · widoczny całą noc',
+        sublabelToday: 'Jowisz dziś najjaśniejszy! Widoczny od zmierzchu do świtu · szukaj w Bliźniętach',
+        sublabelTomorrow: 'Jutro Jowisz w opozycji — najlepszy dzień roku na obserwację',
+        hasMeteors: false,
+      },
+      {
+        date: '2026-10-04',
+        type: 'planet',
+        label: 'Saturn w opozycji',
+        sublabel: 'Pierścienie pod kątem 10° · najlepszy czas na obserwację',
+        sublabelToday: 'Saturn dziś w opozycji — najjaśniejszy w roku · pierścienie coraz lepiej widoczne',
+        sublabelTomorrow: 'Jutro Saturn w opozycji — szukaj go przez lornetkę',
+        hasMeteors: false,
+      },
+    ];
+
+    function daysUntil(dateStr){
+      const target=new Date(dateStr);target.setHours(0,0,0,0);
+      const today=new Date();today.setHours(0,0,0,0);
+      return Math.round((target-today)/86400000);
+    }
+
+    function eclipseIcon(size,sunColor,moonAlpha){
+      const r=size/2,cx=r,cy=r,offset=r*0.68;
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${cx}" cy="${cy}" r="${r*0.62}" fill="${sunColor}" stroke="${sunColor.replace('1)','0.85)')}" stroke-width="${r*0.14}"/>
+        <circle cx="${cx+offset}" cy="${cy}" r="${r*0.62}" fill="rgba(6,10,24,${moonAlpha})"/>
+      </svg>`;
+    }
+    function lunarEclipseIcon(size,ac){
+      const r=size/2;
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${r}" cy="${r}" r="${r*0.72}" fill="${ac.replace('1)','0.25)')}" stroke="${ac}" stroke-width="${r*0.14}"/>
+        <circle cx="${r*0.78}" cy="${r*0.78}" r="${r*0.26}" fill="${ac.replace('1)','0.50)')}"/>
+      </svg>`;
+    }
+    function meteorIcon(size){
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="${size*0.75}" y1="${size*0.08}" x2="${size*0.18}" y2="${size*0.65}" stroke="rgba(180,130,255,0.95)" stroke-width="${size*0.10}" stroke-linecap="round"/>
+        <line x1="${size*0.50}" y1="${size*0.20}" x2="${size*0.05}" y2="${size*0.75}" stroke="rgba(160,110,255,0.80)" stroke-width="${size*0.09}" stroke-linecap="round"/>
+        <line x1="${size*0.88}" y1="${size*0.28}" x2="${size*0.38}" y2="${size*0.88}" stroke="rgba(200,160,255,0.70)" stroke-width="${size*0.08}" stroke-linecap="round"/>
+        <circle cx="${size*0.82}" cy="${size*0.16}" r="${size*0.10}" fill="rgba(230,200,255,0.95)"/>
+        <circle cx="${size*0.55}" cy="${size*0.26}" r="${size*0.07}" fill="rgba(210,175,255,0.80)"/>
+      </svg>`;
+    }
+    function conjunctionIcon(size,ac){
+      const r=size/2;
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${r*0.55}" cy="${r}" r="${r*0.42}" fill="${ac.replace('1)','0.28)')}" stroke="${ac}" stroke-width="${r*0.12}"/>
+        <circle cx="${r*1.45}" cy="${r}" r="${r*0.30}" fill="${ac.replace('1)','0.20)')}" stroke="${ac.replace('1)','0.75)')}" stroke-width="${r*0.10}"/>
+      </svg>`;
+    }
+    function moonIcon(size,ac){
+      const r=size/2;
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${r}" cy="${r}" r="${r*0.75}" fill="${ac.replace('1)','0.22)')}" stroke="${ac}" stroke-width="${r*0.13}"/>
+        <circle cx="${r*0.72}" cy="${r*0.68}" r="${r*0.15}" fill="${ac.replace('1)','0.35)')}"/>
+        <circle cx="${r*1.25}" cy="${r*1.20}" r="${r*0.10}" fill="${ac.replace('1)','0.25)')}"/>
+      </svg>`;
+    }
+    function planetIcon(size,ac){
+      const r=size/2;
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${r}" cy="${r}" r="${r*0.52}" fill="${ac.replace('1)','0.25)')}" stroke="${ac}" stroke-width="${r*0.12}"/>
+        <ellipse cx="${r}" cy="${r}" rx="${r*0.90}" ry="${r*0.22}" fill="none" stroke="${ac.replace('1)','0.60)')}" stroke-width="${r*0.09}"/>
+      </svg>`;
+    }
+    function typeTheme(type){
+      switch(type){
+        case 'eclipse':       return{r:255,g:190,b:50};
+        case 'lunar_eclipse': return{r:255,g:80, b:80};
+        case 'meteors':       return{r:160,g:100,b:255};
+        case 'conjunction':   return{r:80, g:200,b:255};
+        case 'planet':        return{r:60, g:200,b:160};
+        case 'moon':          return{r:220,g:200,b:100};
+        default:              return{r:160,g:160,b:160};
+      }
+    }
+    function eventIcon(type,size,ac){
+      switch(type){
+        case 'eclipse':       return eclipseIcon(size,ac.replace('1)','0.30)'),0.90);
+        case 'lunar_eclipse': return lunarEclipseIcon(size,ac);
+        case 'meteors':       return meteorIcon(size);
+        case 'conjunction':   return conjunctionIcon(size,ac);
+        case 'planet':        return planetIcon(size,ac);
+        case 'moon':          return moonIcon(size,ac);
+        default:              return meteorIcon(size);
+      }
+    }
+
+    function renderBanner(ev,days){
+      const isToday=days===0,isTomorrow=days===1,isUrgent=days<=7;
+      let acR,acG,acB;
+      if(isToday)        {acR=255;acG=70; acB=0;}
+      else if(isTomorrow){acR=255;acG=130;acB=0;}
+      else if(isUrgent)  {acR=255;acG=180;acB=30;}
+      else{const t=typeTheme(ev.type);acR=t.r;acG=t.g;acB=t.b;}
+      const ac  =`rgba(${acR},${acG},${acB},1)`;
+      const acM =`rgba(${acR},${acG},${acB},0.85)`;
+      const acL =`rgba(${acR},${acG},${acB},0.18)`;
+      const acB2=`rgba(${acR},${acG},${acB},0.35)`;
+      const iconSvg20=eventIcon(ev.type,20,ac);
+      const iconSvg18=eventIcon(ev.type,18,ac);
+      const iconSvg14=eventIcon(ev.type,14,ac);
+      const pillText=isToday?'dziś!':isTomorrow?'jutro':`${days} dni`;
+      const pulseAnim=(isToday||isTomorrow)?`animation:sc-breathe ${isToday?'1.2s':'1.8s'} ease-in-out infinite;`:'';
+      const sublabel=isToday?ev.sublabelToday:isTomorrow?ev.sublabelTomorrow:ev.sublabel;
+
+      if(isToday){
+        const meteorExtra=ev.hasMeteors
+          ?`<div style="margin-top:5px;display:flex;align-items:center;gap:6px;">
+               <div style="font-size:10px;font-weight:600;color:rgba(180,130,255,0.92);
+                 background:rgba(150,90,255,0.15);border:1px solid rgba(150,90,255,0.35);
+                 padding:2px 8px;border-radius:8px;">+ Perseidy tej nocy</div>
+               <div style="font-size:10px;color:rgba(255,255,255,0.35);">2 zjawiska jednocześnie</div>
+             </div>`:'' ;
+        return `
+          <div style="margin-top:10px;margin-left:-20px;margin-right:-20px;margin-bottom:-16px;
+            padding:12px 20px 16px;border-top:2px solid ${acB2};position:relative;overflow:hidden;border-radius:0 0 24px 24px;">
+            <div style="position:absolute;inset:0;background:${acL};animation:sc-breathe 1.2s ease-in-out infinite;"></div>
+            <div style="position:relative;z-index:1;display:flex;align-items:flex-start;gap:12px;">
+              <div style="width:38px;height:38px;border-radius:50%;flex-shrink:0;
+                background:rgba(${acR},${acG},${acB},0.20);border:2px solid ${acB2};
+                display:flex;align-items:center;justify-content:center;position:relative;">
+                ${iconSvg20}
+                <div style="position:absolute;inset:-4px;border-radius:50%;
+                  border:2px solid rgba(${acR},${acG},${acB},0.40);
+                  animation:sc-breathe 1.2s ease-in-out infinite;"></div>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">${ev.label} — dziś!</div>
+                <div style="font-size:10px;color:rgba(255,220,150,0.75);margin-top:2px;">${sublabel}</div>
+                ${meteorExtra}
+              </div>
+              <div style="font-size:12px;font-weight:600;color:${ac};
+                background:rgba(${acR},${acG},${acB},0.18);border:1.5px solid ${acB2};
+                padding:4px 10px;border-radius:10px;white-space:nowrap;flex-shrink:0;${pulseAnim}">${pillText}</div>
+            </div>
+          </div>`;
+      }
+      if(isTomorrow){
+        return `
+          <div style="margin-top:10px;margin-left:-20px;margin-right:-20px;margin-bottom:-16px;
+            padding:11px 20px 14px;border-top:2px solid ${acB2};
+            background:rgba(${acR},${acG},${acB},0.08);border-radius:0 0 24px 24px;
+            display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;
+              background:rgba(${acR},${acG},${acB},0.15);border:1.5px solid ${acB2};
+              display:flex;align-items:center;justify-content:center;">${iconSvg18}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:11px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">Jutro: ${ev.label}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.40);margin-top:1px;">${sublabel}</div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:${ac};
+              background:rgba(${acR},${acG},${acB},0.18);border:1.5px solid ${acB2};
+              padding:4px 10px;border-radius:10px;white-space:nowrap;${pulseAnim}">${pillText}</div>
+          </div>`;
+      }
+      if(isUrgent){
+        return `
+          <div style="margin-top:10px;margin-left:-20px;margin-right:-20px;margin-bottom:-16px;
+            padding:10px 20px 13px;border-top:1px solid rgba(${acR},${acG},${acB},0.30);
+            background:rgba(${acR},${acG},${acB},0.06);border-radius:0 0 24px 24px;
+            display:flex;align-items:center;gap:10px;">
+            <div style="width:30px;height:30px;border-radius:50%;flex-shrink:0;
+              background:rgba(${acR},${acG},${acB},0.12);border:1px solid rgba(${acR},${acG},${acB},0.35);
+              display:flex;align-items:center;justify-content:center;">${iconSvg14}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:10px;font-weight:600;color:${acM};text-transform:uppercase;letter-spacing:.06em;">${ev.label} za ${days} dni</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.38);margin-top:1px;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:${acM};
+              background:rgba(${acR},${acG},${acB},0.14);border:1px solid rgba(${acR},${acG},${acB},0.35);
+              padding:3px 9px;border-radius:10px;white-space:nowrap;
+              animation:sc-breathe 2s ease-in-out infinite;">${pillText}</div>
+          </div>`;
+      }
+      return `
+        <div style="margin-top:11px;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;
+          display:flex;align-items:center;gap:10px;position:relative;z-index:1;">
+          <div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;
+            background:rgba(${acR},${acG},${acB},0.10);border:1px solid rgba(${acR},${acG},${acB},0.25);
+            display:flex;align-items:center;justify-content:center;">${iconSvg14}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},0.85);
+              text-transform:uppercase;letter-spacing:.06em;">${ev.label}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:1px;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:rgba(${acR},${acG},${acB},0.85);
+            background:rgba(${acR},${acG},${acB},0.12);border:1px solid rgba(${acR},${acG},${acB},0.25);
+            padding:3px 9px;border-radius:10px;white-space:nowrap;">${pillText}</div>
+        </div>`;
+    }
+
+    const banners=EVENTS
+      .map(ev=>({ev,days:daysUntil(ev.date)}))
+      .filter(({days})=>days>=0&&days<=30)
+      .sort((a,b)=>a.days-b.days)
+      .slice(0,2)
+      .map(({ev,days})=>renderBanner(ev,days))
+      .join('');
+
+    const hasToday=EVENTS.some(ev=>daysUntil(ev.date)===0);
+    const cardExtraStyle=hasToday?'border:2px solid rgba(255,70,0,0.55);':'';
+
     return `
       <style>
         @keyframes sc-glow-pulse{0%,100%{opacity:.28;transform:scale(1)}50%{opacity:.48;transform:scale(1.12)}}
-        @keyframes sc-breathe{0%,100%{opacity:1}50%{opacity:.85}}
+        @keyframes sc-breathe{0%,100%{opacity:1}50%{opacity:.75}}
         @keyframes sc-shimmer{0%,100%{opacity:.65}50%{opacity:.90}}
         @keyframes sc-bg-shift{0%,100%{filter:hue-rotate(0deg) brightness(1)}50%{filter:hue-rotate(5deg) brightness(1.05)}}
         @keyframes sc-cloud-drift{from{transform:translateX(-50px)}to{transform:translateX(50px)}}
         @keyframes sc-rain-fall{0%{transform:translateY(-10px);opacity:0}10%{opacity:0.5}90%{opacity:0.3}100%{transform:translateY(240px);opacity:0}}
         @keyframes sc-snow-fall{0%{transform:translateY(-10px) translateX(0);opacity:0}10%{opacity:0.7}90%{opacity:0.5}100%{transform:translateY(240px) translateX(var(--drift,10px));opacity:0}}
-
         .sc{background:${dynamicBg};border-radius:24px;padding:20px 20px 16px;
             position:relative;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;min-height:228px;
             transition:background 10s cubic-bezier(0.4,0,0.2,1);
-            animation:sc-bg-shift 30s ease-in-out infinite;}
+            animation:sc-bg-shift 30s ease-in-out infinite;${cardExtraStyle}}
         .sc::before{content:'';position:absolute;top:-55px;left:50%;transform:translateX(-50%);
             width:270px;height:210px;
             background:radial-gradient(ellipse,rgba(${TM.gr},0.18) 0%,transparent 72%);
@@ -398,11 +779,9 @@ label: |
         .sc-bot{display:flex;justify-content:space-between;align-items:flex-start;margin-top:7px;position:relative;z-index:1;}
         .sc-stat{display:flex;flex-direction:column;}
         .sc-sv{font-size:14px;font-weight:600;color:rgba(255,255,255,0.82);letter-spacing:-.2px;}
-        .sc-sl{font-size:9px;font-weight:500;color:rgba(255,255,255,0.28);
-            text-transform:uppercase;letter-spacing:.07em;margin-top:1px;}
+        .sc-sl{font-size:9px;font-weight:500;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:.07em;margin-top:1px;}
       </style>
       <div class="sc">
-        <!-- Atmospheric clouds background -->
         <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;opacity:${elev>=0?'0.15':'0.08'};">
           <div style="position:absolute;top:15%;left:-10%;width:180px;height:60px;border-radius:50%;
             background:radial-gradient(ellipse,rgba(255,255,255,0.08) 0%,transparent 70%);
@@ -414,59 +793,50 @@ label: |
             background:radial-gradient(ellipse,rgba(255,255,255,0.07) 0%,transparent 70%);
             filter:blur(28px);animation:sc-cloud-drift 52s -25s linear infinite;"></div>
         </div>
-        ${temp !== null && temp >= 30 && elev > 10 ? `
-        <!-- Heat shimmer effect -->
+        ${temp!==null&&temp>=30&&elev>10?`
         <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
           background:radial-gradient(ellipse at 60% 20%,rgba(255,160,60,0.06) 0%,transparent 60%);
-          animation:sc-shimmer 2.5s ease-in-out infinite;"></div>
-        ` : ''}
-        ${elev > 15 && elev < 50 && (weatherState === 'sunny' || weatherState === 'clear-night') ? `
-        <!-- Dust particles in sunlight -->
+          animation:sc-shimmer 2.5s ease-in-out infinite;"></div>`:''}
+        ${elev>15&&elev<50&&(weatherState==='sunny'||weatherState==='clear-night')?`
         <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
-          <div style="position:absolute;top:20%;left:30%;width:2px;height:2px;border-radius:50%;
-            background:rgba(255,240,200,0.35);animation:sc-breathe 4s 0s ease-in-out infinite;"></div>
-          <div style="position:absolute;top:45%;left:65%;width:2px;height:2px;border-radius:50%;
-            background:rgba(255,240,200,0.30);animation:sc-breathe 3.5s 1s ease-in-out infinite;"></div>
-          <div style="position:absolute;top:70%;left:20%;width:2px;height:2px;border-radius:50%;
-            background:rgba(255,240,200,0.25);animation:sc-breathe 4.2s 0.5s ease-in-out infinite;"></div>
-          <div style="position:absolute;top:35%;left:80%;width:2px;height:2px;border-radius:50%;
-            background:rgba(255,240,200,0.28);animation:sc-breathe 3.8s 1.5s ease-in-out infinite;"></div>
-        </div>
-        ` : ''}
-        ${['rainy', 'pouring', 'lightning', 'lightning-rainy'].includes(weatherState) ? `
-        <!-- Rain effect -->
+          <div style="position:absolute;top:20%;left:30%;width:2px;height:2px;border-radius:50%;background:rgba(255,240,200,0.35);animation:sc-breathe 4s 0s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:45%;left:65%;width:2px;height:2px;border-radius:50%;background:rgba(255,240,200,0.30);animation:sc-breathe 3.5s 1s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:70%;left:20%;width:2px;height:2px;border-radius:50%;background:rgba(255,240,200,0.25);animation:sc-breathe 4.2s 0.5s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:35%;left:80%;width:2px;height:2px;border-radius:50%;background:rgba(255,240,200,0.28);animation:sc-breathe 3.8s 1.5s ease-in-out infinite;"></div>
+        </div>`:''}
+        ${['rainy','pouring','lightning','lightning-rainy'].includes(weatherState)?`
         <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
-          ${[...Array(12)].map((_, i) => {
-            const left = (Math.random() * 100).toFixed(1);
-            const delay = (Math.random() * 2).toFixed(2);
-            const duration = (0.8 + Math.random() * 0.6).toFixed(2);
+          ${[...Array(12)].map((_,i)=>{
+            const left=(Math.random()*100).toFixed(1);
+            const delay=(Math.random()*2).toFixed(2);
+            const duration=(0.8+Math.random()*0.6).toFixed(2);
             return `<div style="position:absolute;left:${left}%;top:-10px;width:1.5px;height:14px;
               background:linear-gradient(to bottom,rgba(120,180,255,0.4),rgba(120,180,255,0));
               animation:sc-rain-fall ${duration}s ${delay}s linear infinite;"></div>`;
           }).join('')}
-        </div>
-        ` : ''}
-        ${['snowy', 'snowy-rainy'].includes(weatherState) || (temp !== null && temp < 0) ? `
-        <!-- Snow effect -->
+        </div>`:''}
+        ${['snowy','snowy-rainy'].includes(weatherState)||(temp!==null&&temp<0)?`
         <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
-          ${[...Array(10)].map((_, i) => {
-            const left = (Math.random() * 100).toFixed(1);
-            const delay = (Math.random() * 3).toFixed(2);
-            const duration = (2 + Math.random() * 2).toFixed(2);
-            const size = (2 + Math.random() * 2).toFixed(1);
-            const drift = (Math.random() * 20 - 10).toFixed(0);
+          ${[...Array(10)].map((_,i)=>{
+            const left=(Math.random()*100).toFixed(1);
+            const delay=(Math.random()*3).toFixed(2);
+            const duration=(2+Math.random()*2).toFixed(2);
+            const size=(2+Math.random()*2).toFixed(1);
+            const drift=(Math.random()*20-10).toFixed(0);
             return `<div style="position:absolute;left:${left}%;top:-10px;width:${size}px;height:${size}px;
               border-radius:50%;background:rgba(220,235,255,0.6);--drift:${drift}px;
               animation:sc-snow-fall ${duration}s ${delay}s ease-in-out infinite;"></div>`;
           }).join('')}
-        </div>
-        ` : ''}
+        </div>`:''}
         <div class="sc-top">
           <div class="sc-dc">
             <span class="sc-day">${DAYS[now.getDay()]}</span>
             <span class="sc-date">${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}</span>
           </div>
-          <span class="sc-badge">${phaseName}</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+            <span class="sc-badge">${phaseName}</span>
+            ${planetsHtml}
+          </div>
         </div>
         <div class="sc-time">${pad(now.getHours())}:${pad(now.getMinutes())}<span class="sc-sec">${pad(now.getSeconds())}</span></div>
         <div class="sc-chart">${svgChart}</div>
@@ -484,5 +854,6 @@ label: |
             <span class="sc-sl">Zachód ☀︎</span>
           </div>
         </div>
+        ${banners}
       </div>`;
   ]]]
