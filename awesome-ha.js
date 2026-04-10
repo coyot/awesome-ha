@@ -17,6 +17,29 @@ window.AHA.SZAMBO = {
   CLR_D1_PLAN: '#FF6B6B',
   CLR_D2_PLAN: '#FF3B30',
 };
+
+// Apple-style dark theme — surfaces, status, text
+window.AHA.THEME = {
+  BG1:      '#1C1C1E',   // primary surface
+  BG2:      '#2C2C2E',   // secondary surface
+  BG3:      '#3A3A3C',   // tertiary surface
+  BG4:      '#48484A',   // quaternary / muted element
+
+  SUCCESS:  '#34C759',
+  WARNING:  '#FF9500',
+  ERROR:    '#FF453A',
+  INFO:     '#5AC8FA',
+
+  TEXT1:    'rgba(255,255,255,0.98)',
+  TEXT2:    '#AEAEB2',
+  TEXT3:    '#8E8E93',
+  TEXT4:    '#636366',
+
+  BORDER:   'rgba(255,255,255,0.08)',
+};
+
+// SF Pro font stack
+window.AHA.FONT = "-apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif";
 /**
  * action-apple-card.js — przycisk akcji + nawigacji, Apple Home Premium
  *
@@ -2743,10 +2766,10 @@ const DEFAULTS = {
 };
 
 const COLORS = {
-  GREEN: '#34C759',
-  ORANGE: '#FF9500',
-  RED: '#FF3B30',
-  BLUE: '#5AC8FA',
+  GREEN:  window.AHA.THEME.SUCCESS,
+  ORANGE: window.AHA.THEME.WARNING,
+  RED:    window.AHA.THEME.ERROR,
+  BLUE:   window.AHA.THEME.INFO,
 };
 
 class SzamboPredictCard extends HTMLElement {
@@ -3486,9 +3509,9 @@ window.customCards.push({
 
 const _C = {
   textPrimary:   '#F5F5F7',
-  textSecondary: '#AEAEB2',
-  textTertiary:  '#636366',
-  urgent:        '#FF453A',
+  textSecondary: window.AHA.THEME.TEXT2,
+  textTertiary:  window.AHA.THEME.TEXT4,
+  urgent:        window.AHA.THEME.ERROR,
   soon:          '#FF9F0A',
   later:         '#64D2FF',   // jasny błękit zamiast żółtego — wyraźny kontrast vs pomarańcz
   upcoming:      '#4ade8a',   // delikatna zieleń — spokojnie, nie pilne

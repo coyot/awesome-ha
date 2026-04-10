@@ -21,10 +21,10 @@ const DEFAULTS = {
 };
 
 const COLORS = {
-  GREEN: '#34C759',
-  ORANGE: '#FF9500',
-  RED: '#FF3B30',
-  BLUE: '#5AC8FA',
+  GREEN:  window.AHA.THEME.SUCCESS,
+  ORANGE: window.AHA.THEME.WARNING,
+  RED:    window.AHA.THEME.ERROR,
+  BLUE:   window.AHA.THEME.INFO,
 };
 
 class SzamboPredictCard extends HTMLElement {

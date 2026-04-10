@@ -22,9 +22,9 @@
 
 const _C = {
   textPrimary:   '#F5F5F7',
-  textSecondary: '#AEAEB2',
-  textTertiary:  '#636366',
-  urgent:        '#FF453A',
+  textSecondary: window.AHA.THEME.TEXT2,
+  textTertiary:  window.AHA.THEME.TEXT4,
+  urgent:        window.AHA.THEME.ERROR,
   soon:          '#FF9F0A',
   later:         '#64D2FF',   // jasny błękit zamiast żółtego — wyraźny kontrast vs pomarańcz
   upcoming:      '#4ade8a',   // delikatna zieleń — spokojnie, nie pilne
