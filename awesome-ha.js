@@ -5944,15 +5944,15 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       .hrow{display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;align-items:center;padding:14px 14px 12px}
       .strip{border-radius:99px;background:#0a84ff;align-self:stretch;width:4px}
       .hmid{display:flex;align-items:center;gap:10px;min-width:0}
-      .iw{width:32px;height:32px;border-radius:9px;flex-shrink:0;
-          background:rgba(10,132,255,.14);border:.5px solid rgba(10,132,255,.28);
-          display:flex;align-items:center;justify-content:center}
+      .iw{width:40px;height:40px;border-radius:10px;flex-shrink:0;
+          background:rgba(10,132,255,.10);border:.5px solid rgba(10,132,255,.22);
+          display:flex;align-items:center;justify-content:center;overflow:visible}
       .htxt{flex:1;min-width:0}
       .dn{font-size:14px;font-weight:600;color:rgba(255,255,255,.92);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ds{font-size:11px;color:#636366;margin-top:2px}
       .hright{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
-      .pct{font-size:22px;font-weight:600;letter-spacing:-.5px;color:rgba(10,132,255,.95);line-height:1;font-variant-numeric:tabular-nums}
-      .pu{font-size:13px;font-weight:400;color:rgba(10,132,255,.55)}
+      .pct{font-size:32px;font-weight:600;letter-spacing:-1px;color:rgba(10,132,255,.95);line-height:1;font-variant-numeric:tabular-nums}
+      .pu{font-size:17px;font-weight:300;color:rgba(10,132,255,.50)}
 
       /* ── presets ── */
       .divider{height:.5px;background:rgba(255,255,255,.07);margin:0 14px}
@@ -5994,13 +5994,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         <div class="strip"></div>
         <div class="hmid">
           <div class="iw">
-            <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
-              <rect x="3" y="10" width="16" height="2.5" rx="1.25" fill="#0a84ff"/>
-              <circle cx="4.5" cy="11.25" r="1.5" fill="rgba(10,132,255,.2)"/>
-              <circle cx="17.5" cy="11.25" r="1.5" fill="rgba(10,132,255,.2)"/>
-              <rect x="2" y="4" width="1.5" height="14" rx=".75" fill="#48484A"/>
-              <rect x="18.5" y="4" width="1.5" height="14" rx=".75" fill="#48484A"/>
-            </svg>
+            <svg id="hdr-svg" width="36" height="36" viewBox="0 0 36 36" overflow="visible"></svg>
           </div>
           <div class="htxt">
             <div class="dn">${this._name}${this._room ? `<span style="font-weight:400;color:#48484A;"> \u00b7 ${this._room}</span>` : ''}</div>
@@ -6008,8 +6002,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
           </div>
         </div>
         <div class="hright">
-          <div><span class="pct" id="pct">&mdash;</span><span class="pu">%</span></div>
-          <svg id="hdr-svg" width="36" height="22" viewBox="0 0 36 22" overflow="visible"></svg>
+          <span class="pct" id="pct">&mdash;</span><span class="pu">%</span>
         </div>
       </div>
 
@@ -6050,7 +6043,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 
     // init header svg
     const hdrSvg = this.shadowRoot.getElementById('hdr-svg');
-    if (hdrSvg) hdrSvg.innerHTML = this._slatInner(0, 36, 22);
+    if (hdrSvg) hdrSvg.innerHTML = this._slatInner(0, 36, 36);
 
     this.shadowRoot.getElementById('btn-open').addEventListener('click',  () => this._svc('open_cover'));
     this.shadowRoot.getElementById('btn-stop').addEventListener('click',  () => this._svc('stop_cover'));
@@ -6070,7 +6063,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     const step = now => {
       const t = Math.min((now - t0) / dur, 1);
       this._curDeg = start + diff * ease(t);
-      if (hdrSvg) hdrSvg.innerHTML = this._slatInner(this._curDeg, 36, 22);
+      if (hdrSvg) hdrSvg.innerHTML = this._slatInner(this._curDeg, 36, 36);
       if (t < 1) this._raf = requestAnimationFrame(step);
       else this._curDeg = target;
     };
