@@ -42,6 +42,17 @@ awesome-ha/
 - ⚙️ Device state management
 - 🧠 Smart home logic experiments
 
+## Releasing
+
+When publishing a new version:
+1. Rebuild the bundle: `cat dist/aha-shared.js dist/action-apple-card.js dist/entries-apple-card.js dist/garden-meters-card.js dist/szambo-apple-card.js dist/szambo-predict-card.js dist/szambo-finance-card.js dist/waste-schedule-apple-card.js dist/astronomical-events-card.js dist/climate-apple-card.js dist/solar-clock-card.js dist/teleco-card.js > awesome-ha.js`
+2. Commit and tag: `git tag vX.Y.Z && git push origin main --tags`
+3. **Always create a GitHub Release** (not just a git tag) using `gh release create`:
+   ```
+   gh release create vX.Y.Z --title "vX.Y.Z — short description" --notes "..."
+   ```
+   HACS reads "What's New" from GitHub Releases — a bare tag shows nothing to the user in HA.
+
 ## Contribution Guidelines
 1. Add new features under relevant directory structure
 2. Maintain Apple-inspired design consistency
