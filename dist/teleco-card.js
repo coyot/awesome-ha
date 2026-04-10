@@ -125,12 +125,11 @@ class TelecoCard extends HTMLElement {
         border-color:rgba(255,159,10,.55) !important;
       }
       .pill.on[data-tilt="0"] .pill-lbl{color:#ff9f0a !important;}
-      /* other presets active — pulsing orange */
+      /* other presets active — static orange */
       .pill.on:not([data-tilt="0"]){
         opacity:1;
         background:rgba(255,159,10,.15) !important;
         border-color:rgba(255,159,10,.55) !important;
-        animation:pill-glow 2s ease-in-out infinite;
       }
       .pill.on:not([data-tilt="0"]) .pill-lbl{color:#ff9f0a !important;}
       .pill-lbl{font-size:10px;font-weight:600;letter-spacing:-.1px}
