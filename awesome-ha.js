@@ -6144,7 +6144,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     if (pctEl) pctEl.textContent = tilt;
     if (dsEl)  dsEl.textContent  = this._label(tilt, pos, st);
     if (pbar)  pbar.style.width  = tilt + '%';
-    if (vbar)  vbar.style.background = tilt > 0 ? 'rgba(255,159,10,.85)' : 'transparent';
+    if (vbar)  vbar.style.background = tilt > 0 ? 'rgba(255,159,10,.85)' : 'rgba(142,142,147,.25)';
 
     // highlight nearest preset pill
     const PRESETS = [0, 33, 66, 100];
