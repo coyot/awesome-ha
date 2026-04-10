@@ -5925,13 +5925,8 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
   }
 
   _render() {
-    // color per preset — grey→sky→blue→green
-    const PC = {
-      0:   { bg:'rgba(72,72,74,.22)',    bd:'rgba(142,142,147,.28)', tx:'#8E8E93',  ic:'rgba(142,142,147,.75)', pg:'rgba(142,142,147,.20)' },
-      33:  { bg:'rgba(90,200,250,.15)',  bd:'rgba(90,200,250,.32)',  tx:'#5AC8FA',  ic:'rgba(90,200,250,.82)',  pg:'rgba(90,200,250,.28)'  },
-      66:  { bg:'rgba(10,132,255,.15)',  bd:'rgba(10,132,255,.32)',  tx:'#0A84FF',  ic:'rgba(10,132,255,.85)',  pg:'rgba(10,132,255,.30)'  },
-      100: { bg:'rgba(52,199,89,.14)',   bd:'rgba(52,199,89,.32)',   tx:'#34C759',  ic:'rgba(52,199,89,.82)',   pg:'rgba(52,199,89,.28)'   },
-    };
+    // uniform grey style for all preset pills
+    const PC_GREY = { bg:'rgba(72,72,74,.22)', bd:'rgba(142,142,147,.28)', tx:'#8E8E93', ic:'rgba(142,142,147,.75)' };
     const PRESETS = [0, 33, 66, 100];
 
     this.shadowRoot.innerHTML = `
@@ -5940,8 +5935,8 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
       @keyframes pill-glow {
-        0%,100% { box-shadow: 0 0 0 0 var(--pg, rgba(10,132,255,0)); }
-        50%      { box-shadow: 0 0 0 4px var(--pg, rgba(10,132,255,.22)); }
+        0%,100% { box-shadow: 0 0 0 0 rgba(255,159,10,0); }
+        50%      { box-shadow: 0 0 0 4px rgba(255,159,10,.35); }
       }
 
       .card{
@@ -5991,21 +5986,28 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 
       /* ── actions ── */
       .arow{
-        display:grid;grid-template-columns:1fr 1fr 1fr;
-        border-top:.5px solid rgba(255,255,255,.07);
-        margin:0 -14px;
+        display:flex;gap:8px;padding:10px 0 14px;
       }
       .ab{
-        padding:12px 4px;font-size:12px;font-weight:500;
+        flex:1;padding:11px 4px;font-size:12px;font-weight:500;
         cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
-        transition:background .14s,transform .10s;
+        border-radius:14px;position:relative;overflow:hidden;
+        background:linear-gradient(145deg,rgba(58,58,60,.95) 0%,rgba(44,44,46,.98) 100%);
+        border:1px solid rgba(255,255,255,.08);
+        box-shadow:0 4px 12px rgba(0,0,0,.25),0 2px 4px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.10);
+        backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+        transition:transform .10s,box-shadow .14s;
         -webkit-tap-highlight-color:transparent;user-select:none;
       }
-      .ab:not(:last-child){border-right:.5px solid rgba(255,255,255,.07)}
-      .ab:active{transform:scale(.95)}
-      .ab-o{color:#30d158}.ab-o:active{background:rgba(48,209,88,.08)}
-      .ab-s{color:#ff9f0a}.ab-s:active{background:rgba(255,159,10,.08)}
-      .ab-c{color:#ff453a}.ab-c:active{background:rgba(255,69,58,.08)}
+      .ab::before{
+        content:'';position:absolute;top:0;left:0;right:0;height:1px;
+        background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.15) 50%,transparent 100%);
+        pointer-events:none;
+      }
+      .ab:active{transform:scale(.94);box-shadow:0 2px 6px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06)}
+      .ab-o{color:#30d158}.ab-o:active{background:linear-gradient(145deg,rgba(48,209,88,.18),rgba(44,44,46,.98))}
+      .ab-s{color:#ff9f0a}.ab-s:active{background:linear-gradient(145deg,rgba(255,159,10,.18),rgba(44,44,46,.98))}
+      .ab-c{color:#ff453a}.ab-c:active{background:linear-gradient(145deg,rgba(255,69,58,.18),rgba(44,44,46,.98))}
 
       /* ── progress bar ── */
       .pbar-wrap{height:3px;background:rgba(255,255,255,.06);margin:0 -14px}
@@ -6024,14 +6026,13 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
             <span class="ds" id="ds">—</span>
             <div class="pills">
               ${PRESETS.map(t => {
-                const c = PC[t];
                 const deg = this._deg(t);
                 return `<div class="pill" data-tilt="${t}"
-                  style="background:${c.bg};border-color:${c.bd};--pg:${c.pg};">
+                  style="background:${PC_GREY.bg};border-color:${PC_GREY.bd};">
                   <svg width="14" height="10" viewBox="0 0 14 10" overflow="visible">
-                    ${this._slatInner(deg, 14, 10, c.ic)}
+                    ${this._slatInner(deg, 14, 10, PC_GREY.ic)}
                   </svg>
-                  <span class="pill-lbl" style="color:${c.tx};">${t}%</span>
+                  <span class="pill-lbl" style="color:${PC_GREY.tx};">${t}%</span>
                 </div>`;
               }).join('')}
             </div>
