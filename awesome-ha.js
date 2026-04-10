@@ -1,4 +1,22 @@
-(function() {
+/**
+ * aha-shared.js — wspólne stałe dla wszystkich kart awesome-ha
+ * Musi być załadowany przed pozostałymi kartami.
+ */
+window.AHA = window.AHA || {};
+
+window.AHA.MONTHS = [
+  'stycznia','lutego','marca','kwietnia','maja','czerwca',
+  'lipca','sierpnia','września','października','listopada','grudnia'
+];
+
+window.AHA.SZAMBO = {
+  CLR_D1:      '#E8C468',
+  CLR_D2:      '#5AC8FA',
+  CLR_D1_OBS:  '#FFB347',
+  CLR_D2_OBS:  '#FF9B85',
+  CLR_D1_PLAN: '#FF6B6B',
+  CLR_D2_PLAN: '#FF3B30',
+};
 /**
  * action-apple-card.js — przycisk akcji + nawigacji, Apple Home Premium
  *
@@ -709,11 +727,7 @@ window.customCards.push({
   name:        'Action Apple Card',
   preview:     false,
   description: 'Premium action & navigation button — Apple Home style with glass morphism, gradient layers, smooth animations.',
-});
-})();
-
-(function() {
-/**
+});/**
  * entries-apple-card.js — ostatnie wjazdy, Apple Home style
  *
  * input_text.wjazd_x  →  format: "tk|2026-03-19 08:25:26"
@@ -1212,11 +1226,7 @@ window.customCards.push({
   name: 'Entries Apple Card',
   description: 'Apple Home style timeline ostatnich wjazdów z glass morphism i smooth animations.',
   preview: false,
-});
-})();
-
-(function() {
-/**
+});/**
  * garden-meters-card.js — liczniki ogrodowe, styl Apple iOS
  *
  * INSTALACJA:
@@ -1600,10 +1610,6 @@ window.customCards.push({
   preview:     false,
   description: 'Liczniki ogrodowe z edycją inline, statusem per-licznik i osobnymi przyciskami zapisu.',
 });
-
-})();
-
-(function() {
 /**
  * szambo-apple-card.js — Apple Home Premium Edition
  *
@@ -1631,12 +1637,7 @@ window.customCards.push({
  *   entity_stale:        binary_sensor.ogrod_dane_nieaktualne
  */
 
-const CLR_D1        = '#E8C468';
-const CLR_D2        = '#5AC8FA';
-const CLR_D1_OBS    = '#FFB347';
-const CLR_D2_OBS    = '#FF9B85';
-const CLR_D1_PLAN   = '#FF6B6B';
-const CLR_D2_PLAN   = '#FF3B30';
+const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
 
 class SzamboAppleCard extends HTMLElement {
   constructor() {
@@ -2719,11 +2720,7 @@ window.customCards.push({
   name:        'Szambo Apple Card',
   preview:     false,
   description: 'Premium septic tank visualization — Apple Home style with 3D liquid tank, glass morphism, gradient effects, interactive highlighting & smooth animations.',
-});
-})();
-
-(function() {
-/**
+});/**
  * szambo-predict-card.js — predykcja wywozu szamba, styl Apple Home
  *
  * INSTALACJA:
@@ -3163,11 +3160,7 @@ window.customCards.push({
   name:        'Szambo Predict Card',
   preview:     false,
   description: 'Predykcja wywozu szamba z countdown i paskiem postępu.',
-});
-})();
-
-(function() {
-/**
+});/**
  * szambo-finance-card.js — rozliczenie szamba, styl Apple Home
  *
  * UŻYCIE:
@@ -3181,8 +3174,7 @@ window.customCards.push({
  *   entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
  */
 
-const CLR_D1 = '#E8C468';
-const CLR_D2 = '#5AC8FA';
+const { CLR_D1, CLR_D2 } = window.AHA.SZAMBO;
 const R      = 38;
 const CIRC   = 2 * Math.PI * R;
 
@@ -3470,11 +3462,7 @@ window.customCards.push({
   name:        'Szambo Finance Card',
   preview:     false,
   description: 'Rozliczenie koszt\u00f3w wywozu szamba z wykresem ko\u0142owym.',
-});
-})();
-
-(function() {
-/**
+});/**
  * waste-schedule-apple-card.js — Apple-style waste pickup schedule
  *
  * Config:
@@ -4082,20 +4070,13 @@ class WasteScheduleAppleCard extends HTMLElement {
   }
 }
 
-customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);
-})();
-
-(function() {
-// astronomical-events-card.js
+customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);// astronomical-events-card.js
 // Place in: /config/www/astronomical-events-card.js
 // Register in Lovelace resources:
 //   url: /local/astronomical-events-card.js
 //   type: module
 
-const MONTHS = [
-  'stycznia','lutego','marca','kwietnia','maja','czerwca',
-  'lipca','sierpnia','września','października','listopada','grudnia'
-];
+const MONTHS = window.AHA.MONTHS;
 
 const TYPES = {
   eclipse:       { label:'Zaćmienie Słońca',   r:220, g:160, b:30  },
@@ -4507,11 +4488,7 @@ class AstronomicalEventsCard extends HTMLElement {
   }
 }
 
-customElements.define('aha-astronomical-events-card', AstronomicalEventsCard);
-})();
-
-(function() {
-/**
+customElements.define('aha-astronomical-events-card', AstronomicalEventsCard);/**
  * climate-apple-card.js — kompaktowy kafelek, styl Apple Home
  * Ikonka dobierana automatycznie na podstawie obszaru (area) encji.
  *
@@ -4843,11 +4820,7 @@ window.customCards.push({
   name:        'Climate Apple Card',
   preview:     false,
   description: 'Kompaktowy kafelek klimatu — ikonka z obszaru, styl Apple Home.',
-});
-})();
-
-(function() {
-// solar-clock-card.js
+});// solar-clock-card.js
 // Place in: /config/www/solar-clock-card.js
 // Resource: url: /local/solar-clock-card.js  type: module
 
@@ -4855,8 +4828,7 @@ const LAT = 52.40, LON = 16.87;
 const SHOW_PLANETS = true;
 
 const DAYS   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
-const MONTHS = ['stycznia','lutego','marca','kwietnia','maja','czerwca',
-                'lipca','sierpnia','września','października','listopada','grudnia'];
+const MONTHS = window.AHA.MONTHS;
 const pad = n => String(n).padStart(2,'0');
 
 // ─── SUN MATH ────────────────────────────────────────────────────────────────
@@ -5872,11 +5844,7 @@ class SolarClockCard extends HTMLElement {
   getCardSize() { return 5; }
 }
 
-customElements.define('aha-solar-clock-card', SolarClockCard);
-})();
-
-(function() {
-class TelecoCard extends HTMLElement {
+customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -6080,5 +6048,3 @@ class TelecoCard extends HTMLElement {
 }
 
 customElements.define('aha-teleco-card', TelecoCard);
-})();
-

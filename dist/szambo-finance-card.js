@@ -12,8 +12,7 @@
  *   entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
  */
 
-const CLR_D1 = '#E8C468';
-const CLR_D2 = '#5AC8FA';
+const { CLR_D1, CLR_D2 } = window.AHA.SZAMBO;
 const R      = 38;
 const CIRC   = 2 * Math.PI * R;
 

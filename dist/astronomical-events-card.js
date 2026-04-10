@@ -4,10 +4,7 @@
 //   url: /local/astronomical-events-card.js
 //   type: module
 
-const MONTHS = [
-  'stycznia','lutego','marca','kwietnia','maja','czerwca',
-  'lipca','sierpnia','września','października','listopada','grudnia'
-];
+const MONTHS = window.AHA.MONTHS;
 
 const TYPES = {
   eclipse:       { label:'Zaćmienie Słońca',   r:220, g:160, b:30  },

@@ -6,8 +6,7 @@ const LAT = 52.40, LON = 16.87;
 const SHOW_PLANETS = true;
 
 const DAYS   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
-const MONTHS = ['stycznia','lutego','marca','kwietnia','maja','czerwca',
-                'lipca','sierpnia','września','października','listopada','grudnia'];
+const MONTHS = window.AHA.MONTHS;
 const pad = n => String(n).padStart(2,'0');
 
 // ─── SUN MATH ────────────────────────────────────────────────────────────────
