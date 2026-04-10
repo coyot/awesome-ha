@@ -201,4 +201,4 @@ class TelecoCard extends HTMLElement {
   getCardSize() { return 4; }
 }
 
-customElements.define('teleco-card', TelecoCard);
+customElements.define('aha-teleco-card', TelecoCard);

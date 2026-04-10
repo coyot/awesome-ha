@@ -89,7 +89,12 @@ All cards use the `aha-` prefix.
 | `custom:aha-garden-meters-card` | Garden water meter with inline editing |
 | `custom:aha-szambo-apple-card` | Septic tank monitor with 3D isometric visualization |
 | `custom:aha-szambo-predict-card` | Septic tank emptying prediction & countdown |
+| `custom:aha-szambo-finance-card` | Septic tank cost breakdown |
 | `custom:aha-waste-schedule-apple-card` | Waste pickup schedule with calendar view |
+| `custom:aha-astronomical-events-card` | Upcoming astronomical events calendar |
+| `custom:aha-climate-apple-card` | Compact climate tile, Apple Home style |
+| `custom:aha-solar-clock-card` | Solar clock with day/night arc visualization |
+| `custom:aha-teleco-card` | Telecommunications status card |
 
 ---
 
@@ -97,8 +102,7 @@ All cards use the `aha-` prefix.
 
 ```bash
 awesome-ha/
-├── dist/          # HACS-served custom cards (aha-*)
-├── custom/        # Card source files
+├── dist/          # Custom cards (aha-*)
 ├── dashboards/
 ├── cards/
 ├── templates/

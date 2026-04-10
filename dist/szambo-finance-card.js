@@ -293,11 +293,11 @@ class SzamboFinanceCard extends HTMLElement {
   }
 }
 
-customElements.define('szambo-finance-card', SzamboFinanceCard);
+customElements.define('aha-szambo-finance-card', SzamboFinanceCard);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type:        'szambo-finance-card',
+  type:        'aha-szambo-finance-card',
   name:        'Szambo Finance Card',
   preview:     false,
   description: 'Rozliczenie koszt\u00f3w wywozu szamba z wykresem ko\u0142owym.',

@@ -3147,6 +3147,309 @@ window.customCards.push({
   preview:     false,
   description: 'Predykcja wywozu szamba z countdown i paskiem postępu.',
 });/**
+ * szambo-finance-card.js — rozliczenie szamba, styl Apple Home
+ *
+ * UŻYCIE:
+ *   type: custom:szambo-finance-card
+ *   cost: 320
+ *   dom1_name: "Dom 49/1"
+ *   dom2_name: "Dom 49/2"
+ *   entity_dom1_zaplata: sensor.szambo_dom_1_do_zaplaty
+ *   entity_dom2_zaplata: sensor.szambo_dom_2_do_zaplaty
+ *   entity_dom1_zuzycie: sensor.szambo_dom_1_zuzycie
+ *   entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
+ */
+
+const CLR_D1 = '#E8C468';
+const CLR_D2 = '#5AC8FA';
+const R      = 38;
+const CIRC   = 2 * Math.PI * R;
+
+class SzamboFinanceCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  setConfig(config) {
+    this._config = {
+      cost:                config.cost                ?? 320,
+      dom1_name:           config.dom1_name           ?? 'Dom 1',
+      dom2_name:           config.dom2_name           ?? 'Dom 2',
+      entity_dom1_zaplata: config.entity_dom1_zaplata ?? null,
+      entity_dom2_zaplata: config.entity_dom2_zaplata ?? null,
+      entity_dom1_zuzycie: config.entity_dom1_zuzycie ?? null,
+      entity_dom2_zuzycie: config.entity_dom2_zuzycie ?? null,
+    };
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  getCardSize() { return 2; }
+
+  _val(id) {
+    if (!id || !this._hass) return 0;
+    const v = parseFloat(this._hass.states[id]?.state);
+    return isNaN(v) ? 0 : v;
+  }
+
+  _render() {
+    if (!this._hass) return;
+
+    const cost     = this._config.cost;
+    const dom1Name = this._config.dom1_name;
+    const dom2Name = this._config.dom2_name;
+
+    const d1zl  = this._val(this._config.entity_dom1_zaplata);
+    const d2zl  = this._val(this._config.entity_dom2_zaplata);
+    const d1m3  = this._val(this._config.entity_dom1_zuzycie);
+    const d2m3  = this._val(this._config.entity_dom2_zuzycie);
+    const total = d1zl + d2zl;
+
+    const fmt   = v => v.toFixed(2).replace('.', ',');
+    const fmtm3 = v => v.toFixed(2).replace('.', ',');
+
+    const d1pct = total > 0 ? Math.round((d1zl / total) * 100) : 50;
+    const d2pct = 100 - d1pct;
+
+    const d1arc = (d1pct / 100) * CIRC;
+    const d2arc = CIRC - d1arc;
+
+    /* kąt podziału w stopniach — do narysowania sektorów hit-area */
+    const splitDeg = (d1pct / 100) * 360;
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display: block; }
+        .card {
+          background: #2C2C2E;
+          border-radius: 18px;
+          padding: 16px 18px;
+          box-sizing: border-box;
+          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          -webkit-font-smoothing: antialiased;
+        }
+        .header {
+          display: flex; align-items: center; gap: 10px;
+          margin-bottom: 16px;
+        }
+        .header-ic {
+          width: 30px; height: 30px; border-radius: 9px;
+          background: #1C1C1E;
+          display: flex; align-items: center; justify-content: center;
+          color: #8E8E93;
+        }
+        .header-title { font-size: 13px; font-weight: 500; color: #AEAEB2; flex: 1; }
+        .header-cost  { font-size: 11px; color: #636366; }
+
+        .body { display: flex; align-items: center; gap: 18px; }
+
+        .chart-col {
+          flex-shrink: 0;
+          display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+
+        .chart-wrap {
+          position: relative; width: 96px; height: 96px;
+        }
+        .chart-wrap svg { display: block; }
+
+        /* dwie przezroczyste nakładki hit-area */
+        .hit-area {
+          position: absolute; inset: 0;
+          display: flex;
+        }
+        .hit-left {
+          flex: 1; cursor: pointer;
+          /* lewa połowa = Dom1 */
+        }
+        .hit-right {
+          flex: 1; cursor: pointer;
+          /* prawa połowa = Dom2 */
+        }
+
+        .arc { transition: opacity .2s; }
+        .arc.faded   { opacity: .2; }
+        .arc.hovered { opacity: 1; filter: brightness(1.15); }
+
+        .legend { display: flex; gap: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot  { width: 7px; height: 7px; border-radius: 50%; }
+        .legend-lbl  { font-size: 10px; color: #636366; }
+
+        .receipt {
+          flex: 1;
+          border-left: .5px solid #3A3A3C;
+          padding-left: 16px;
+        }
+        .receipt-row {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: .5px dashed #3A3A3C;
+          transition: opacity .2s;
+          cursor: default;
+        }
+        .receipt-row.faded   { opacity: .3; }
+        .receipt-row.hovered { opacity: 1; }
+
+        .receipt-left { display: flex; flex-direction: column; gap: 2px; }
+        .receipt-name { font-size: 13px; color: #fff; font-weight: 500; }
+        .receipt-sub  { font-size: 10px; color: #636366; }
+        .receipt-val  { font-size: 16px; font-weight: 600; }
+
+        .receipt-total {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 10px 0 0;
+        }
+        .receipt-total-lbl {
+          font-size: 11px; color: #636366;
+          text-transform: uppercase; letter-spacing: .4px; font-weight: 500;
+        }
+        .receipt-total-val {
+          font-size: 20px; font-weight: 600; color: #fff; letter-spacing: -.5px;
+        }
+      </style>
+
+      <div class="card">
+
+        <div class="header">
+          <div class="header-ic">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.5 3.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2v20l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5z"/>
+            </svg>
+          </div>
+          <div class="header-title">Rozliczenie szamba</div>
+          <div class="header-cost">wywo\u017a ${cost} z\u0142</div>
+        </div>
+
+        <div class="body">
+
+          <div class="chart-col">
+            <div class="chart-wrap">
+              <svg viewBox="0 0 100 100" width="96" height="96">
+                <circle cx="50" cy="50" r="${R}" fill="none" stroke="#3A3A3C" stroke-width="16"/>
+                <circle id="arc1" class="arc" cx="50" cy="50" r="${R}" fill="none"
+                  stroke="${CLR_D1}" stroke-width="16"
+                  stroke-dasharray="${d1arc.toFixed(1)} ${d2arc.toFixed(1)}"
+                  stroke-dashoffset="0"
+                  transform="rotate(90 50 50)"/>
+                <circle id="arc2" class="arc" cx="50" cy="50" r="${R}" fill="none"
+                  stroke="${CLR_D2}" stroke-width="16"
+                  stroke-dasharray="${d2arc.toFixed(1)} ${d1arc.toFixed(1)}"
+                  stroke-dashoffset="${(-d1arc).toFixed(1)}"
+                  transform="rotate(90 50 50)"/>
+                <text x="50" y="46" text-anchor="middle"
+                  font-size="14" font-weight="600" fill="#fff"
+                  font-family="-apple-system,sans-serif">${cost}</text>
+                <text x="50" y="58" text-anchor="middle"
+                  font-size="8" fill="#636366"
+                  font-family="-apple-system,sans-serif">z\u0142</text>
+              </svg>
+
+              <!-- hit areas — niewidoczne prostokąty nad połówkami wykresu -->
+              <div class="hit-area">
+                <div class="hit-left"  id="hit1"></div>
+                <div class="hit-right" id="hit2"></div>
+              </div>
+            </div>
+
+            <div class="legend">
+              <div class="legend-item">
+                <div class="legend-dot" style="background:${CLR_D1};"></div>
+                <div class="legend-lbl">49/1</div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background:${CLR_D2};"></div>
+                <div class="legend-lbl">49/2</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="receipt">
+            <div class="receipt-row" id="row1">
+              <div class="receipt-left">
+                <div class="receipt-name">${dom1Name}</div>
+                <div class="receipt-sub">${fmtm3(d1m3)} m\u00b3 \u00b7 ${d1pct}%</div>
+              </div>
+              <div class="receipt-val" style="color:${CLR_D1};">${fmt(d1zl)} z\u0142</div>
+            </div>
+            <div class="receipt-row" id="row2">
+              <div class="receipt-left">
+                <div class="receipt-name">${dom2Name}</div>
+                <div class="receipt-sub">${fmtm3(d2m3)} m\u00b3 \u00b7 ${d2pct}%</div>
+              </div>
+              <div class="receipt-val" style="color:${CLR_D2};">${fmt(d2zl)} z\u0142</div>
+            </div>
+            <div class="receipt-total">
+              <div class="receipt-total-lbl">Razem</div>
+              <div class="receipt-total-val">${fmt(total)} z\u0142</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    this._bindHover();
+  }
+
+  _bindHover() {
+    const sr   = this.shadowRoot;
+    const arc1 = sr.getElementById('arc1');
+    const arc2 = sr.getElementById('arc2');
+    const hit1 = sr.getElementById('hit1');
+    const hit2 = sr.getElementById('hit2');
+    const row1 = sr.getElementById('row1');
+    const row2 = sr.getElementById('row2');
+    if (!arc1) return;
+
+    const highlight = (dom) => {
+      if (dom === 1) {
+        arc1.classList.add('hovered');    arc1.classList.remove('faded');
+        arc2.classList.add('faded');      arc2.classList.remove('hovered');
+        row1.classList.add('hovered');    row1.classList.remove('faded');
+        row2.classList.add('faded');      row2.classList.remove('hovered');
+      } else if (dom === 2) {
+        arc2.classList.add('hovered');    arc2.classList.remove('faded');
+        arc1.classList.add('faded');      arc1.classList.remove('hovered');
+        row2.classList.add('hovered');    row2.classList.remove('faded');
+        row1.classList.add('faded');      row1.classList.remove('hovered');
+      } else {
+        [arc1, arc2, row1, row2].forEach(el => el.classList.remove('hovered', 'faded'));
+      }
+    };
+
+    /* hit areas nad wykresem */
+    hit1.addEventListener('mouseenter', () => highlight(1));
+    hit1.addEventListener('mouseleave', () => highlight(null));
+    hit1.addEventListener('touchstart',  () => highlight(1), { passive: true });
+    hit1.addEventListener('touchend',    () => setTimeout(() => highlight(null), 600));
+
+    hit2.addEventListener('mouseenter', () => highlight(2));
+    hit2.addEventListener('mouseleave', () => highlight(null));
+    hit2.addEventListener('touchstart',  () => highlight(2), { passive: true });
+    hit2.addEventListener('touchend',    () => setTimeout(() => highlight(null), 600));
+
+    /* wiersze paragonu */
+    row1.addEventListener('mouseenter', () => highlight(1));
+    row1.addEventListener('mouseleave', () => highlight(null));
+    row2.addEventListener('mouseenter', () => highlight(2));
+    row2.addEventListener('mouseleave', () => highlight(null));
+  }
+}
+
+customElements.define('aha-szambo-finance-card', SzamboFinanceCard);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type:        'aha-szambo-finance-card',
+  name:        'Szambo Finance Card',
+  preview:     false,
+  description: 'Rozliczenie koszt\u00f3w wywozu szamba z wykresem ko\u0142owym.',
+});/**
  * waste-schedule-apple-card.js — Apple-style waste pickup schedule
  *
  * Config:
@@ -3754,4 +4057,1985 @@ class WasteScheduleAppleCard extends HTMLElement {
   }
 }
 
-customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);
+customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);// astronomical-events-card.js
+// Place in: /config/www/astronomical-events-card.js
+// Register in Lovelace resources:
+//   url: /local/astronomical-events-card.js
+//   type: module
+
+const MONTHS = [
+  'stycznia','lutego','marca','kwietnia','maja','czerwca',
+  'lipca','sierpnia','września','października','listopada','grudnia'
+];
+
+const TYPES = {
+  eclipse:       { label:'Zaćmienie Słońca',   r:220, g:160, b:30  },
+  lunar_eclipse: { label:'Zaćmienie Księżyca', r:220, g:70,  b:70  },
+  meteors:       { label:'Rój meteorów',       r:130, g:90,  b:230 },
+  conjunction:   { label:'Koniunkcja',         r:60,  g:180, b:240 },
+  planet:        { label:'Planety',            r:50,  g:190, b:150 },
+  moon:          { label:'Księżyc',            r:200, g:180, b:80  },
+};
+
+const RAW = [
+  { date:'2026-04-22', type:'meteors',       name:'Liridy 2026',                     desc:'Jeden z najstarszych rojów — okruchy komety Thatcher (1861). Meteory szybkie (49 km/s), często zostawiają smugi. Aktywne 16–25 kwietnia.',       how:'Wyjdź po 01:00, z dala od świateł. Patrz na całe niebo. 20 min adaptacji oka.',                                tip:'Pora: 01:00–04:00 · Bez sprzętu' },
+  { date:'2026-06-09', type:'conjunction',   name:'Wenus + Jowisz',                  desc:'Dwie najjaśniejsze planety zbliżają się na 1.6°. Lornetka ujawni 4 księżyce galileuszowe Jowisza.',                                             how:'Patrz na zachód–NW 30–60 min po zachodzie Słońca.',                                                                tip:'Pora: 20:30–22:00 · Kierunek: zachód-NW · Lornetka' },
+  { date:'2026-08-12', type:'eclipse',       name:'Zaćmienie Słońca + Perseidy',     desc:'Zaćmienie częściowe ~80% po południu, a nocą Perseidy przy nowiu — czarne niebo. Takie połączenie raz na dekady.',                             how:'Zaćmienie 19:15–20:04 — OKULARY ISO 12312-2 obowiązkowe. Perseidy: od 23:00 kierunek NE.',                          tip:'Okulary ISO 12312-2 obowiązkowe · Perseidy: po 23:00' },
+  { date:'2026-08-28', type:'lunar_eclipse', name:'Zaćmienie Księżyca 96%',          desc:'Ziemia zakryje 96% tarczy. Księżyc nabierze głębokiego czerwono-pomarańczowego koloru. Widoczne z Polski.',                                     how:'Wyjdź rano — Księżyc nisko na zachodzie. Lornetka podkreśli barwy.',                                               tip:'Pora: 04:12–05:52 · Kierunek: zachód · Lornetka' },
+  { date:'2026-10-04', type:'planet',        name:'Saturn w opozycji 2026',          desc:'Saturn wschodzi o zachodzie Słońca i widoczny jest całą noc. Pierścienie wyraźnie lepsze niż w 2025.',                                          how:'Lornetka pokaże owalny kształt. Teleskop 60mm+ ujawni pierścienie. Szukaj w Rybach.',                              tip:'Pora: cała noc · Lornetka lub mały teleskop' },
+  { date:'2026-10-21', type:'meteors',       name:'Orionidy 2026',                   desc:'Okruchy słynnej komety Halleya wpadające z 66 km/s. Księżyc (72%) zachodzi po północy — potem lepiej.',                                        how:'Obserwuj po 02:00. Radiant blisko Betelgezy.',                                                                     tip:'Pora: 02:00–05:00 · Bez sprzętu' },
+  { date:'2026-11-12', type:'meteors',       name:'Taurydy Północne 2026',           desc:'Wolne, ale spektakularne bolidy rozświetlające całe niebo. W 2026 jedne z lepszych warunków w dekadzie (księżyc 7%).',                          how:'Obserwuj całą noc. Warto nagrywać kamerą szerokokątną.',                                                           tip:'Pora: od 21:00 · Gołe oko lub kamera' },
+  { date:'2026-11-15', type:'conjunction',   name:'Mars + Jowisz 2026',              desc:'Rdzawy Mars i kremowy Jowisz zbliżają się do 1°. Kontrast barw efektowny nawet gołym okiem.',                                                  how:'Wstań 1.5h przed wschodem Słońca. Lornetka pokaże 4 księżyce Jowisza.',                                           tip:'Pora: 04:00–06:00 · Kierunek: południe · Lornetka' },
+  { date:'2026-11-17', type:'meteors',       name:'Leonidy 2026',                    desc:'Najszybsze meteory roku (71 km/s) — długie świetliste smugi. Księżyc (45%) zachodzi po północy.',                                              how:'Obserwuj po 01:00. Radiant w gwiazdozbiorze Lwa.',                                                                 tip:'Pora: 01:00–05:00 · Bez sprzętu' },
+  { date:'2026-12-13', type:'meteors',       name:'Geminidy 2026',                   desc:'NAJLEPSZY rój roku — liczne, kolorowe, od wczesnego wieczoru. Asteroida 3200 Phaethon. W 2026 prawie bez księżyca (21%).',                     how:'Wyjdź po 21:00. Radiant w Bliźniętach. Koc i ciepłe ubranie!',                                                   tip:'Pora: 21:00–04:00 · Bez sprzętu' },
+  { date:'2026-12-23', type:'moon',          name:'Superksiężyc — rekord 2026',      desc:'Najbliższy Księżyc od 7 lat (221 668 km). Tarcza wyraźnie większa i jaśniejsza. Kolejny tak bliski dopiero w 2028.',                           how:'Obserwuj przy wschodzie — iluzja horyzontu. Zdjęcie z punktem odniesienia.',                                      tip:'Pora: wschód Księżyca · Aparat' },
+  { date:'2027-01-03', type:'meteors',       name:'Kwadrantydy 2027',                desc:'Ostry szczyt trwający kilka godzin — timing kluczowy. W 2027 lepsze warunki niż rok wcześniej (księżyc 20%).',                                 how:'Szczyt ok. 03:00 w nocy z 2 na 3 stycznia. Krótkie okno!',                                                        tip:'Pora: 01:00–05:00 · Kierunek: NE · Bez sprzętu' },
+  { date:'2027-02-10', type:'planet',        name:'Jowisz w opozycji 2027',          desc:'Najlepszy dzień roku do obserwacji Jowisza. Wschodzi o zachodzie Słońca, widoczny całą noc.',                                                  how:'Lornetka: dostrzeż Io, Europę, Ganimedes, Kallisto.',                                                              tip:'Pora: cała noc · Lornetka' },
+  { date:'2027-05-06', type:'meteors',       name:'Eta Akwarydy 2027',               desc:'Okruchy komety Halley, szybkie (66 km/s). W 2027 nów tuż przed szczytem — prawie idealne ciemne niebo.',                                      how:'Obserwuj 03:00–05:00. Radiant w Akwariuszu.',                                                                      tip:'Pora: 03:00–05:00 · Kierunek: SE · Bez sprzętu' },
+  { date:'2027-08-02', type:'eclipse',       name:'Zaćmienie Słońca 2027',           desc:'Najdłuższe całkowite zaćmienie XXI wieku. Pas: S.Hiszpania, Maroko, Egipt (Luksor 6 min 23 s). Z Polski częściowe wieczorem.',                 how:'Z Polski: okulary ISO 12312-2. Warto pojechać do Málagas lub Luksoru.',                                            tip:'Okulary ISO 12312-2 · Całkowite: Egipt / S.Hiszpania' },
+  { date:'2027-08-12', type:'meteors',       name:'Perseidy 2027',                   desc:'Ciepłe sierpniowe noce, jasne meteory ze smugami. Okruchy komety Swift-Tuttle.',                                                               how:'Wyjdź po 23:00. Kierunek NE na Perseusza. 1h bez telefonu.',                                                       tip:'Pora: 23:00–04:00 · Kierunek: NE · Bez sprzętu' },
+  { date:'2027-12-14', type:'meteors',       name:'Geminidy 2027',                   desc:'Coroczny król rojów. Kolorowe, liczne, od wczesnego wieczoru. Asteroida 3200 Phaethon.',                                                      how:'Wyjdź po 21:00. Radiant w Bliźniętach. Grudzień — ciepłe ubranie.',                                               tip:'Pora: 21:00–04:00 · Bez sprzętu' },
+  { date:'2028-01-12', type:'lunar_eclipse', name:'Zaćmienie Księżyca 2028',         desc:'Pełnia wilka 2028 to superksiężyc i zaćmienie częściowe. Księżyc wychodzi nad horyzont już częściowo w cieniu.',                               how:'Obserwuj wschód Księżyca — wychodzi już częściowo zaćmiony.',                                                      tip:'Pora: wschód Księżyca · Lornetka' },
+  { date:'2028-02-10', type:'moon',          name:'Superksiężyc 2028 — ekstremalny', desc:'Pobija grudniowy rekord z 2026. Jeden z najbliższych pełni XXI wieku.',                                                                        how:'Obserwuj wschód. Zdjęcie obok budynku. Lornetka ujawni kratery.',                                                  tip:'Pora: wschód Księżyca · Aparat' },
+  { date:'2028-07-22', type:'eclipse',       name:'Całkowite zaćmienie Słońca 2028', desc:'Australia i południowa Azja — Sydney i wybrzeże wschodnie. Z Europy niewidoczne.',                                                            how:'Z Polski: brak. Australia: planuj podróż z wyprzedzeniem!',                                                        tip:'Całkowite: Australia, Indie · Z Polski: brak' },
+  { date:'2028-08-12', type:'meteors',       name:'Perseidy 2028',                   desc:'Niezmiennie jeden z najpewniejszych rojów. Ciepłe noce, jasne meteory ze smugami.',                                                           how:'Wyjdź po 23:00. Kierunek NE. 1h na ciemnym niebie.',                                                               tip:'Pora: 23:00–04:00 · Bez sprzętu' },
+  { date:'2028-12-14', type:'meteors',       name:'Geminidy 2028',                   desc:'Kolorowe, liczne, od wczesnego wieczoru. Sprawdź fazę księżyca — decyduje o warunkach.',                                                      how:'Wyjdź po 21:00. Radiant w Bliźniętach. Ciepłe ubranie!',                                                          tip:'Pora: 21:00–04:00 · Bez sprzętu' },
+  { date:'2028-12-31', type:'lunar_eclipse', name:'Zaćmienie Księżyca — Sylwester!', desc:'Całkowite zaćmienie w ostatnią noc 2028. Czerwony Księżyc przez ponad godzinę — atrakcja sylwestrowa!',                                       how:'Obserwuj wieczorem 31 grudnia. Gołym okiem.',                                                                      tip:'Pora: wieczór 31 gru · Bez sprzętu' },
+  { date:'2029-03-30', type:'moon',          name:'Superksiężyc 2029 — ekstremalny', desc:'Marcowa pełnia może być jedną z najbliższych całego XXI wieku.',                                                                               how:'Obserwuj wschód. Porównaj ze zwykłymi pełniami.',                                                                  tip:'Pora: wschód Księżyca · Aparat' },
+  { date:'2029-05-06', type:'meteors',       name:'Eta Akwarydy 2029',               desc:'Szybkie meteory ze smugami. Lepiej widoczne z południa Europy, ale jasne bolidy widać wszędzie.',                                             how:'Obserwuj 03:00–05:00. Radiant w Akwariuszu.',                                                                      tip:'Pora: 03:00–05:00 · Kierunek: SE · Bez sprzętu' },
+  { date:'2029-08-12', type:'meteors',       name:'Perseidy 2029',                   desc:'Ciepłe noce, komfortowe warunki, wiele jasnych meteorów ze smugami.',                                                                         how:'Wyjdź po 23:00. Kierunek NE. Godzina bez telefonu.',                                                               tip:'Pora: 23:00–04:00 · Bez sprzętu' },
+  { date:'2029-11-17', type:'meteors',       name:'Leonidy 2029 — uwaga!',           desc:'Kometa Tempel-Tuttle powraca w 2031. Aktywność może rosnąć w latach poprzedzających peryhelia.',                                              how:'Obserwuj po 01:00. Radiant w Lwie.',                                                                               tip:'Pora: 01:00–05:00 · Bez sprzętu' },
+  { date:'2029-12-14', type:'meteors',       name:'Geminidy 2029',                   desc:'Asteroida 3200 Phaethon — zawsze warto wychodzić bez względu na rok.',                                                                        how:'Wyjdź po 21:00. Ciepłe ubranie! Cały nieboskłon.',                                                                 tip:'Pora: 21:00–04:00 · Bez sprzętu' },
+  { date:'2030-06-01', type:'eclipse',       name:'Obrączkowe zaćmienie 2030',       desc:'"Ring of fire" — Algieria, Tunezja, Grecja, Turcja. Z Polski zaćmienie częściowe.',                                                          how:'Z Polski: okulary ISO 12312-2. Grecja/Turcja: efekt pierścienia ognia.',                                           tip:'Okulary ISO 12312-2 · Ring of fire: Grecja/Turcja' },
+  { date:'2030-06-15', type:'lunar_eclipse', name:'Zaćmienie Księżyca 2030',         desc:'Częściowe zaćmienie w czerwcu. Ciemna część tarczy nabiera brunatno-czerwonego odcienia.',                                                    how:'Wyjdź wieczorem. Lornetka podkreśli barwy. Aparat na statywie.',                                                   tip:'Pora: wieczór 15 czerwca · Lornetka' },
+  { date:'2030-08-12', type:'meteors',       name:'Perseidy 2030',                   desc:'Niezawodny sierpniowy spektakl. Sprawdź fazę księżyca przed wyjściem.',                                                                       how:'Wyjdź po 23:00. Kierunek NE.',                                                                                      tip:'Pora: 23:00–04:00 · Bez sprzętu' },
+  { date:'2030-11-25', type:'eclipse',       name:'Całkowite zaćmienie Słońca 2030', desc:'Namibia, Botswana, Australia. Z Europy niewidoczne — szansa dla globtroterów.',                                                               how:'Namibia i Australia: totality. Z Europy: brak.',                                                                   tip:'Całkowite: Namibia, Australia · Z Polski: brak' },
+  { date:'2030-12-14', type:'meteors',       name:'Geminidy 2030',                   desc:'Domykają rok astronomiczny. Najlepszy rój roku, niezawodny od dekad.',                                                                        how:'Wyjdź po 21:00. Radiant w Bliźniętach. Termos z herbatą.',                                                         tip:'Pora: 21:00–04:00 · Bez sprzętu' },
+  { date:'2031-05-07', type:'meteors',       name:'Eta Akwarydy 2031',               desc:'Kometa Halley zbliża się. Strumień pyłu może być gęstszy — Eta Akwarydy mogą zaskoczyć.',                                                    how:'Obserwuj przed świtem. Radiant w Akwariuszu.',                                                                      tip:'Pora: 03:00–05:00 · Kierunek: SE · Bez sprzętu' },
+  { date:'2031-08-12', type:'meteors',       name:'Perseidy 2031',                   desc:'Kometa Swift-Tuttle daleko, ale strumień stabilny przez dziesiątki lat.',                                                                     how:'Wyjdź po 23:00. NE na Perseusza. Bez telefonu!',                                                                   tip:'Pora: 23:00–04:00 · Bez sprzętu' },
+  { date:'2031-11-17', type:'meteors',       name:'Leonidy 2031 — HISTORYCZNE!',     desc:'Kometa Tempel-Tuttle w peryhelium! W 1966, 1999, 2001 notowano tysiące meteorów/h. Możliwy deszcz stulecia — MUST SEE!',                     how:'Śledź prognozy. Obserwuj całą noc 16–18 listopada.',                                                                tip:'Pora: cała noc 16–18 lis · PRIORYTET' },
+  { date:'2031-12-14', type:'meteors',       name:'Geminidy 2031',                   desc:'Zamykają dekadę 2026–2031. Asteroida 3200 Phaethon — unikat wśród rojów.',                                                                    how:'Wyjdź po 21:00. Radiant Bliźnięta. Termos, ciepłe ubranie.',                                                      tip:'Pora: 21:00–04:00 · Bez sprzętu' },
+];
+
+function fmtDate(d) {
+  const x = new Date(d + 'T00:00:00');
+  return x.getDate() + ' ' + MONTHS[x.getMonth()] + ' ' + x.getFullYear();
+}
+
+function makeIcon(type, r, g, b) {
+  const c = `rgba(${r},${g},${b},`;
+  if (type === 'eclipse')
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="9" cy="11" r="7" fill="${c}.18)" stroke="${c}.85)" stroke-width="1.5"/><circle cx="17" cy="11" r="7" fill="#111"/></svg>`;
+  if (type === 'lunar_eclipse')
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="${c}.18)" stroke="${c}.85)" stroke-width="1.5"/><circle cx="7" cy="8" r="2.5" fill="${c}.4)"/></svg>`;
+  if (type === 'meteors')
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><line x1="16" y1="2" x2="4" y2="14" stroke="${c}.9)" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="4" x2="2" y2="16" stroke="${c}.45)" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="3" r="2" fill="${c}.9)"/></svg>`;
+  if (type === 'conjunction')
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="7.5" cy="11" r="5" fill="${c}.18)" stroke="${c}.85)" stroke-width="1.5"/><circle cx="16" cy="11" r="3.5" fill="${c}.12)" stroke="${c}.7)" stroke-width="1.2"/></svg>`;
+  if (type === 'planet')
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="6" fill="${c}.18)" stroke="${c}.85)" stroke-width="1.5"/><ellipse cx="11" cy="11" rx="10" ry="3.2" fill="none" stroke="${c}.5)" stroke-width="1.2"/></svg>`;
+  if (type === 'moon')
+    return `<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="${c}.18)" stroke="${c}.85)" stroke-width="1.5"/><circle cx="8" cy="8" r="1.8" fill="${c}.4)"/><circle cx="13" cy="13" r="1.2" fill="${c}.3)"/></svg>`;
+  return '';
+}
+
+const PAGE = 3;
+
+class AstronomicalEventsCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._offset = 0;
+    this._expanded = new Set();
+  }
+
+  setConfig(config) {
+    this._config = config;
+    this._page = config.page_size || PAGE;
+    this._render();
+  }
+
+  set hass(hass) {
+    // no live entities needed, but required by HA
+    this._hass = hass;
+  }
+
+  _getEvents() {
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    return RAW
+      .map(e => {
+        const t = new Date(e.date + 'T00:00:00');
+        const days = Math.round((t - now) / 86400000);
+        return { ...e, days };
+      })
+      .filter(e => e.days >= 0)
+      .sort((a, b) => a.days - b.days);
+  }
+
+  _toggle(idx) {
+    if (this._expanded.has(idx)) {
+      this._expanded.delete(idx);
+    } else {
+      this._expanded.add(idx);
+    }
+    this._render();
+  }
+
+  _prev() {
+    this._offset = Math.max(0, this._offset - this._page);
+    this._expanded.clear();
+    this._render();
+  }
+
+  _next() {
+    const all = this._getEvents();
+    this._offset = Math.min(this._offset + this._page, all.length - this._page);
+    this._expanded.clear();
+    this._render();
+  }
+
+  _render() {
+    const all = this._getEvents();
+    const page = this._page;
+    const off = this._offset;
+    const slice = all.slice(off, off + page);
+    const canPrev = off > 0;
+    const canNext = off + page < all.length;
+
+    const css = `
+      :host { display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+      .card {
+        background: linear-gradient(160deg, #06090f 0%, #0c1020 100%);
+        border-radius: 16px;
+        overflow: hidden;
+        padding: 14px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .header-title {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .10em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.28);
+      }
+      .header-count {
+        font-size: 10px;
+        color: rgba(255,255,255,.20);
+      }
+      .event {
+        border-radius: 12px;
+        margin-bottom: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.03);
+        transition: border-color .2s;
+      }
+      .event.expanded {
+        border-color: rgba(255,255,255,.13);
+      }
+      .event-row {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 13px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+      .event-row:active {
+        background: rgba(255,255,255,.04);
+      }
+      .icon-wrap {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .event-meta {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+      }
+      .event-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255,255,255,.90);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .event-date {
+        font-size: 11px;
+        color: rgba(255,255,255,.30);
+        margin-top: 2px;
+      }
+      .event-badge {
+        display: inline-block;
+        margin-top: 5px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .04em;
+        padding: 2px 8px;
+        border-radius: 20px;
+      }
+      .event-right {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-shrink: 0;
+      }
+      .countdown {
+        text-align: right;
+      }
+      .countdown-num {
+        font-weight: 200;
+        line-height: 1;
+        letter-spacing: -1px;
+      }
+      .countdown-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: rgba(255,255,255,.28);
+        margin-top: 2px;
+      }
+      .chevron {
+        flex-shrink: 0;
+        transition: transform .22s ease;
+        opacity: .35;
+      }
+      .chevron.open {
+        transform: rotate(180deg);
+        opacity: .6;
+      }
+      .details {
+        display: none;
+        padding: 10px 13px 14px;
+        border-top: 1px solid rgba(255,255,255,.06);
+        text-align: left;
+        animation: fadeIn .18s ease;
+      }
+      .details.open {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .desc {
+        font-size: 12px;
+        line-height: 1.65;
+        color: rgba(255,255,255,.50);
+        margin: 0 0 8px;
+      }
+      .how {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: rgba(255,255,255,.35);
+        margin: 0 0 10px;
+      }
+      .tip-box {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 7px 11px;
+        border-radius: 9px;
+        display: inline-block;
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,.06);
+      }
+      .footer-info {
+        font-size: 10px;
+        color: rgba(255,255,255,.22);
+      }
+      .nav-btn {
+        font-size: 11px;
+        padding: 5px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.05);
+        color: rgba(255,255,255,.50);
+        cursor: pointer;
+        font-family: inherit;
+        transition: background .15s, color .15s;
+      }
+      .nav-btn:active {
+        background: rgba(255,255,255,.10);
+        color: rgba(255,255,255,.80);
+      }
+      .nav-btn:disabled {
+        border-color: rgba(255,255,255,.04);
+        background: transparent;
+        color: rgba(255,255,255,.16);
+        cursor: default;
+      }
+      .urgent-bar {
+        width: 3px;
+        border-radius: 2px;
+        align-self: stretch;
+        flex-shrink: 0;
+        margin-left: -13px;
+        margin-right: 2px;
+      }
+    `;
+
+    const eventsHtml = slice.map((ev, localIdx) => {
+      const globalIdx = off + localIdx;
+      const T = TYPES[ev.type] || TYPES.meteors;
+      const { r, g, b } = T;
+      const c = `rgba(${r},${g},${b},`;
+      const isOpen = this._expanded.has(globalIdx);
+      const isUrgent = ev.days <= 7;
+
+      const dLabel = ev.days === 0 ? 'dziś!' : ev.days === 1 ? 'jutro' : ev.days;
+      const dUnit = ev.days <= 1 ? '' : 'dni';
+      const dSize = ev.days <= 1 ? '15px' : '26px';
+
+      const urgentBarHtml = isUrgent
+        ? `<div class="urgent-bar" style="background:linear-gradient(to bottom,${c}.7),${c}.2));"></div>`
+        : '';
+
+      return `
+        <div class="event${isOpen ? ' expanded' : ''}" data-idx="${globalIdx}">
+          <div class="event-row" data-action="toggle" data-idx="${globalIdx}">
+            ${urgentBarHtml}
+            <div class="icon-wrap" style="background:${c}.12);border:1px solid ${c}.25);">
+              ${makeIcon(ev.type, r, g, b)}
+            </div>
+            <div class="event-meta">
+              <div class="event-name">${ev.name}</div>
+              <div class="event-date">${fmtDate(ev.date)}</div>
+              <span class="event-badge" style="background:${c}.13);color:${c}.90);border:1px solid ${c}.25);">${T.label}</span>
+            </div>
+            <div class="event-right">
+              <div class="countdown">
+                <div class="countdown-num" style="font-size:${dSize};color:${c}1);">${dLabel}</div>
+                <div class="countdown-label">${dUnit}</div>
+              </div>
+              <svg class="chevron${isOpen ? ' open' : ''}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4,6 8,10 12,6"/>
+              </svg>
+            </div>
+          </div>
+          <div class="details${isOpen ? ' open' : ''}">
+            <p class="desc">${ev.desc}</p>
+            <p class="how">🔭 ${ev.how}</p>
+            <div class="tip-box" style="background:${c}.10);color:${c}.90);border:1px solid ${c}.22);">⏰ ${ev.tip}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const html = `
+      <style>${css}</style>
+      <div class="card">
+        <div class="header">
+          <span class="header-title">Nadchodzące zjawiska</span>
+          <span class="header-count">${all.length} w kalendarzu</span>
+        </div>
+        <div class="events-list">
+          ${eventsHtml}
+        </div>
+        <div class="footer">
+          <button class="nav-btn" id="btn-prev" ${canPrev ? '' : 'disabled'}>← wcześniej</button>
+          <span class="footer-info">${off + 1}–${Math.min(off + page, all.length)} z ${all.length}</span>
+          <button class="nav-btn" id="btn-next" ${canNext ? '' : 'disabled'}>dalej →</button>
+        </div>
+      </div>`;
+
+    this.shadowRoot.innerHTML = html;
+
+    // Bind toggle clicks
+    this.shadowRoot.querySelectorAll('[data-action="toggle"]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(el.getAttribute('data-idx'));
+        this._toggle(idx);
+      });
+    });
+
+    // Bind nav
+    const btnPrev = this.shadowRoot.getElementById('btn-prev');
+    const btnNext = this.shadowRoot.getElementById('btn-next');
+    if (btnPrev && !btnPrev.disabled) btnPrev.addEventListener('click', (e) => { e.stopPropagation(); this._prev(); });
+    if (btnNext && !btnNext.disabled) btnNext.addEventListener('click', (e) => { e.stopPropagation(); this._next(); });
+  }
+
+  getCardSize() {
+    return 4;
+  }
+}
+
+customElements.define('aha-astronomical-events-card', AstronomicalEventsCard);/**
+ * climate-apple-card.js — kompaktowy kafelek, styl Apple Home
+ * Ikonka dobierana automatycznie na podstawie obszaru (area) encji.
+ *
+ * UŻYCIE:
+ *   type: custom:climate-apple-card
+ *   entity: climate.salon
+ *   name: Salon            # opcjonalne
+ *   temp_sensor: sensor.X  # opcjonalne
+ */
+
+/* ------------------------------------------------------------------ */
+/*  SVG paths dla typowych pomieszczeń                                 */
+/* ------------------------------------------------------------------ */
+const AREA_ICONS = {
+  /* salon / living room */
+  salon:        'M20 10.5V6a2 2 0 00-2-2H6a2 2 0 00-2 2v4.5A2.5 2.5 0 003 13v4h1v1a1 1 0 002 0v-1h12v1a1 1 0 002 0v-1h1v-4a2.5 2.5 0 00-1-2zm-2-4v4h-4V6h4zM6 6h4v4H6V6zm-1 9v-2a.5.5 0 011 0v2H5zm13 0v-2a.5.5 0 011 0v2h-1z',
+  living:       'M20 10.5V6a2 2 0 00-2-2H6a2 2 0 00-2 2v4.5A2.5 2.5 0 003 13v4h1v1a1 1 0 002 0v-1h12v1a1 1 0 002 0v-1h1v-4a2.5 2.5 0 00-1-2zm-2-4v4h-4V6h4zM6 6h4v4H6V6zm-1 9v-2a.5.5 0 011 0v2H5zm13 0v-2a.5.5 0 011 0v2h-1z',
+  lounge:       'M20 10.5V6a2 2 0 00-2-2H6a2 2 0 00-2 2v4.5A2.5 2.5 0 003 13v4h1v1a1 1 0 002 0v-1h12v1a1 1 0 002 0v-1h1v-4a2.5 2.5 0 00-1-2zm-2-4v4h-4V6h4zM6 6h4v4H6V6zm-1 9v-2a.5.5 0 011 0v2H5zm13 0v-2a.5.5 0 011 0v2h-1z',
+
+  /* sypialnia / bedroom */
+  sypialnia:    'M7 13V7a1 1 0 011-1h8a1 1 0 011 1v6h2V7a3 3 0 00-3-3H8a3 3 0 00-3 3v6H3v4h2v1h2v-1h10v1h2v-1h2v-4H7zm-2 2h14v2H5v-2z',
+  bedroom:      'M7 13V7a1 1 0 011-1h8a1 1 0 011 1v6h2V7a3 3 0 00-3-3H8a3 3 0 00-3 3v6H3v4h2v1h2v-1h10v1h2v-1h2v-4H7zm-2 2h14v2H5v-2z',
+  master:       'M7 13V7a1 1 0 011-1h8a1 1 0 011 1v6h2V7a3 3 0 00-3-3H8a3 3 0 00-3 3v6H3v4h2v1h2v-1h10v1h2v-1h2v-4H7zm-2 2h14v2H5v-2z',
+
+  /* kuchnia / kitchen */
+  kuchnia:      'M10 2v8H8V2H6v8a4 4 0 003 3.87V22h2v-8.13A4 4 0 0014 10V2h-2v8h-2zm8 0h-1v7h1a3 3 0 003-3V5a3 3 0 00-3-3zm0 2a1 1 0 011 1v3a1 1 0 01-1 1h-1V5l1-1z',
+  kitchen:      'M10 2v8H8V2H6v8a4 4 0 003 3.87V22h2v-8.13A4 4 0 0014 10V2h-2v8h-2zm8 0h-1v7h1a3 3 0 003-3V5a3 3 0 00-3-3zm0 2a1 1 0 011 1v3a1 1 0 01-1 1h-1V5l1-1z',
+
+  /* łazienka / bathroom */
+  lazienka:     'M7 6a2 2 0 114 0 2 2 0 01-4 0zm10 5H4a2 2 0 00-2 2v2a6 6 0 005 5.92V22h2v-1h6v1h2v-1.08A6 6 0 0022 15v-2a2 2 0 00-2-2zm0 4a4 4 0 01-4 4H9a4 4 0 01-4-4v-2h12v2z',
+  bathroom:     'M7 6a2 2 0 114 0 2 2 0 01-4 0zm10 5H4a2 2 0 00-2 2v2a6 6 0 005 5.92V22h2v-1h6v1h2v-1.08A6 6 0 0022 15v-2a2 2 0 00-2-2zm0 4a4 4 0 01-4 4H9a4 4 0 01-4-4v-2h12v2z',
+  toaleta:      'M7 6a2 2 0 114 0 2 2 0 01-4 0zm10 5H4a2 2 0 00-2 2v2a6 6 0 005 5.92V22h2v-1h6v1h2v-1.08A6 6 0 0022 15v-2a2 2 0 00-2-2zm0 4a4 4 0 01-4 4H9a4 4 0 01-4-4v-2h12v2z',
+
+  /* gabinet / office */
+  gabinet:      'M20 3H4a2 2 0 00-2 2v12a2 2 0 002 2h6v2H8v2h8v-2h-2v-2h6a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H4V5h16v12z',
+  office:       'M20 3H4a2 2 0 00-2 2v12a2 2 0 002 2h6v2H8v2h8v-2h-2v-2h6a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H4V5h16v12z',
+  study:        'M20 3H4a2 2 0 00-2 2v12a2 2 0 002 2h6v2H8v2h8v-2h-2v-2h6a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H4V5h16v12z',
+
+  /* pokój dziecięcy */
+  pokoj:        'M12 3a9 9 0 100 18A9 9 0 0012 3zm0 2a7 7 0 110 14A7 7 0 0112 5zm-1 3v5l4 2.5-.75-1.3L11 13V8h-1 1z',
+  dziecko:      'M12 2a5 5 0 100 10A5 5 0 0012 2zm0 2a3 3 0 110 6 3 3 0 010-6zM6 20v-1a6 6 0 0112 0v1h2v-1a8 8 0 00-16 0v1h2z',
+  child:        'M12 2a5 5 0 100 10A5 5 0 0012 2zm0 2a3 3 0 110 6 3 3 0 010-6zM6 20v-1a6 6 0 0112 0v1h2v-1a8 8 0 00-16 0v1h2z',
+  nursery:      'M12 2a5 5 0 100 10A5 5 0 0012 2zm0 2a3 3 0 110 6 3 3 0 010-6zM6 20v-1a6 6 0 0112 0v1h2v-1a8 8 0 00-16 0v1h2z',
+
+  /* przedpokój / hall */
+  przedpokoj:   'M12 3L4 9v12h5v-7h6v7h5V9l-8-6z',
+  hall:         'M12 3L4 9v12h5v-7h6v7h5V9l-8-6z',
+  hallway:      'M12 3L4 9v12h5v-7h6v7h5V9l-8-6z',
+  entryway:     'M12 3L4 9v12h5v-7h6v7h5V9l-8-6z',
+
+  /* jadalnia / dining */
+  jadalnia:     'M3 13h2v7H3v-7zm4-8h2v15H7V5zm4 3h2v12h-2V8zm4-5h2v17h-2V3zm4 5h2v12h-2V8z',
+  dining:       'M3 13h2v7H3v-7zm4-8h2v15H7V5zm4 3h2v12h-2V8zm4-5h2v17h-2V3zm4 5h2v12h-2V8z',
+
+  /* garaż / garage */
+  garaz:        'M19 9l-7-6-7 6v11h5v-5h4v5h5V9z',
+  garage:       'M19 9l-7-6-7 6v11h5v-5h4v5h5V9z',
+
+  /* domyślna — termometr */
+  _default:     'M15 13V5a3 3 0 00-6 0v8a5 5 0 106 0zm-3 5a3 3 0 110-6 3 3 0 010 6z',
+};
+
+function getIconPath(areaName) {
+  if (!areaName) return AREA_ICONS._default;
+  const normalized = areaName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z]/g, '');
+
+  for (const [key, path] of Object.entries(AREA_ICONS)) {
+    if (key === '_default') continue;
+    if (normalized.includes(key)) return path;
+  }
+  return AREA_ICONS._default;
+}
+
+/* ------------------------------------------------------------------ */
+
+class ClimateAppleCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  setConfig(config) {
+    if (!config.entity) throw new Error('[climate-apple-card] Wymagane: entity');
+    this._config = config;
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  getCardSize() { return 1; }
+
+  _getAreaName(entityId) {
+    try {
+      const entityReg = this._hass.entities?.[entityId];
+      let areaId = entityReg?.area_id;
+
+      if (!areaId) {
+        const deviceId = entityReg?.device_id;
+        if (deviceId) areaId = this._hass.devices?.[deviceId]?.area_id;
+      }
+
+      if (areaId) return this._hass.areas?.[areaId]?.name ?? null;
+    } catch (_) {}
+    return null;
+  }
+
+  _render() {
+    if (!this._hass || !this._config) return;
+
+    const entityId = this._config.entity;
+    const state    = this._hass.states[entityId];
+
+    if (!state) {
+      this.shadowRoot.innerHTML = `<p style="padding:10px;color:#FF3B30;font-family:system-ui;font-size:12px;">Nie znaleziono: ${entityId}</p>`;
+      return;
+    }
+
+    const attr       = state.attributes;
+    const isOff      = state.state === 'off';
+    const hvacAction = attr.hvac_action ?? (isOff ? 'off' : 'idle');
+    const isHeating  = hvacAction === 'heating';
+    const isCooling  = hvacAction === 'cooling';
+    const isActive   = !isOff && (isHeating || isCooling);
+
+    let currentTemp = attr.current_temperature;
+    if (currentTemp == null && this._config.temp_sensor) {
+      currentTemp = parseFloat(this._hass.states[this._config.temp_sensor]?.state);
+    }
+    if (currentTemp == null) {
+      for (const g of [
+        entityId.replace('climate.', 'sensor.') + '_temperature',
+        entityId.replace('climate.', 'sensor.') + '_current_temperature',
+      ]) {
+        const v = parseFloat(this._hass.states[g]?.state);
+        if (!isNaN(v)) { currentTemp = v; break; }
+      }
+    }
+    const curDisplay = currentTemp != null ? Number(currentTemp).toFixed(1) : '--';
+
+    const targetTemp = attr.temperature ?? 20;
+    const name       = this._config.name ?? attr.friendly_name ?? entityId;
+    const accentClr  = isCooling ? '#32ADE6' : '#FF9500';
+
+    const areaName   = this._getAreaName(entityId);
+    const iconPath   = getIconPath(areaName ?? name);
+
+    let statusLabel = 'Wyłączony';
+    if (!isOff) {
+      if      (isHeating) statusLabel = 'Ogrzewanie';
+      else if (isCooling) statusLabel = 'Chłodzenie';
+      else                statusLabel = 'Osiągnięto';
+    }
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        @keyframes pdot {
+          0%,100% { opacity:1; transform:scale(1)   }
+          50%      { opacity:.2; transform:scale(.55) }
+        }
+        @keyframes rise {
+          0%   { transform:translateY(0) scale(1);     opacity:.8  }
+          100% { transform:translateY(-45px) scale(2); opacity:0   }
+        }
+
+        :host { display:block; }
+
+        .card {
+          border-radius: 18px;
+          padding: 12px 14px;
+          position: relative;
+          overflow: hidden;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          background: #E5E5EA;
+          transition: background-color .5s cubic-bezier(.4,0,.2,1);
+          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          -webkit-font-smoothing: antialiased;
+        }
+        .card.on      { background: #FFE8B8; }
+        .card.cooling { background: #C8E4FF; }
+
+        @media (prefers-color-scheme: dark) {
+          .card         { background: #2C2C2E; }
+          .card.on      { background: #2D1E06; }
+          .card.cooling { background: #0A1A2E; }
+        }
+
+        .particles { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+        .pt { position:absolute; border-radius:50%; opacity:0; }
+        .card.heating .pt { background:#FF9500; animation:rise 2.4s ease-out infinite; }
+        .card.cooling .pt { background:#5AC8FA; animation:rise 2.8s ease-out infinite; }
+        .pt:nth-child(1) { width:7px;  height:7px;  bottom:14px; left:12%; animation-delay:0s;   }
+        .pt:nth-child(2) { width:4px;  height:4px;  bottom:8px;  left:35%; animation-delay:.65s; }
+        .pt:nth-child(3) { width:6px;  height:6px;  bottom:18px; left:58%; animation-delay:1.2s; }
+        .pt:nth-child(4) { width:4px;  height:4px;  bottom:6px;  left:80%; animation-delay:1.9s; }
+
+        .top-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          position: relative;
+        }
+
+        .ibadge {
+          width: 34px; height: 34px; border-radius: 10px;
+          background: #1C1C1E;
+          display: flex; align-items: center; justify-content: center;
+          color: #AEAEB2;
+          transition: background-color .4s, color .4s;
+          flex-shrink: 0;
+        }
+        .card.on .ibadge      { background: #3D2C0A; color: #FFD080; }
+        .card.cooling .ibadge { background: #0C233A; color: #5AC8FA; }
+
+        @media (prefers-color-scheme: dark) {
+          .ibadge               { background: #000; color: #636366; }
+          .card.on .ibadge      { background: #3D2C0A; color: #FFD080; }
+          .card.cooling .ibadge { background: #061628; color: #5AC8FA; }
+        }
+
+        .sw {
+          width: 38px; height: 22px; border-radius: 11px;
+          background: #C7C7CC;
+          position: relative; cursor: pointer;
+          transition: background-color .22s;
+          flex-shrink: 0;
+        }
+        .sw.on { background: #FF9500; }
+        .card.cooling .sw.on { background: #32ADE6; }
+        .sw-t {
+          width: 18px; height: 18px; background: #fff; border-radius: 50%;
+          position: absolute; top: 2px; left: 2px;
+          transition: transform .22s cubic-bezier(.4,0,.2,1);
+          box-shadow: 0 2px 4px rgba(0,0,0,.28);
+        }
+        .sw.on .sw-t { transform: translateX(16px); }
+
+        @media (prefers-color-scheme: dark) {
+          .sw { background: #48484A; }
+        }
+
+        .temp-cur {
+          font-size: 36px; font-weight: 600; line-height: 1;
+          color: #1C1C1E; letter-spacing: -1.5px;
+          position: relative;
+        }
+        .temp-unit { font-size: 20px; font-weight: 400; color: #8E8E93; letter-spacing: 0; }
+
+        @media (prefers-color-scheme: dark) {
+          .temp-cur { color: #FFFFFF; }
+        }
+
+        .sub { font-size: 12px; color: #8E8E93; margin-top: 1px; }
+
+        .bottom-row {
+          display: flex;
+          align-items: center;
+          position: relative;
+        }
+
+        .status-txt  { font-size: 11px; color: #8E8E93; }
+
+        .dots { display: flex; gap: 3px; align-items: center; margin-right: 4px; }
+        .dot  {
+          width: 4px; height: 4px; border-radius: 50%;
+          display: inline-block;
+          animation: pdot 1.1s ease-in-out infinite;
+        }
+      </style>
+
+      <div class="card ${isOff ? '' : 'on'} ${isHeating ? 'heating' : ''} ${isCooling ? 'cooling' : ''}">
+
+        <div class="particles">
+          <div class="pt"></div><div class="pt"></div>
+          <div class="pt"></div><div class="pt"></div>
+        </div>
+
+        <div class="top-row">
+          <div class="ibadge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="${iconPath}"/>
+            </svg>
+          </div>
+          <div class="sw ${isOff ? '' : 'on'}" id="sw"><div class="sw-t"></div></div>
+        </div>
+
+        <div>
+          <div class="temp-cur">${curDisplay}<span class="temp-unit">°</span></div>
+          <div class="sub">${name} · cel ${Number(targetTemp).toFixed(1)}°</div>
+        </div>
+
+        <div class="bottom-row">
+          ${isActive ? `
+            <div class="dots">
+              <span class="dot" style="background:${accentClr}"></span>
+              <span class="dot" style="background:${accentClr};animation-delay:.15s"></span>
+              <span class="dot" style="background:${accentClr};animation-delay:.3s"></span>
+            </div>
+            <span class="status-txt" style="color:${accentClr}">${statusLabel}</span>
+          ` : `<span class="status-txt">${statusLabel}</span>`}
+        </div>
+
+      </div>
+    `;
+
+    this.shadowRoot.getElementById('sw')?.addEventListener('click', () => {
+      if (!this._hass) return;
+      const s = this._hass.states[this._config.entity]?.state;
+      this._hass.callService('climate', s === 'off' ? 'turn_on' : 'turn_off', {
+        entity_id: this._config.entity,
+      });
+    });
+  }
+}
+
+customElements.define('aha-climate-apple-card', ClimateAppleCard);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type:        'aha-climate-apple-card',
+  name:        'Climate Apple Card',
+  preview:     false,
+  description: 'Kompaktowy kafelek klimatu — ikonka z obszaru, styl Apple Home.',
+});// solar-clock-card.js
+// Place in: /config/www/solar-clock-card.js
+// Resource: url: /local/solar-clock-card.js  type: module
+
+const LAT = 52.40, LON = 16.87;
+const SHOW_PLANETS = true;
+
+const DAYS   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+const MONTHS = ['stycznia','lutego','marca','kwietnia','maja','czerwca',
+                'lipca','sierpnia','września','października','listopada','grudnia'];
+const pad = n => String(n).padStart(2,'0');
+
+// ─── SUN MATH ────────────────────────────────────────────────────────────────
+
+function dayOfYear(d){ return Math.floor((d - new Date(d.getFullYear(),0,0)) / 86400000); }
+
+function solarElev(date, lat, lon, hour) {
+  const d2 = new Date(date);
+  d2.setHours(Math.floor(hour), Math.floor((hour%1)*60), Math.floor(((hour*60)%1)*60), 0);
+  const doy = dayOfYear(d2);
+  const decl = 23.45 * Math.sin(Math.PI/180 * (360/365*(doy-81)));
+  const B = (360/365*(doy-81)) * Math.PI/180;
+  const eot = 9.87*Math.sin(2*B) - 7.53*Math.cos(B) - 1.5*Math.sin(B);
+  const tz = -d2.getTimezoneOffset()/60;
+  const noon = 12*60 - 4*(lon - 15*tz) - eot;
+  const ha = (hour*60 - noon) / 4;
+  const sinE = Math.sin(lat*Math.PI/180)*Math.sin(decl*Math.PI/180)
+             + Math.cos(lat*Math.PI/180)*Math.cos(decl*Math.PI/180)*Math.cos(ha*Math.PI/180);
+  return Math.asin(Math.max(-1, Math.min(1, sinE))) * 180/Math.PI;
+}
+
+function findCross(date, lat, lon, rising) {
+  let br = null;
+  for (let h = 0; h < 24; h += 1/60) {
+    const p = solarElev(date, lat, lon, h-1/60), c = solarElev(date, lat, lon, h);
+    if (rising && p<0 && c>=0) { br=[h-1/60,h]; break; }
+    if (!rising && p>=0 && c<0) { br=[h-1/60,h]; break; }
+  }
+  if (!br) return null;
+  let lo=br[0], hi=br[1];
+  for (let i=0; i<8; i++) {
+    const mid=(lo+hi)/2, e=solarElev(date,lat,lon,mid);
+    if (rising){ if(e<0)lo=mid; else hi=mid; }
+    else        { if(e>=0)lo=mid; else hi=mid; }
+  }
+  return (lo+hi)/2;
+}
+
+function fmtH(h) {
+  if (h===null) return '—';
+  const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+  const m2=mm===60?0:mm, h2=mm===60?hh+1:hh;
+  return pad(h2)+':'+pad(m2);
+}
+
+// ─── PLANETS ─────────────────────────────────────────────────────────────────
+
+function julianDay(date){ return date.getTime()/86400000 + 2440587.5; }
+
+function planetPosition(name, date, lat, lon) {
+  const JD = julianDay(date);
+  const T = (JD-2451545.0)/36525;
+  const d = JD - 2451543.5;
+  const planets = {
+    Merkury:{e:0.20563,L0:252.251,Ldot:4.09234,w:77.456},
+    Wenus:  {e:0.00677,L0:181.980,Ldot:1.60214,w:131.564},
+    Mars:   {e:0.09340,L0:355.433,Ldot:0.52403,w:336.060},
+    Jowisz: {e:0.04839,L0:34.396, Ldot:0.08309,w:14.728},
+    Saturn: {e:0.05415,L0:49.954, Ldot:0.03346,w:92.432},
+  };
+  const p = planets[name]; if (!p) return null;
+  const L = ((p.L0 + p.Ldot*d)%360+360)%360;
+  const M = (L - p.w + 360) % 360;
+  const Mr = M*Math.PI/180;
+  const C = (2*p.e - p.e**3/4)*Math.sin(Mr) + (5/4)*p.e**2*Math.sin(2*Mr) + (13/12)*p.e**3*Math.sin(3*Mr);
+  const lon_ecl = (L + C*180/Math.PI + 360) % 360;
+  const eps = 23.4393 - 0.0130*T;
+  const er = eps*Math.PI/180, lr = lon_ecl*Math.PI/180;
+  const RA = Math.atan2(Math.sin(lr)*Math.cos(er), Math.cos(lr)) * 180/Math.PI;
+  const Dec = Math.asin(Math.sin(er)*Math.sin(lr)) * 180/Math.PI;
+  const LST0 = 100.4606 + 36000.7701*T + lon/15;
+  const nowH2 = date.getHours() + date.getMinutes()/60 + date.getSeconds()/3600;
+  const LST = ((LST0 + nowH2*15)%360+360)%360;
+  const HA = ((LST - RA)%360+360)%360;
+  const HAr=HA*Math.PI/180, latr=lat*Math.PI/180, Decr=Dec*Math.PI/180;
+  const sinAlt = Math.sin(latr)*Math.sin(Decr) + Math.cos(latr)*Math.cos(Decr)*Math.cos(HAr);
+  const alt = Math.asin(Math.max(-1,Math.min(1,sinAlt))) * 180/Math.PI;
+  const cosAlt = Math.cos(alt*Math.PI/180);
+  const cosAz = cosAlt>0.0001 ? (Math.sin(Decr) - Math.sin(latr)*sinAlt)/(Math.cos(latr)*cosAlt) : 0;
+  const azRaw = Math.acos(Math.max(-1,Math.min(1,cosAz))) * 180/Math.PI;
+  const az = Math.sin(HAr)>0 ? 360-azRaw : azRaw;
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  const dir = dirs[Math.round(az/45)%8];
+  const magMap = {Merkury:-0.5,Wenus:-4.0,Mars:0.5,Jowisz:-2.5,Saturn:0.8};
+  return { alt:Math.round(alt*10)/10, az:Math.round(az), dir, mag:magMap[name], visible:alt>5 };
+}
+
+const PLANET_NAMES   = ['Wenus','Jowisz','Mars','Saturn','Merkury'];
+const PLANET_SYMBOLS = {Wenus:'♀',Jowisz:'♃',Mars:'♂',Saturn:'♄',Merkury:'☿'};
+const PLANET_COLORS  = {Wenus:'255,220,80',Jowisz:'255,195,120',Mars:'255,100,60',Saturn:'215,175,80',Merkury:'150,195,220'};
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+
+const EVENTS = [
+  { date:'2026-04-22', type:'meteors',     label:'Liridy',                    sublabel:'Do 20 meteorów/h · korzystne warunki (księżyc 27%)', sublabelToday:'Maksimum Lirydów tej nocy · ok. 20 meteorów/h · księżyc umiarkowany', sublabelTomorrow:'Jutro noc: Liridy · 20 meteorów/h · wyjdź po północy', hasMeteors:false },
+  { date:'2026-06-09', type:'conjunction', label:'Koniunkcja Wenus i Jowisza', sublabel:'Dwie najjaśniejsze planety ~1.6° od siebie · wieczór na zachodzie', sublabelToday:'Wenus i Jowisz dziś wieczór ~1.6° od siebie — spektakularny widok!', sublabelTomorrow:'Jutro wieczór: Wenus + Jowisz razem na niebie — najjaśniejsza para!', hasMeteors:false },
+  { date:'2026-08-12', type:'eclipse',     label:'Zaćmienie Słońca',          sublabel:'~80% tarczy w Polsce · godz. 19:15 · całkowite w Hiszpanii', sublabelToday:'Start 19:15 · max 19:56 (~80%) · nie patrz bez okularów ISO 12312-2', sublabelTomorrow:'Jutro godz. 19:15 · ~80% tarczy · kup okulary ISO 12312-2', hasMeteors:true },
+  { date:'2026-08-12', type:'meteors',     label:'Perseidy 2026',             sublabel:'Do 60 meteorów/h · bezksiężycowa noc — idealne warunki!', sublabelToday:'Perseidy + zaćmienie tej samej nocy! 60/h · nów — czarne niebo', sublabelTomorrow:'Jutro noc: Perseidy 60/h + zaćmienie Słońca — wyjątkowa noc!', hasMeteors:false },
+  { date:'2026-08-28', type:'lunar_eclipse', label:'Zaćmienie Księżyca',      sublabel:'Częściowe ~96% · widoczne z Polski · godz. 04:12', sublabelToday:'Częściowe zaćmienie 96% — wschodzi czerwonawy Księżyc · godz. 04:12', sublabelTomorrow:'Jutro rano godz. 04:12 · częściowe zaćmienie 96% · bez sprzętu', hasMeteors:false },
+  { date:'2026-10-04', type:'planet',      label:'Saturn w opozycji',         sublabel:'Pierścienie pod kątem 10° · najlepszy czas na obserwację', sublabelToday:'Saturn dziś w opozycji — najjaśniejszy w roku · pierścienie coraz lepiej widoczne', sublabelTomorrow:'Jutro Saturn w opozycji — szukaj go przez lornetkę', hasMeteors:false },
+  { date:'2026-10-21', type:'meteors',     label:'Orionidy',                  sublabel:'Do 20 meteorów/h · księżyc 72% — obserwuj po 2:00', sublabelToday:'Maksimum Orionidów · 20/h · najlepiej po godz. 02:00 gdy księżyc zajdzie', sublabelTomorrow:'Jutro noc: Orionidy 20/h · wyjdź po godz. 02:00', hasMeteors:false },
+  { date:'2026-11-12', type:'meteors',     label:'Taurydy Północne',          sublabel:'Wolne, jasne bolidy · księżyc 7% — prawie idealne warunki', sublabelToday:'Taurydy Północne — wolne efektowne bolidy · ciemne niebo', sublabelTomorrow:'Jutro noc: Taurydy — jasne powolne bolidy, warto wyglądać', hasMeteors:false },
+  { date:'2026-11-15', type:'conjunction', label:'Koniunkcja Marsa i Jowisza',sublabel:'Tuż przed świtem · południe nieba · łatwa do obserwacji', sublabelToday:'Mars i Jowisz blisko siebie dziś przed świtem · patrz na południe', sublabelTomorrow:'Jutro przed świtem: Mars + Jowisz w bliskiej koniunkcji', hasMeteors:false },
+  { date:'2026-11-17', type:'meteors',     label:'Leonidy',                   sublabel:'Do 15 meteorów/h · księżyc 45% · obserwuj po 01:00', sublabelToday:'Maksimum Leonidów · szybkie meteory z Lwa · wyjdź po 01:00', sublabelTomorrow:'Jutro noc: Leonidy · 15/h · wyjdź po godz. 01:00', hasMeteors:false },
+  { date:'2026-11-24', type:'moon',        label:'Superksiężyc — listopad',   sublabel:'Drugi superksiężyc 2026 · wyraźnie większy i jaśniejszy', sublabelToday:'Dziś superksiężyc! Księżyc wyjątkowo blisko Ziemi — obserwuj wschód', sublabelTomorrow:'Jutro superksiężyc listopadowy · wyjdź na wschód księżyca', hasMeteors:false },
+  { date:'2026-12-13', type:'meteors',     label:'Geminidy 2026',             sublabel:'Do 120 meteorów/h · księżyc 21% — doskonałe warunki!', sublabelToday:'Geminidy — NAJLEPSZY rój roku! 120/h · prawie ciemne niebo · WYJDŹ!', sublabelTomorrow:'Jutro noc: Geminidy 120/h · księżyc nie przeszkadza — nie przegap!', hasMeteors:false },
+  { date:'2026-12-23', type:'moon',        label:'Superksiężyc — rekord 2026',sublabel:'Najbliższy księżyc od 2019 r. · 221 668 km od Ziemi', sublabelToday:'Rekordowy superksiężyc! Największy i najjaśniejszy od 2019 r. — wyjdź na zewnątrz!', sublabelTomorrow:'Jutro rekordowy superksiężyc 2026 · najbliższy od 7 lat!', hasMeteors:false },
+  { date:'2027-01-03', type:'meteors',     label:'Kwadrantydy 2027',          sublabel:'Do 80 meteorów/h · księżyc 20% — dobre warunki', sublabelToday:'Kwadrantydy — ostry szczyt kilka godzin! 80/h · obserwuj ok. 03:00', sublabelTomorrow:'Jutro 3 stycznia: Kwadrantydy 80/h · szczyt trwa tylko kilka godzin', hasMeteors:false },
+  { date:'2027-08-02', type:'eclipse',     label:'Zaćmienie Słońca 2027',     sublabel:'Najdłuższe w XXI w. · 6 min 23 s · Egipt, S. Hiszpania', sublabelToday:'Całkowite zaćmienie — najdłuższe w XXI w. · nie patrz bez okularów', sublabelTomorrow:'Jutro zaćmienie 2027 · całkowite w Egipcie 6 min 23 s', hasMeteors:false },
+  { date:'2027-08-12', type:'meteors',     label:'Perseidy 2027',             sublabel:'Do 100 meteorów/h · sprawdź fazę księżyca', sublabelToday:'Perseidy 2027 · do 100 meteorów/h · klasyczna letnia noc', sublabelTomorrow:'Jutro noc: Perseidy 2027 · do 100/h', hasMeteors:false },
+  { date:'2031-11-17', type:'meteors',     label:'Leonidy 2031 — HISTORYCZNE!',sublabel:'Możliwy deszcz meteorów · Tempel-Tuttle w peryhelium!', sublabelToday:'Leonidy 2031 — możliwe tysiące meteorów/h! Obserwuj całą noc!', sublabelTomorrow:'Jutro Leonidy 2031 — możliwy deszcz stulecia!', hasMeteors:false },
+];
+
+function daysUntil(dateStr) {
+  const target = new Date(dateStr); target.setHours(0,0,0,0);
+  const today  = new Date();         today.setHours(0,0,0,0);
+  return Math.round((target - today) / 86400000);
+}
+
+// ─── ICON GENERATORS ─────────────────────────────────────────────────────────
+
+function typeTheme(type) {
+  switch(type) {
+    case 'eclipse':       return {r:255,g:190,b:50};
+    case 'lunar_eclipse': return {r:255,g:80, b:80};
+    case 'meteors':       return {r:160,g:100,b:255};
+    case 'conjunction':   return {r:80, g:200,b:255};
+    case 'planet':        return {r:60, g:200,b:160};
+    case 'moon':          return {r:220,g:200,b:100};
+    default:              return {r:160,g:160,b:160};
+  }
+}
+
+function eventIcon(type, size, ac) {
+  const r = size/2, c = ac;
+  switch(type) {
+    case 'eclipse':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
+        <circle cx="${r*0.78}" cy="${r}" r="${r*0.62}" fill="${c.replace('1)','0.28)')}" stroke="${c}" stroke-width="${r*0.14}"/>
+        <circle cx="${r*1.5}" cy="${r}" r="${r*0.62}" fill="rgba(8,12,28,0.92)"/></svg>`;
+    case 'lunar_eclipse':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
+        <circle cx="${r}" cy="${r}" r="${r*0.72}" fill="${c.replace('1)','0.22)')}" stroke="${c}" stroke-width="${r*0.13}"/>
+        <circle cx="${r*0.72}" cy="${r*0.68}" r="${r*0.16}" fill="${c.replace('1)','0.45)')}"/></svg>`;
+    case 'meteors':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
+        <line x1="${size*.75}" y1="${size*.08}" x2="${size*.18}" y2="${size*.65}" stroke="rgba(180,130,255,.95)" stroke-width="${size*.10}" stroke-linecap="round"/>
+        <line x1="${size*.50}" y1="${size*.20}" x2="${size*.05}" y2="${size*.75}" stroke="rgba(160,110,255,.75)" stroke-width="${size*.08}" stroke-linecap="round"/>
+        <circle cx="${size*.82}" cy="${size*.16}" r="${size*.10}" fill="rgba(230,200,255,.95)"/>
+        <circle cx="${size*.55}" cy="${size*.26}" r="${size*.07}" fill="rgba(210,175,255,.80)"/></svg>`;
+    case 'conjunction':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
+        <circle cx="${r*.6}" cy="${r}" r="${r*.42}" fill="${c.replace('1)','0.25)')}" stroke="${c}" stroke-width="${r*.12}"/>
+        <circle cx="${r*1.45}" cy="${r}" r="${r*.30}" fill="${c.replace('1)','0.18)')}" stroke="${c.replace('1)','0.72)')}" stroke-width="${r*.10}"/></svg>`;
+    case 'planet':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
+        <circle cx="${r}" cy="${r}" r="${r*.52}" fill="${c.replace('1)','0.22)')}" stroke="${c}" stroke-width="${r*.12}"/>
+        <ellipse cx="${r}" cy="${r}" rx="${r*.90}" ry="${r*.22}" fill="none" stroke="${c.replace('1)','0.55)')}" stroke-width="${r*.09}"/></svg>`;
+    case 'moon':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" fill="none">
+        <circle cx="${r}" cy="${r}" r="${r*.75}" fill="${c.replace('1)','0.20)')}" stroke="${c}" stroke-width="${r*.13}"/>
+        <circle cx="${r*.72}" cy="${r*.68}" r="${r*.15}" fill="${c.replace('1)','0.38)')}"/>
+        <circle cx="${r*1.25}" cy="${r*1.22}" r="${r*.10}" fill="${c.replace('1)','0.25)')}"/></svg>`;
+    default:
+      return '';
+  }
+}
+
+// ─── BACKGROUND ──────────────────────────────────────────────────────────────
+
+function generateDynamicBg(elev, temp, weather, phase) {
+  let c1, c2, c3;
+  if (elev < -18) { c1='#010204'; c2='#020408'; c3='#030610'; }
+  else if (elev < -12) {
+    const t=(elev+18)/6;
+    if (phase.includes('R')) {
+      c1=`rgb(${2+Math.floor(t*4)},${4+Math.floor(t*6)},${14+Math.floor(t*12)})`;
+      c2=`rgb(${5+Math.floor(t*8)},${8+Math.floor(t*12)},${24+Math.floor(t*20)})`;
+      c3=`rgb(${3+Math.floor(t*5)},${6+Math.floor(t*8)},${16+Math.floor(t*14)})`;
+    } else { c1='#030410'; c2='#060618'; c3='#040512'; }
+  }
+  else if (elev < -6) {
+    const t=(elev+12)/6;
+    if (phase.includes('R')) {
+      c1=`rgb(${6+Math.floor(t*20)},${10+Math.floor(t*15)},${26+Math.floor(t*30)})`;
+      c2=`rgb(${7+Math.floor(t*35)},${12+Math.floor(t*20)},${44+Math.floor(t*40)})`;
+      c3=`rgb(${5+Math.floor(t*18)},${8+Math.floor(t*12)},${24+Math.floor(t*28)})`;
+    } else {
+      c1=`rgb(${26-Math.floor(t*20)},${16-Math.floor(t*10)},${24-Math.floor(t*14)})`;
+      c2=`rgb(${44-Math.floor(t*32)},${28-Math.floor(t*18)},${30-Math.floor(t*20)})`;
+      c3=`rgb(${22-Math.floor(t*16)},${18-Math.floor(t*12)},${22-Math.floor(t*14)})`;
+    }
+  }
+  else if (elev < 0) {
+    const t=(elev+6)/6;
+    if (phase.includes('R')) {
+      c1=`rgb(${Math.floor(6+t*18)},${Math.floor(7+t*18)},${Math.floor(24+t*14)})`;
+      c2=`rgb(${Math.floor(20+t*34)},${Math.floor(10+t*30)},${Math.floor(38+t*8)})`;
+      c3=`rgb(${Math.floor(30+t*24)},${Math.floor(12+t*18)},${Math.floor(8+t*10)})`;
+    } else {
+      c1=`rgb(${Math.floor(28-t*8)},${Math.floor(6+t*6)},${Math.floor(6+t*2)})`;
+      c2=`rgb(${Math.floor(60-t*20)},${Math.floor(14-t*4)},${Math.floor(8+t*2)})`;
+      c3=`rgb(${Math.floor(24-t*6)},${Math.floor(6+t*4)},${Math.floor(6+t*10)})`;
+    }
+  }
+  else if (elev < 4) {
+    const t=elev/4;
+    if (phase.includes('R')) {
+      c1=`rgb(${Math.floor(24+t*30)},${Math.floor(25+t*20)},${Math.floor(38-t*18)})`;
+      c2=`rgb(${Math.floor(54+t*50)},${Math.floor(40+t*30)},${Math.floor(46-t*26)})`;
+      c3=`rgb(${Math.floor(54+t*40)},${Math.floor(30+t*25)},${Math.floor(18-t*8)})`;
+    } else {
+      c1=`rgb(${Math.floor(28-t*8)},${Math.floor(12-t*6)},${Math.floor(8-t*2)})`;
+      c2=`rgb(${Math.floor(60-t*20)},${Math.floor(14-t*8)},${Math.floor(10-t*4)})`;
+      c3=`rgb(${Math.floor(24-t*6)},${Math.floor(10-t*4)},${Math.floor(16+t*4)})`;
+    }
+  }
+  else {
+    let r1=4,g1=12,b1=32,r2=7,g2=18,b2=48;
+    if (temp !== null) {
+      if (temp>=30){ r1+=Math.floor((temp-30)*.8); g1+=Math.floor((temp-30)*.4); r2+=Math.floor((temp-30)*1.2); g2+=Math.floor((temp-30)*.6); }
+      else if (temp<=5){ b1+=Math.floor((5-temp)*.6); b2+=Math.floor((5-temp)*1.0); }
+    }
+    c1=`rgb(${r1},${g1},${b1})`; c2=`rgb(${r2},${g2},${b2})`;
+    c3=`rgb(${Math.floor(r1*.8)},${Math.floor(g1*.9)},${Math.floor(b1*1.1)})`;
+  }
+  if (['rainy','pouring','lightning','lightning-rainy'].includes(weather)) {
+    const dim = s => s.replace(/rgb\((\d+),(\d+),(\d+)\)/,(m,r,g,b)=>`rgb(${Math.floor(r*.7)},${Math.floor(g*.7)},${Math.floor(b*.8)})`);
+    c1=dim(c1); c2=dim(c2);
+  } else if (weather==='cloudy') {
+    const dim = s => s.replace(/rgb\((\d+),(\d+),(\d+)\)/,(m,r,g,b)=>`rgb(${Math.floor(r*.85)},${Math.floor(g*.85)},${Math.floor(b*.90)})`);
+    c1=dim(c1);
+  }
+  return `linear-gradient(158deg,${c1} 0%,${c2} 50%,${c3} 100%)`;
+}
+
+// ─── SUN GLOW STYLE ──────────────────────────────────────────────────────────
+
+function sunStyle(e, r) {
+  if (e<-18) return {col:'rgba(120,148,220,.90)',rad:3.2,rings:[{rx:9,op:.18,c:'rgba(100,130,210,1)'}]};
+  if (e<-12) return {col:r?'rgba(55,70,155,.70)':'rgba(50,50,140,.70)',rad:2.8,rings:[{rx:8,op:.18,c:r?'rgba(65,85,195,1)':'rgba(58,58,175,1)'}]};
+  if (e<-6)  return {col:r?'rgba(68,105,210,.88)':'rgba(138,62,210,.88)',rad:3.5,rings:[{rx:13,op:.12,c:r?'rgba(68,105,230,1)':'rgba(155,55,230,1)'},{rx:7,op:.28,c:r?'rgba(78,118,240,1)':'rgba(168,62,240,1)'}]};
+  if (e<0)   return {col:r?'rgba(255,145,45,.95)':'rgba(255,72,32,.95)',rad:4.8,rings:[{rx:24,op:.04,c:r?'rgba(255,148,42,1)':'rgba(255,75,28,1)'},{rx:15,op:.10,c:r?'rgba(255,158,55,1)':'rgba(255,88,38,1)'},{rx:9,op:.24,c:r?'rgba(255,172,72,1)':'rgba(255,105,52,1)'}]};
+  if (e<4)   return {col:r?'rgba(255,215,90,1)':'rgba(255,128,42,1)',rad:6.8,rings:[{rx:44,op:.025,c:r?'rgba(255,205,55,1)':'rgba(255,105,25,1)'},{rx:30,op:.06,c:r?'rgba(255,212,68,1)':'rgba(255,118,35,1)'},{rx:20,op:.135,c:r?'rgba(255,220,88,1)':'rgba(255,135,50,1)'},{rx:12,op:.26,c:r?'rgba(255,228,112,1)':'rgba(255,155,68,1)'}]};
+  if (e<13)  return {col:'rgba(255,235,108,1)',rad:5.5,rings:[{rx:32,op:.035,c:'rgba(255,225,55,1)'},{rx:22,op:.082,c:'rgba(255,230,75,1)'},{rx:14,op:.185,c:'rgba(255,238,105,1)'},{rx:8,op:.355,c:'rgba(255,244,145,1)'}]};
+  if (e<40)  return {col:'rgba(255,248,175,1)',rad:5.0,rings:[{rx:26,op:.038,c:'rgba(255,240,88,1)'},{rx:17,op:.09,c:'rgba(255,244,110,1)'},{rx:11,op:.20,c:'rgba(255,248,148,1)'},{rx:6.5,op:.385,c:'rgba(255,252,195,1)'}]};
+  return {col:'rgba(255,254,225,1)',rad:5.8,rings:[{rx:30,op:.04,c:'rgba(255,250,168,1)'},{rx:20,op:.092,c:'rgba(255,252,185,1)'},{rx:13,op:.20,c:'rgba(255,253,205,1)'},{rx:8,op:.395,c:'rgba(255,255,228,1)'}]};
+}
+
+// ─── THEME ───────────────────────────────────────────────────────────────────
+
+const TH = {
+  night:   {acc:'#38486E',tc:'#8898BE',gr:'38,52,110'},
+  astR:    {acc:'#4858A0',tc:'#B0BAE0',gr:'58,68,162'},
+  astS:    {acc:'#404898',tc:'#A8B0D8',gr:'50,55,152'},
+  navR:    {acc:'#4078C8',tc:'#BCCEF5',gr:'55,105,202'},
+  navS:    {acc:'#9055C0',tc:'#D0C0F5',gr:'140,78,195'},
+  civR:    {acc:'#AA52F8',tc:'#E8D2FF',gr:'170,78,248'},
+  civS:    {acc:'#FF4C4C',tc:'#FFCECE',gr:'255,68,68'},
+  sunrise: {acc:'#FF8038',tc:'#FFE0BE',gr:'255,118,44'},
+  sunset:  {acc:'#FF4418',tc:'#FFCAA8',gr:'255,62,20'},
+  goldenR: {acc:'#FFAA38',tc:'#FFE8BE',gr:'255,162,40'},
+  goldenS: {acc:'#FF7E1E',tc:'#FFD4A0',gr:'255,112,26'},
+  day:     {acc:'#52C4F8',tc:'#FFFFFF',gr:'82,196,250'},
+  noon:    {acc:'#68D5FF',tc:'#FFFFFF',gr:'95,215,255'},
+};
+
+// ─── THE CARD ─────────────────────────────────────────────────────────────────
+
+class SolarClockCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._hass = null;
+    this._tickInterval = null;
+    this._launchInterval = null;
+    this._launches = [];        // cached launch data from API
+    this._tickerIndex = 0;      // current ticker item
+    this._tickerTimer = null;
+  }
+
+  setConfig(config) {
+    this._config = config;
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (!this._tickInterval) {
+      this._render();
+      this._tickInterval = setInterval(() => this._render(), 60000);
+      this._fetchLaunches();
+      this._launchInterval = setInterval(() => this._fetchLaunches(), 3600000);
+    }
+  }
+
+  disconnectedCallback() {
+    if (this._tickInterval) { clearInterval(this._tickInterval); this._tickInterval = null; }
+    if (this._launchInterval) { clearInterval(this._launchInterval); this._launchInterval = null; }
+    if (this._tickerTimer) { clearInterval(this._tickerTimer); this._tickerTimer = null; }
+  }
+
+  // ── fetch upcoming launches from Launch Library 2 (free, no key) ────────────
+  async _fetchLaunches() {
+    try {
+      const url = 'https://ll.thespacedevs.com/2.2.0/launch/upcoming/?format=json&limit=10&status=1,2,3&mode=list';
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      // Filter: only notable missions (SpaceX, NASA, ESA, Roscosmos, Blue Origin, Rocket Lab crewed/major)
+      const NOTABLE_AGENCIES = ['spacex','nasa','esa','roscosmos','blue origin','rocket lab','jaxa','isro','cnsa','northrop'];
+      const NOTABLE_KEYWORDS = ['crew','dragon','artemis','orion','starship','webb','hubble','iss','moon','mars','jupiter','saturn','europa','gateway','axiom','starliner'];
+      this._launches = (data.results || [])
+        .filter(l => {
+          const agency = (l.launch_service_provider?.name || '').toLowerCase();
+          const name   = (l.name || '').toLowerCase();
+          const mission= (l.mission?.description || '').toLowerCase();
+          const isNotableAgency   = NOTABLE_AGENCIES.some(a => agency.includes(a));
+          const isNotableMission  = NOTABLE_KEYWORDS.some(k => name.includes(k) || mission.includes(k));
+          return isNotableAgency || isNotableMission;
+        })
+        .slice(0, 8)
+        .map(l => ({
+          name: l.name,
+          agency: l.launch_service_provider?.name || '',
+          date: new Date(l.net),
+          status: l.status?.abbrev || '',
+          pad: l.pad?.location?.country_code || '',
+          url: l.url,
+        }));
+      this._render();
+    } catch(e) {
+      // silently fail - no internet or API down
+    }
+  }
+
+  // ── compute all values ──────────────────────────────────────────────────────
+  _compute() {
+    const hass = this._hass;
+    const now  = new Date();
+    const nowH = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+    const elev = solarElev(now, LAT, LON, nowH);
+    const isR  = elev >= solarElev(now, LAT, LON, nowH - 0.25);
+
+    let noonH=12, noonE=-90;
+    for (let h=9; h<=15; h+=1/60) { const e=solarElev(now,LAT,LON,h); if(e>noonE){noonE=e;noonH=h;} }
+    const atNoon = elev>=noonE-1.5 && elev>0;
+
+    const riseH = findCross(now, LAT, LON, true);
+    const setH  = findCross(now, LAT, LON, false);
+
+    const states = hass?.states || {};
+    const rRaw = states['sun.sun']?.attributes?.next_rising || states['sun.sun']?.attributes?.next_dawn;
+    const sRaw = states['sun.sun']?.attributes?.next_setting || states['sun.sun']?.attributes?.next_dusk;
+    let riseStr, setStr;
+    if (rRaw) { const r=new Date(rRaw); riseStr=r.getDate()!==now.getDate()?fmtH(riseH):pad(r.getHours())+':'+pad(r.getMinutes()); }
+    else riseStr = fmtH(riseH);
+    if (sRaw) { const s=new Date(sRaw); setStr=s.getDate()!==now.getDate()?fmtH(setH):pad(s.getHours())+':'+pad(s.getMinutes()); }
+    else setStr = fmtH(setH);
+
+    let phaseKey, phaseName;
+    if      (atNoon)       { phaseKey='noon';   phaseName='Południe solarne'; }
+    else if (elev>=0) {
+      if      (elev<4)     { phaseKey=isR?'sunrise':'sunset';  phaseName=isR?'Wschód słońca':'Zachód słońca'; }
+      else if (elev<13)    { phaseKey=isR?'goldenR':'goldenS'; phaseName=isR?'Złota godzina ↑':'Złota godzina ↓'; }
+      else                 { phaseKey='day';    phaseName='Dzień'; }
+    }
+    else if (elev>=-6)     { phaseKey=isR?'civR':'civS';  phaseName=isR?'Świt cywilny':'Zmierzch cywilny'; }
+    else if (elev>=-12)    { phaseKey=isR?'navR':'navS';  phaseName=isR?'Świt żeglarski':'Zmierzch żeglarski'; }
+    else if (elev>=-18)    { phaseKey=isR?'astR':'astS';  phaseName=isR?'Świt astronomiczny':'Zmierzch astronomiczny'; }
+    else                   { phaseKey='night';  phaseName='Noc'; }
+
+    const tempRaw = states['sensor.stacja_pogodowa_outdoor_temperature']?.state;
+    const temp = tempRaw ? parseFloat(tempRaw) : null;
+    const weatherState = states['weather.forecast_home']?.state || 'unknown';
+
+    const isNight = elev < -6;
+    const visiblePlanets = (SHOW_PLANETS && isNight)
+      ? PLANET_NAMES
+          .map(name => ({name, pos: planetPosition(name, now, LAT, LON)}))
+          .filter(p => p.pos && p.pos.visible)
+          .sort((a,b) => b.pos.alt - a.pos.alt)
+      : [];
+
+    const TM = TH[phaseKey] || TH.day;
+    const dynamicBg = generateDynamicBg(elev, temp, weatherState, phaseKey);
+
+    return { now, nowH, elev, isR, noonE, riseStr, setStr, phaseKey, phaseName,
+             temp, weatherState, isNight, visiblePlanets, TM, dynamicBg };
+  }
+
+  // ── build SVG chart ─────────────────────────────────────────────────────────
+  _buildChart(now, nowH, elev, isR, TM) {
+    const W=280, H=108, EMIN=-30, EMAX=65, ERANGE=EMAX-EMIN;
+    const eToY = e => H-8-((e-EMIN)/ERANGE)*(H-16);
+    const hToX = h => (h/24)*W;
+    const horizY=eToY(0), y6=eToY(-6), y12=eToY(-12), y18=eToY(-18);
+
+    const pts=[];
+    for (let i=0; i<=96; i++) { const h=i/4; pts.push({x:hToX(h).toFixed(2),y:eToY(solarElev(now,LAT,LON,h)).toFixed(2)}); }
+    const pathD = pts.map((p,i)=>i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`).join(' ');
+    const fillD = `M${hToX(0).toFixed(2)},${horizY.toFixed(2)} `
+                + pts.map(p=>`L${p.x},${Math.min(parseFloat(p.y),horizY).toFixed(2)}`).join(' ')
+                + ` L${hToX(24).toFixed(2)},${horizY.toFixed(2)} Z`;
+
+    const dotX=hToX(nowH).toFixed(2), dotY=eToY(elev).toFixed(2);
+    const ss=sunStyle(elev,isR);
+
+    const ringsEl=ss.rings.map((g,i)=>`
+      <ellipse cx="${dotX}" cy="${dotY}" rx="${g.rx}" ry="${g.rx}" fill="${g.c}" opacity="${g.op}">
+        <animate attributeName="rx" values="${g.rx};${(g.rx*1.08).toFixed(1)};${g.rx}" dur="${3+i*.5}s" repeatCount="indefinite"/>
+        <animate attributeName="ry" values="${g.rx};${(g.rx*1.08).toFixed(1)};${g.rx}" dur="${3+i*.5}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="${g.op};${(g.op*1.3).toFixed(2)};${g.op}" dur="${3+i*.5}s" repeatCount="indefinite"/>
+      </ellipse>`).join('');
+
+    const sunEl=`<circle cx="${dotX}" cy="${dotY}" r="${ss.rad}" fill="${ss.col}">
+      <animate attributeName="r" values="${ss.rad};${(ss.rad*1.04).toFixed(1)};${ss.rad}" dur="3.5s" repeatCount="indefinite"/>
+    </circle>`;
+
+    const vLine=`<line x1="${dotX}" y1="${(parseFloat(dotY)+ss.rad+1).toFixed(2)}" x2="${dotX}" y2="${horizY.toFixed(2)}"
+      stroke="${elev>=0?'rgba(255,245,178,.13)':'rgba(130,130,255,.08)'}"
+      stroke-width=".7" stroke-dasharray="2 3.5"/>`;
+
+    const hGlow=(elev>-4&&elev<6)?`<ellipse cx="${dotX}" cy="${horizY.toFixed(2)}" rx="100" ry="14"
+      fill="${isR?'rgba(255,165,42,.18)':'rgba(255,68,18,.18)'}">
+      <animate attributeName="opacity" values=".6;1;.6" dur="3.5s" repeatCount="indefinite"/></ellipse>`:'';
+
+    const xLbls=[0,6,12,18,24].map(h=>{
+      const x=hToX(h).toFixed(1),l=h===24?'24':pad(h);
+      return `<text x="${x}" y="${H}" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.18)" font-family="-apple-system,sans-serif">${l}</text>`;
+    }).join('');
+
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+      <defs>
+        <linearGradient id="sf" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="rgba(82,198,250,.20)"/>
+          <stop offset="100%" stop-color="rgba(82,198,250,0)"/>
+        </linearGradient>
+        <clipPath id="abz"><rect x="0" y="0" width="${W}" height="${horizY.toFixed(2)}"/></clipPath>
+      </defs>
+      <rect x="0" y="${horizY.toFixed(2)}" width="${W}" height="${(y6-horizY).toFixed(2)}"   fill="rgba(100,30,165,.08)"/>
+      <rect x="0" y="${y6.toFixed(2)}"     width="${W}" height="${(y12-y6).toFixed(2)}"      fill="rgba(30,50,165,.10)"/>
+      <rect x="0" y="${y12.toFixed(2)}"    width="${W}" height="${(y18-y12).toFixed(2)}"     fill="rgba(10,14,58,.14)"/>
+      <rect x="0" y="${y18.toFixed(2)}"    width="${W}" height="${(H-y18+4).toFixed(2)}"     fill="rgba(2,3,10,.20)"/>
+      <path d="${fillD}" fill="url(#sf)"/>
+      <path d="${pathD}" fill="none" stroke="rgba(82,198,250,.16)" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="${pathD}" fill="none" stroke="rgba(82,198,250,.88)" stroke-width="1.75" stroke-linejoin="round" clip-path="url(#abz)"/>
+      <line x1="0" y1="${horizY.toFixed(2)}" x2="${W}" y2="${horizY.toFixed(2)}" stroke="rgba(255,255,255,.20)" stroke-width=".85" stroke-dasharray="4 6"/>
+      <text x="${W-2}" y="${(horizY-2.5).toFixed(2)}" text-anchor="end" font-size="7" fill="rgba(255,255,255,.25)" font-family="-apple-system,sans-serif">0°</text>
+      ${xLbls}${hGlow}${vLine}${ringsEl}${sunEl}
+    </svg>`;
+  }
+
+  // ── build event banners ─────────────────────────────────────────────────────
+  _buildBanners() {
+    return EVENTS
+      .map(ev => ({ev, days: daysUntil(ev.date)}))
+      .filter(({days}) => days >= 0 && days <= 30)
+      .sort((a,b) => a.days - b.days)
+      .slice(0, 2)
+      .map(({ev, days}) => this._renderBanner(ev, days))
+      .join('');
+  }
+
+  _renderBanner(ev, days) {
+    const isToday=days===0, isTomorrow=days===1, isUrgent=days<=7;
+    let acR, acG, acB;
+    if      (isToday)    { acR=255; acG=70;  acB=0; }
+    else if (isTomorrow) { acR=255; acG=130; acB=0; }
+    else if (isUrgent)   { acR=255; acG=180; acB=30; }
+    else { const t=typeTheme(ev.type); acR=t.r; acG=t.g; acB=t.b; }
+
+    const ac  = `rgba(${acR},${acG},${acB},1)`;
+    const acM = `rgba(${acR},${acG},${acB},.85)`;
+    const acL = `rgba(${acR},${acG},${acB},.18)`;
+    const acB2= `rgba(${acR},${acG},${acB},.35)`;
+    const pillText = isToday?'dziś!':isTomorrow?'jutro':`${days} dni`;
+    const sublabel = isToday?ev.sublabelToday:isTomorrow?ev.sublabelTomorrow:ev.sublabel;
+
+    if (isToday) {
+      const meteorExtra = ev.hasMeteors
+        ? `<div style="margin-top:5px;display:flex;align-items:center;gap:6px;">
+            <div style="font-size:10px;font-weight:600;color:rgba(180,130,255,.92);background:rgba(150,90,255,.15);border:1px solid rgba(150,90,255,.35);padding:2px 8px;border-radius:8px;">+ Perseidy tej nocy</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.35);">2 zjawiska jednocześnie</div>
+           </div>` : '';
+      return `<div class="banner today" style="border-top:2px solid ${acB2};">
+        <div class="banner-bg" style="background:${acL};"></div>
+        <div class="banner-inner">
+          <div class="banner-icon pulse" style="background:rgba(${acR},${acG},${acB},.20);border:2px solid ${acB2};">
+            ${eventIcon(ev.type,20,ac)}
+            <div class="icon-ring" style="border-color:rgba(${acR},${acG},${acB},.40);"></div>
+          </div>
+          <div class="banner-text">
+            <div style="font-size:12px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">${ev.label} — dziś!</div>
+            <div style="font-size:10px;color:rgba(255,220,150,.75);margin-top:2px;">${sublabel}</div>
+            ${meteorExtra}
+          </div>
+          <div class="banner-pill pulse" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
+        </div>
+      </div>`;
+    }
+    if (isTomorrow) {
+      return `<div class="banner tomorrow" style="border-top:2px solid ${acB2};background:rgba(${acR},${acG},${acB},.08);">
+        <div class="banner-inner">
+          <div class="banner-icon" style="background:rgba(${acR},${acG},${acB},.15);border:1.5px solid ${acB2};">
+            ${eventIcon(ev.type,18,ac)}
+          </div>
+          <div class="banner-text">
+            <div style="font-size:11px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">Jutro: ${ev.label}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.40);margin-top:1px;">${sublabel}</div>
+          </div>
+          <div class="banner-pill pulse-slow" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
+        </div>
+      </div>`;
+    }
+    if (isUrgent) {
+      return `<div class="banner urgent" style="border-top:1px solid rgba(${acR},${acG},${acB},.30);background:rgba(${acR},${acG},${acB},.06);">
+        <div class="banner-inner">
+          <div class="banner-icon sm" style="background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.35);">
+            ${eventIcon(ev.type,14,ac)}
+          </div>
+          <div class="banner-text">
+            <div style="font-size:10px;font-weight:600;color:${acM};text-transform:uppercase;letter-spacing:.06em;">${ev.label} za ${days} dni</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+          </div>
+          <div class="banner-pill pulse-slow" style="font-size:11px;color:${acM};background:rgba(${acR},${acG},${acB},.14);border:1px solid rgba(${acR},${acG},${acB},.35);">${pillText}</div>
+        </div>
+      </div>`;
+    }
+    return `<div class="banner normal">
+      <div class="banner-inner">
+        <div class="banner-icon sm" style="background:rgba(${acR},${acG},${acB},.10);border:1px solid rgba(${acR},${acG},${acB},.25);">
+          ${eventIcon(ev.type,14,ac)}
+        </div>
+        <div class="banner-text">
+          <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">${ev.label}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+        </div>
+        <div class="banner-pill" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.25);">${pillText}</div>
+      </div>
+    </div>`;
+  }
+
+  // ── main render ─────────────────────────────────────────────────────────────
+  _render() {
+    if (!this._hass) return;
+    const { now, nowH, elev, isR, TM, dynamicBg, phaseName, phaseKey,
+            riseStr, setStr, temp, weatherState, isNight, visiblePlanets } = this._compute();
+
+    const elevStr = (elev>=0?'+':'')+elev.toFixed(1)+'°';
+    const hasToday = EVENTS.some(ev => daysUntil(ev.date)===0);
+
+    const chartSVG = this._buildChart(now, nowH, elev, isR, TM);
+    const banners  = this._buildBanners();
+
+    // random particle seeds (stable per render)
+    const rainDrops = ['rainy','pouring','lightning','lightning-rainy'].includes(weatherState)
+      ? [...Array(12)].map((_,i)=>`<div class="raindrop" style="left:${((i*137+13)%100)}%;animation-delay:${((i*.17)%2).toFixed(2)}s;animation-duration:${(.8+((i*.23)%0.6)).toFixed(2)}s;"></div>`).join('') : '';
+    const snowFlakes = ['snowy','snowy-rainy'].includes(weatherState)||(temp!==null&&temp<0)
+      ? [...Array(10)].map((_,i)=>`<div class="snowflake" style="left:${((i*97+7)%100)}%;width:${(2+(i*.3)%2).toFixed(1)}px;height:${(2+(i*.3)%2).toFixed(1)}px;animation-delay:${((i*.31)%3).toFixed(2)}s;animation-duration:${(2+(i*.4)%2).toFixed(2)}s;--drift:${(((i*11)%20)-10)}px;"></div>`).join('') : '';
+
+    const css = `
+      :host { display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+
+      @keyframes glow-pulse  { 0%,100%{opacity:.28;transform:scale(1)} 50%{opacity:.48;transform:scale(1.12)} }
+      @keyframes breathe     { 0%,100%{opacity:1} 50%{opacity:.75} }
+      @keyframes breathe-slow{ 0%,100%{opacity:1} 50%{opacity:.80} }
+      @keyframes shimmer     { 0%,100%{opacity:.65} 50%{opacity:.90} }
+      @keyframes bg-shift    { 0%,100%{filter:hue-rotate(0deg) brightness(1)} 50%{filter:hue-rotate(5deg) brightness(1.05)} }
+      @keyframes cloud-drift { from{transform:translateX(-50px)} to{transform:translateX(50px)} }
+      @keyframes rain-fall   { 0%{transform:translateY(-10px);opacity:0} 10%{opacity:.5} 90%{opacity:.3} 100%{transform:translateY(240px);opacity:0} }
+      @keyframes snow-fall   { 0%{transform:translateY(-10px) translateX(0);opacity:0} 10%{opacity:.7} 90%{opacity:.5} 100%{transform:translateY(240px) translateX(var(--drift,10px));opacity:0} }
+      @keyframes ring-pulse  { 0%,100%{transform:scale(1);opacity:.4} 50%{transform:scale(1.3);opacity:0} }
+      @keyframes tooltip-in  { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+      .card {
+        background: ${dynamicBg};
+        border-radius: 24px;
+        padding: 20px 20px 16px;
+        position: relative;
+        overflow: hidden;
+        min-height: 228px;
+        animation: bg-shift 30s ease-in-out infinite;
+        ${hasToday ? 'border:2px solid rgba(255,70,0,.55);' : ''}
+      }
+      .card::before {
+        content:''; position:absolute; top:-55px; left:50%; transform:translateX(-50%);
+        width:270px; height:210px;
+        background:radial-gradient(ellipse,rgba(${TM.gr},.18) 0%,transparent 72%);
+        pointer-events:none;
+        animation: glow-pulse ${elev>=0?'3.5s':'5s'} cubic-bezier(.4,0,.2,1) infinite;
+      }
+      .card::after {
+        content:''; position:absolute; inset:0;
+        background:radial-gradient(ellipse at ${(nowH/24*100).toFixed(0)}% 35%,rgba(${TM.gr},.12) 0%,transparent 65%);
+        pointer-events:none;
+        animation: shimmer 4s cubic-bezier(.4,0,.2,1) infinite;
+      }
+
+      /* atmospheric layers */
+      .atm { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; opacity:${elev>=0?.15:.08}; }
+      .cloud { position:absolute; border-radius:50%; filter:blur(25px); }
+      .c1 { top:15%; left:-10%; width:180px; height:60px; background:radial-gradient(ellipse,rgba(255,255,255,.08) 0%,transparent 70%); animation:cloud-drift 45s linear infinite; }
+      .c2 { top:40%; left:20%; width:220px; height:70px; background:radial-gradient(ellipse,rgba(255,255,255,.06) 0%,transparent 70%); animation:cloud-drift 60s -10s linear infinite; }
+      .c3 { top:65%; left:-5%; width:160px; height:55px; background:radial-gradient(ellipse,rgba(255,255,255,.07) 0%,transparent 70%); animation:cloud-drift 52s -25s linear infinite; }
+
+      .raindrop { position:absolute; top:-10px; width:1.5px; height:14px;
+        background:linear-gradient(to bottom,rgba(120,180,255,.4),rgba(120,180,255,0));
+        animation:rain-fall linear infinite; }
+      .snowflake { position:absolute; top:-10px; border-radius:50%; background:rgba(220,235,255,.6);
+        animation:snow-fall ease-in-out infinite; }
+
+      /* content */
+      .content { position:relative; z-index:1; }
+      .top { display:flex; justify-content:space-between; align-items:flex-start; }
+      .day-label { font-size:11px; font-weight:600; color:${TM.acc}; text-transform:uppercase; letter-spacing:.12em; }
+      .date-label { font-size:11px; color:${TM.acc}88; letter-spacing:.03em; }
+      .phase-badge {
+        font-size:9px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+        white-space:nowrap; color:${TM.acc};
+        border:1px solid ${TM.acc}44; padding:2px 8px; border-radius:12px; background:${TM.acc}14;
+        animation:breathe 3s ease-in-out infinite;
+      }
+
+      /* planets */
+      .planets { display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; margin-top:5px; position:relative; }
+      .planet-pill {
+        display:flex; flex-direction:column; align-items:center; gap:1px;
+        border-radius:10px; padding:3px 7px; cursor:pointer;
+        -webkit-tap-highlight-color: transparent;
+        user-select:none; position:relative;
+        transition: background .15s, border-color .15s;
+      }
+      .planet-pill:active { filter:brightness(1.3); }
+      .planet-sym  { font-size:13px; line-height:1; }
+      .planet-name { font-size:7px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; line-height:1.2; }
+
+      /* planet tooltip */
+      .planet-tooltip {
+        display:none; position:absolute; bottom:calc(100% + 6px); right:0;
+        background:rgba(8,12,30,.97); border-radius:10px;
+        padding:8px 12px; white-space:nowrap; z-index:999;
+        box-shadow:0 4px 20px rgba(0,0,0,.7);
+        animation:tooltip-in .15s ease;
+        min-width:140px;
+      }
+      .planet-tooltip.visible { display:block; }
+      .planet-tooltip .tip-title { font-size:11px; font-weight:700; margin-bottom:4px; }
+      .planet-tooltip .tip-row   { font-size:10px; color:rgba(255,255,255,.50); line-height:1.8; }
+      .planet-tooltip .tip-val   { color:rgba(255,255,255,.88); }
+
+      .time {
+        font-size:65px; font-weight:200; letter-spacing:-3px; line-height:1;
+        color:${TM.tc}; margin:3px 0 0; font-variant-numeric:tabular-nums;
+        text-align:center; width:100%; display:block;
+      }
+
+      .chart { margin:10px 0 4px; }
+      .stats { display:flex; justify-content:space-between; align-items:flex-start; margin-top:7px; }
+      .stat { display:flex; flex-direction:column; }
+      .stat-val   { font-size:14px; font-weight:600; color:rgba(255,255,255,.82); letter-spacing:-.2px; }
+      .stat-label { font-size:9px; font-weight:500; color:rgba(255,255,255,.28); text-transform:uppercase; letter-spacing:.07em; margin-top:1px; }
+
+
+      /* ── ticker ─────────────────────────────────────────────────── */
+      .ticker {
+        margin: 10px -20px -16px;
+        border-top: 1px solid rgba(255,255,255,.07);
+        border-radius: 0 0 24px 24px;
+        overflow: hidden;
+        position: relative;
+      }
+      .ticker-inner {
+        display: flex;
+        align-items: stretch;
+        min-height: 38px;
+      }
+      .ticker-type-bar {
+        width: 3px;
+        flex-shrink: 0;
+        border-radius: 0;
+      }
+      .ticker-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 14px 7px 10px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background .15s;
+        position: relative;
+        overflow: hidden;
+      }
+      .ticker-body:active { background: rgba(255,255,255,.04); }
+      .ticker-icon {
+        font-size: 13px;
+        flex-shrink: 0;
+        line-height: 1;
+      }
+      .ticker-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .ticker-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ticker-sub {
+        font-size: 9.5px;
+        color: rgba(255,255,255,.35);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ticker-pill {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        letter-spacing: -.2px;
+      }
+      .ticker-nav {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        padding: 0 10px 0 0;
+        flex-shrink: 0;
+      }
+      .ticker-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.18);
+        transition: background .2s, transform .2s;
+      }
+      .ticker-dot.active {
+        background: rgba(255,255,255,.55);
+        transform: scale(1.3);
+      }
+      @keyframes ticker-slide-in {
+        from { opacity:0; transform:translateY(6px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+      .ticker-body { animation: ticker-slide-in .25s ease; }
+
+      /* banners */
+      .banner { margin-left:-20px; margin-right:-20px; margin-bottom:-16px;
+                border-radius:0 0 24px 24px; position:relative; overflow:hidden; }
+      .banner.today    { padding:12px 20px 16px; margin-top:10px; }
+      .banner.tomorrow { padding:11px 20px 14px; margin-top:10px; }
+      .banner.urgent   { padding:10px 20px 13px; margin-top:10px; }
+      .banner.normal   { padding:10px 20px 12px; margin-top:11px; border-top:1px solid rgba(255,255,255,.07); }
+      .banner-bg { position:absolute; inset:0; animation:breathe 1.2s ease-in-out infinite; }
+      .banner-inner { position:relative; z-index:1; display:flex; align-items:center; gap:10px; }
+      .banner-text  { flex:1; min-width:0; }
+      .banner-icon  {
+        width:34px; height:34px; border-radius:50%; flex-shrink:0;
+        display:flex; align-items:center; justify-content:center; position:relative;
+      }
+      .banner-icon.sm { width:28px; height:28px; }
+      .banner-pill {
+        font-size:12px; font-weight:600; padding:4px 10px;
+        border-radius:10px; white-space:nowrap; flex-shrink:0;
+      }
+      .icon-ring {
+        position:absolute; inset:-4px; border-radius:50%; border:2px solid;
+        animation:ring-pulse 1.2s ease-in-out infinite;
+      }
+      .pulse      { animation:breathe 1.2s ease-in-out infinite; }
+      .pulse-slow { animation:breathe-slow 1.8s ease-in-out infinite; }
+    `;
+
+    const planetsHtml = visiblePlanets.length > 0
+      ? `<div class="planets">${visiblePlanets.map(({name,pos}) => {
+          const col = PLANET_COLORS[name];
+          const sym = PLANET_SYMBOLS[name];
+          return `<div class="planet-pill" data-planet="${name}"
+            style="background:rgba(${col},.12);border:1px solid rgba(${col},.30);">
+            <span class="planet-sym" style="color:rgba(${col},1);">${sym}</span>
+            <span class="planet-name" style="color:rgba(${col},.80);">${name.slice(0,3)}</span>
+            <div class="planet-tooltip" data-tip="${name}">
+              <div class="tip-title" style="color:rgba(${col},1);">${sym} ${name}</div>
+              <div class="tip-row">Wysokość:&nbsp;<span class="tip-val">${pos.alt>0?'+':''}${pos.alt}°</span></div>
+              <div class="tip-row">Kierunek:&nbsp;<span class="tip-val">${pos.dir}&nbsp;(${pos.az}°)</span></div>
+              <div class="tip-row">Jasność:&nbsp;<span class="tip-val">${pos.mag>0?'+':''}${pos.mag}&nbsp;mag</span></div>
+            </div>
+          </div>`;
+        }).join('')}</div>` : '';
+
+    // build ticker
+    const tickerItems = this._buildTickerItems();
+    const tickerHtml  = this._renderTicker(tickerItems);
+
+    const html = `
+      <style>${css}</style>
+      <div class="card">
+        <div class="atm">
+          <div class="cloud c1"></div>
+          <div class="cloud c2"></div>
+          <div class="cloud c3"></div>
+          ${rainDrops}${snowFlakes}
+        </div>
+        <div class="content">
+          <div class="top">
+            <div>
+              <div class="day-label">${DAYS[now.getDay()]}</div>
+              <div class="date-label">${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+              <span class="phase-badge">${phaseName}</span>
+              ${planetsHtml}
+            </div>
+          </div>
+          <div class="time">${pad(now.getHours())}:${pad(now.getMinutes())}</div>
+          <div class="chart">${chartSVG}</div>
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-val">${riseStr}</span>
+              <span class="stat-label">Wschód ☀︎</span>
+            </div>
+            <div class="stat" style="text-align:center">
+              <span class="stat-val" style="color:${TM.acc}">${elevStr}</span>
+              <span class="stat-label">Wysokość</span>
+            </div>
+            <div class="stat" style="text-align:right">
+              <span class="stat-val">${setStr}</span>
+              <span class="stat-label">Zachód ☀︎</span>
+            </div>
+          </div>
+          ${banners}
+          ${tickerHtml}
+        </div>
+      </div>`;
+
+    this.shadowRoot.innerHTML = html;
+    this._bindEvents();
+    this._startTickerAuto();
+  }
+
+  _bindEvents() {
+    // Planet tooltips — toggle on tap/click, close on outside click
+    const pills = this.shadowRoot.querySelectorAll('.planet-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tip = pill.querySelector('.planet-tooltip');
+        const isOpen = tip.classList.contains('visible');
+        this.shadowRoot.querySelectorAll('.planet-tooltip.visible').forEach(t => t.classList.remove('visible'));
+        if (!isOpen) tip.classList.add('visible');
+      });
+    });
+
+    // Close tooltips on click outside
+    this.shadowRoot.querySelector('.card').addEventListener('click', () => {
+      this.shadowRoot.querySelectorAll('.planet-tooltip.visible').forEach(t => t.classList.remove('visible'));
+    });
+
+    // Ticker — tap to advance manually
+    const tickerBody = this.shadowRoot.querySelector('[data-ticker-click]');
+    if (tickerBody) {
+      tickerBody.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const items = this._buildTickerItems();
+        if (!items.length) return;
+        this._tickerIndex = (this._tickerIndex + 1) % items.length;
+        // re-render just the ticker area without full card redraw
+        const ticker = this.shadowRoot.querySelector('.ticker');
+        if (ticker) ticker.outerHTML; // force, but easier to just partial-render:
+        this._renderTickerOnly();
+      });
+    }
+  }
+
+  _renderTickerOnly() {
+    const items = this._buildTickerItems();
+    const ticker = this.shadowRoot.querySelector('.ticker');
+    if (!ticker || !items.length) return;
+    const html = this._renderTicker(items);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const newTicker = tmp.firstElementChild;
+    if (newTicker) {
+      ticker.replaceWith(newTicker);
+      // re-bind click on new element
+      const tb = this.shadowRoot.querySelector('[data-ticker-click]');
+      if (tb) tb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const items2 = this._buildTickerItems();
+        if (!items2.length) return;
+        this._tickerIndex = (this._tickerIndex + 1) % items2.length;
+        this._renderTickerOnly();
+      });
+    }
+  }
+
+  _startTickerAuto() {
+    if (this._tickerTimer) { clearInterval(this._tickerTimer); this._tickerTimer = null; }
+    const items = this._buildTickerItems();
+    if (items.length <= 1) return;
+    this._tickerTimer = setInterval(() => {
+      this._tickerIndex = (this._tickerIndex + 1) % items.length;
+      this._renderTickerOnly();
+    }, 5000);
+  }
+
+
+  // ── build ticker items (astro events + launches) ───────────────────────────
+  _buildTickerItems() {
+    const items = [];
+    const now = new Date(); now.setHours(0,0,0,0);
+
+    // Astronomical events — next 365 days
+    EVENTS.forEach(ev => {
+      const days = daysUntil(ev.date);
+      if (days < 0 || days > 365) return;
+      const t = typeTheme(ev.type);
+      let countdown, urgency;
+      if      (days === 0) { countdown = 'dziś!';   urgency = 'high'; }
+      else if (days === 1) { countdown = 'jutro';   urgency = 'mid'; }
+      else if (days <= 7)  { countdown = days+'d';  urgency = 'mid'; }
+      else                 { countdown = days+'d';  urgency = 'low'; }
+      const EMOJI = { eclipse:'🌒', lunar_eclipse:'🌕', meteors:'🌠', conjunction:'🔭', planet:'🪐', moon:'🌙' };
+      items.push({ kind:'astro', label:ev.label, sub:ev.sublabel, countdown, urgency,
+                   r:t.r, g:t.g, b:t.b, emoji:EMOJI[ev.type]||'✨', days });
+    });
+
+    // Rocket launches
+    this._launches.forEach(l => {
+      const diff = l.date - new Date();
+      if (diff < -3600000) return; // skip if more than 1h past
+      const AGENCY_COLOR = {
+        'spacex':    {r:200,g:200,b:200},
+        'nasa':      {r:11, g:103,b:184},
+        'esa':       {r:0,  g:125,b:195},
+        'roscosmos': {r:180,g:40, b:40},
+        'blue origin':{r:0, g:140,b:255},
+        'rocket lab':{r:200,g:50, b:50},
+      };
+      const agencyKey = Object.keys(AGENCY_COLOR).find(k => l.agency.toLowerCase().includes(k));
+      const col = AGENCY_COLOR[agencyKey] || {r:160,g:160,b:160};
+      let countdown, urgency;
+      if (diff < 0)                      { countdown = 'LIVE!'; urgency = 'high'; }
+      else if (diff < 3600000)           { countdown = Math.ceil(diff/60000)+'m'; urgency = 'high'; }
+      else if (diff < 86400000)          { countdown = Math.ceil(diff/3600000)+'h'; urgency = 'mid'; }
+      else {
+        const days = Math.ceil(diff/86400000);
+        countdown = days+'d';
+        urgency = days <= 7 ? 'mid' : 'low';
+      }
+      const agencyShort = l.agency.replace('National Aeronautics and Space Administration','NASA')
+                                  .replace('Space Exploration Technologies Corp.','SpaceX')
+                                  .replace('European Space Agency','ESA');
+      items.push({ kind:'launch', label:l.name, sub:agencyShort + (l.pad ? ' · '+l.pad : ''),
+                   countdown, urgency, r:col.r, g:col.g, b:col.b, emoji:'🚀', days: Math.ceil(diff/86400000) });
+    });
+
+    // Sort: today/live first, then by days
+    items.sort((a,b) => {
+      const uo = {high:0,mid:1,low:2};
+      if (uo[a.urgency] !== uo[b.urgency]) return uo[a.urgency] - uo[b.urgency];
+      return (a.days||0) - (b.days||0);
+    });
+
+    return items;
+  }
+
+  _renderTicker(items) {
+    if (!items.length) return '';
+    const idx = this._tickerIndex % items.length;
+    const item = items[idx];
+    const { r, g, b, urgency, emoji, label, sub, countdown } = item;
+
+    const barBg = urgency === 'high'
+      ? 'linear-gradient(to bottom,rgba(255,70,0,1),rgba(255,140,0,1))'
+      : urgency === 'mid'
+        ? `linear-gradient(to bottom,rgba(${r},${g},${b},.9),rgba(${r},${g},${b},.4))`
+        : `rgba(${r},${g},${b},.35)`;
+
+    const pillBg    = `rgba(${r},${g},${b},.18)`;
+    const pillBord  = `rgba(${r},${g},${b},.40)`;
+    const pillColor = urgency === 'high' ? 'rgba(255,130,60,1)' : `rgba(${r},${g},${b},1)`;
+    const labelColor= `rgba(${r},${g},${b},.92)`;
+
+    const dots = items.slice(0,Math.min(items.length,8)).map((_, i) =>
+      `<div class="ticker-dot${i===idx?' active':''}"></div>`).join('');
+
+    return `<div class="ticker">
+      <div class="ticker-inner">
+        <div class="ticker-type-bar" style="background:${barBg};"></div>
+        <div class="ticker-body" data-ticker-click>
+          <span class="ticker-icon">${emoji}</span>
+          <div class="ticker-text">
+            <div class="ticker-label" style="color:${labelColor};">${label}</div>
+            <div class="ticker-sub">${sub}</div>
+          </div>
+          <div class="ticker-pill" style="background:${pillBg};border:1px solid ${pillBord};color:${pillColor};">${countdown}</div>
+        </div>
+        <div class="ticker-nav">${dots}</div>
+      </div>
+    </div>`;
+  }
+
+  getCardSize() { return 5; }
+}
+
+customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._curDeg = 0;
+    this._raf = null;
+    this._rendered = false;
+  }
+
+  setConfig(config) {
+    this._config = config;
+    this._entity = config.entity || 'cover.teleco_leds2';
+    this._name   = config.name   || 'Żaluzje';
+    this._room   = config.room   || '';
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    const state = hass.states[this._entity];
+    if (!state) return;
+    const tilt = state.attributes.current_tilt_position ?? 0;
+    const pos  = state.attributes.current_position ?? 0;
+    const st   = state.state;
+    if (!this._rendered) { this._render(); this._rendered = true; }
+    this._update(tilt, pos, st);
+  }
+
+  _svc(service, data = {}) {
+    this._hass.callService('cover', service, { entity_id: this._entity, ...data });
+  }
+
+  /* Kąt wizualny lameli wg tilt 0-100
+     0%  → 0°   poziomo
+     25% → 45°  kąt ostry
+     75% → 94°  prawie pion
+     100%→ 135° kąt rozwarty */
+  _deg(tilt) {
+    const kf = [[0,0],[25,45],[75,94],[100,135]];
+    for (let i = 0; i < kf.length - 1; i++) {
+      const [p0,d0] = kf[i], [p1,d1] = kf[i+1];
+      if (tilt >= p0 && tilt <= p1) return d0 + (tilt-p0)/(p1-p0)*(d1-d0);
+    }
+    return 135;
+  }
+
+  _slatHTML(cx, cy, hl, th, deg) {
+    const r=deg*Math.PI/180, ca=Math.cos(r), sa=Math.sin(r);
+    const px=-sa*th, py=ca*th;
+    const x1=cx-hl*ca, y1=cy-hl*sa, x2=cx+hl*ca, y2=cy+hl*sa;
+    const f=([x,y])=>`${x.toFixed(2)},${y.toFixed(2)}`;
+    const body  =[[x1-px,y1-py],[x2-px,y2-py],[x2+px,y2+py],[x1+px,y1+py]].map(f).join(' ');
+    const shine =[[x1-px*.3,y1-py*.3],[x2-px*.3,y2-py*.3],[x2+px*.12,y2+py*.12],[x1+px*.12,y1+py*.12]].map(f).join(' ');
+    return `<polygon points="${body}" fill="#0a84ff"/>
+            <polygon points="${shine}" fill="rgba(255,255,255,.18)"/>
+            <circle cx="${x1.toFixed(2)}" cy="${y1.toFixed(2)}" r="2.8" fill="#040404"/>
+            <circle cx="${x2.toFixed(2)}" cy="${y2.toFixed(2)}" r="2.8" fill="#040404"/>`;
+  }
+
+  _buildSVG(deg, count, hl, th, gap, vw, cy) {
+    const totalW = count*(hl*2)+(count-1)*gap;
+    const startX = (vw-totalW)/2+hl;
+    let s='';
+    for(let i=0;i<count;i++) s+=this._slatHTML(startX+i*(hl*2+gap), cy, hl, th, deg);
+    return s;
+  }
+
+  _miniSVG(deg) {
+    return `<svg width="52" height="30" viewBox="0 0 52 30">
+      ${this._buildSVG(deg,4,8.5,3,3.5,52,15).replace(/#0a84ff/g,'rgba(10,132,255,.75)')}
+    </svg>`;
+  }
+
+  _label(tilt, pos, st) {
+    if (st==='opening') return 'Otwieranie...';
+    if (st==='closing') return 'Zamykanie...';
+    if (pos===0) return 'Zamknięte';
+    if (tilt===0)   return 'Lamele poziomo';
+    if (tilt<30)    return 'Lekko uchylone';
+    if (tilt<70)    return 'Uchylone';
+    if (tilt<100)   return 'Prawie otwarte';
+    return 'Całkowicie otwarte';
+  }
+
+  _render() {
+    this.shadowRoot.innerHTML = `
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      :host{display:block;font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif}
+      .card{background:#0f0f0f;border-radius:24px;border:.5px solid rgba(255,255,255,.09);padding:18px;position:relative;overflow:hidden}
+      .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);pointer-events:none;z-index:1}
+      .hrow{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+      .iw{width:40px;height:40px;border-radius:12px;background:rgba(10,132,255,.12);border:.5px solid rgba(10,132,255,.22);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+      .dn{font-size:17px;font-weight:600;color:#fff;letter-spacing:-.3px}
+      .ds{font-size:12px;color:#636366;margin-top:3px}
+      .pn{font-size:40px;font-weight:300;color:#fff;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+      .ps{font-size:20px;font-weight:300;color:#636366}
+      .stage{background:#080808;border-radius:16px;border:.5px solid rgba(255,255,255,.04);padding:12px 8px;margin-bottom:12px;position:relative;overflow:hidden}
+      .stage::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)}
+      .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+      .pb{background:#1a1a1a;border-radius:13px;border:.5px solid rgba(255,255,255,.055);padding:9px 3px 7px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:transform .1s,background .18s,border-color .18s;-webkit-tap-highlight-color:transparent;user-select:none}
+      .pb::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+      .pb:active{transform:scale(.95)}
+      .pb.on{background:rgba(10,132,255,.14);border-color:rgba(10,132,255,.35)}
+      .pl{font-size:11px;font-weight:500;color:#48484a;margin-top:5px;letter-spacing:.02em}
+      .pb.on .pl{color:#0a84ff}
+      .arow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+      .ab{border-radius:13px;padding:11px 6px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;position:relative;overflow:hidden;transition:background .18s,transform .1s;border:.5px solid transparent;-webkit-tap-highlight-color:transparent;user-select:none}
+      .ab::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;pointer-events:none}
+      .ab:active{transform:scale(.97)}
+      .ab-o{background:#1a1a1a;border-color:rgba(48,209,88,.25);color:#30d158}
+      .ab-o::before{background:linear-gradient(90deg,transparent,rgba(48,209,88,.1),transparent)}
+      .ab-o:active{background:rgba(48,209,88,.08)}
+      .ab-s{background:#1a1a1a;border-color:rgba(255,159,10,.25);color:#ff9f0a}
+      .ab-s::before{background:linear-gradient(90deg,transparent,rgba(255,159,10,.1),transparent)}
+      .ab-s:active{background:rgba(255,159,10,.08)}
+      .ab-c{background:#1a1a1a;border-color:rgba(255,69,58,.25);color:#ff453a}
+      .ab-c::before{background:linear-gradient(90deg,transparent,rgba(255,69,58,.12),transparent)}
+      .ab-c:active{background:rgba(255,69,58,.08)}
+    </style>
+    <div class="card">
+      <div class="hrow">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="iw">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <rect x="3" y="10" width="16" height="2.5" rx="1.25" fill="#0a84ff"/>
+              <circle cx="4.5" cy="11.25" r="1.5" fill="#1c1c1e"/>
+              <circle cx="17.5" cy="11.25" r="1.5" fill="#1c1c1e"/>
+              <rect x="2" y="4" width="1.5" height="14" rx=".75" fill="#3a3a3c"/>
+              <rect x="18.5" y="4" width="1.5" height="14" rx=".75" fill="#3a3a3c"/>
+            </svg>
+          </div>
+          <div>
+            <div class="dn">${this._name}</div>
+            <div class="ds" id="ds">—</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <span class="pn" id="pn">—</span><span class="ps">%</span>
+        </div>
+      </div>
+      <div class="stage"><svg width="100%" viewBox="0 0 420 88" id="main-svg"></svg></div>
+      <div class="pgrid">
+        ${[[0,0],[25,45],[75,94],[100,135]].map(([tilt,deg])=>`
+          <div class="pb" data-tilt="${tilt}">
+            ${this._miniSVG(deg)}
+            <div class="pl">${tilt}%</div>
+          </div>`).join('')}
+      </div>
+      <div class="arow">
+        <div class="ab ab-o" id="btn-open">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#30d158" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Otwórz
+        </div>
+        <div class="ab ab-s" id="btn-stop">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="#ff9f0a"/></svg>
+          Stop
+        </div>
+        <div class="ab ab-c" id="btn-close">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#ff453a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Zamknij
+        </div>
+      </div>
+    </div>`;
+
+    this.shadowRoot.getElementById('btn-open').addEventListener('click', ()=>this._svc('open_cover'));
+    this.shadowRoot.getElementById('btn-stop').addEventListener('click', ()=>this._svc('stop_cover'));
+    this.shadowRoot.getElementById('btn-close').addEventListener('click',()=>this._svc('close_cover'));
+    this.shadowRoot.querySelectorAll('.pb').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const tilt = parseInt(btn.dataset.tilt);
+        this._svc('set_cover_tilt_position', { tilt_position: tilt });
+      });
+    });
+  }
+
+  _animateTo(target) {
+    if (this._raf) cancelAnimationFrame(this._raf);
+    const start=this._curDeg, diff=target-start, dur=400, t0=performance.now();
+    const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    const svg=this.shadowRoot.getElementById('main-svg');
+    const step=now=>{
+      const t=Math.min((now-t0)/dur,1);
+      this._curDeg=start+diff*ease(t);
+      if(svg) svg.innerHTML=this._buildSVG(this._curDeg,8,22,6,5,420,44);
+      if(t<1) this._raf=requestAnimationFrame(step); else this._curDeg=target;
+    };
+    this._raf=requestAnimationFrame(step);
+  }
+
+  _update(tilt, pos, st) {
+    const r=this.shadowRoot;
+    const pnEl=r.getElementById('pn');
+    const dsEl=r.getElementById('ds');
+    if(pnEl) pnEl.textContent=tilt;
+    if(dsEl) dsEl.textContent=this._label(tilt,pos,st)+(this._room?' · '+this._room:'');
+    r.querySelectorAll('.pb').forEach(b=>b.classList.toggle('on', parseInt(b.dataset.tilt)===tilt));
+    const target=this._deg(tilt);
+    if(Math.abs(target-this._curDeg)>0.5) this._animateTo(target);
+  }
+
+  getCardSize() { return 4; }
+}
+
+customElements.define('aha-teleco-card', TelecoCard);

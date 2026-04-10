@@ -1023,4 +1023,4 @@ class SolarClockCard extends HTMLElement {
   getCardSize() { return 5; }
 }
 
-customElements.define('solar-clock-card', SolarClockCard);
+customElements.define('aha-solar-clock-card', SolarClockCard);

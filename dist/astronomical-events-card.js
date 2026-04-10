@@ -419,4 +419,4 @@ class AstronomicalEventsCard extends HTMLElement {
   }
 }
 
-customElements.define('astronomical-events-card', AstronomicalEventsCard);
+customElements.define('aha-astronomical-events-card', AstronomicalEventsCard);

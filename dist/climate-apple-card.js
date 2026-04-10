@@ -322,11 +322,11 @@ class ClimateAppleCard extends HTMLElement {
   }
 }
 
-customElements.define('climate-apple-card', ClimateAppleCard);
+customElements.define('aha-climate-apple-card', ClimateAppleCard);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type:        'climate-apple-card',
+  type:        'aha-climate-apple-card',
   name:        'Climate Apple Card',
   preview:     false,
   description: 'Kompaktowy kafelek klimatu — ikonka z obszaru, styl Apple Home.',
