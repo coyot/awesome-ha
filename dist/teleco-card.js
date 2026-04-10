@@ -83,9 +83,15 @@ class TelecoCard extends HTMLElement {
       .card{
         background:#2C2C2E;
         border-radius:18px;
-        padding:14px 14px 0;
+        padding:14px 14px 0 18px;
         position:relative;
         overflow:hidden;
+      }
+      .vbar{
+        position:absolute;left:0;top:0;bottom:0;width:4px;
+        border-radius:2px 0 0 2px;
+        background:transparent;
+        transition:background .4s ease;
       }
       .card::before{
         content:'';position:absolute;top:0;left:0;right:0;height:1px;
@@ -185,6 +191,7 @@ class TelecoCard extends HTMLElement {
     </style>
 
     <div class="card">
+      <div class="vbar" id="vbar"></div>
 
       <div class="hrow">
         <div class="iw">
@@ -273,10 +280,12 @@ class TelecoCard extends HTMLElement {
     const pctEl = r.getElementById('pct');
     const dsEl  = r.getElementById('ds');
     const pbar  = r.getElementById('pbar');
+    const vbar  = r.getElementById('vbar');
 
     if (pctEl) pctEl.textContent = tilt;
     if (dsEl)  dsEl.textContent  = this._label(tilt, pos, st);
     if (pbar)  pbar.style.width  = tilt + '%';
+    if (vbar)  vbar.style.background = tilt > 0 ? 'rgba(255,159,10,.85)' : 'transparent';
 
     // highlight nearest preset pill
     const PRESETS = [0, 33, 66, 100];
