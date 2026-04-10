@@ -464,7 +464,7 @@ class SolarClockCard extends HTMLElement {
       .map(ev => ({ev, days: daysUntil(ev.date)}))
       .filter(({days}) => days >= 0 && days <= 30)
       .sort((a,b) => a.days - b.days)
-      .slice(0, 2)
+      .slice(0, 1)
       .map(({ev, days}) => this._renderBanner(ev, days))
       .join('');
   }
@@ -805,10 +805,6 @@ class SolarClockCard extends HTMLElement {
           </div>`;
         }).join('')}</div>` : '';
 
-    // build ticker
-    const tickerItems = this._buildTickerItems();
-    const tickerHtml  = this._renderTicker(tickerItems);
-
     const html = `
       <style>${css}</style>
       <div class="card">
@@ -846,13 +842,11 @@ class SolarClockCard extends HTMLElement {
             </div>
           </div>
           ${banners}
-          ${tickerHtml}
         </div>
       </div>`;
 
     this.shadowRoot.innerHTML = html;
     this._bindEvents();
-    this._startTickerAuto();
   }
 
   _bindEvents() {
