@@ -5977,7 +5977,21 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         opacity:.65;
       }
       .pill:active{transform:scale(.90)}
-      .pill.on{opacity:1;animation:pill-glow 2s ease-in-out infinite;}
+      /* 0% active — static orange, no pulse */
+      .pill.on[data-tilt="0"]{
+        opacity:1;
+        background:rgba(255,159,10,.15) !important;
+        border-color:rgba(255,159,10,.55) !important;
+      }
+      .pill.on[data-tilt="0"] .pill-lbl{color:#ff9f0a !important;}
+      /* other presets active — pulsing orange */
+      .pill.on:not([data-tilt="0"]){
+        opacity:1;
+        background:rgba(255,159,10,.15) !important;
+        border-color:rgba(255,159,10,.55) !important;
+        animation:pill-glow 2s ease-in-out infinite;
+      }
+      .pill.on:not([data-tilt="0"]) .pill-lbl{color:#ff9f0a !important;}
       .pill-lbl{font-size:10px;font-weight:600;letter-spacing:-.1px}
 
       .pct-wrap{flex-shrink:0;text-align:right}
@@ -5985,18 +5999,17 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       .pu{font-size:15px;font-weight:400;color:rgba(10,132,255,.45)}
 
       /* ── actions ── */
-      .arow{
-        display:flex;gap:8px;padding:10px 0 14px;
-      }
+      .arow{display:flex;gap:8px;padding:10px 0 14px;}
       .ab{
-        flex:1;padding:11px 4px;font-size:12px;font-weight:500;
-        cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+        flex:1;padding:11px 6px;font-size:11px;font-weight:500;
+        color:rgba(255,255,255,.65);
+        cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
         border-radius:14px;position:relative;overflow:hidden;
         background:linear-gradient(145deg,rgba(58,58,60,.95) 0%,rgba(44,44,46,.98) 100%);
         border:1px solid rgba(255,255,255,.08);
         box-shadow:0 4px 12px rgba(0,0,0,.25),0 2px 4px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.10);
         backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-        transition:transform .10s,box-shadow .14s;
+        transition:color .2s,transform .10s,box-shadow .14s;
         -webkit-tap-highlight-color:transparent;user-select:none;
       }
       .ab::before{
@@ -6004,10 +6017,27 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.15) 50%,transparent 100%);
         pointer-events:none;
       }
+      .ab:hover{color:rgba(255,255,255,.92)}
       .ab:active{transform:scale(.94);box-shadow:0 2px 6px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06)}
-      .ab-o{color:#30d158}.ab-o:active{background:linear-gradient(145deg,rgba(48,209,88,.18),rgba(44,44,46,.98))}
-      .ab-s{color:#ff9f0a}.ab-s:active{background:linear-gradient(145deg,rgba(255,159,10,.18),rgba(44,44,46,.98))}
-      .ab-c{color:#ff453a}.ab-c:active{background:linear-gradient(145deg,rgba(255,69,58,.18),rgba(44,44,46,.98))}
+      /* icon circle — glass morphism, orange glow on hover */
+      .ab-ic{
+        width:28px;height:28px;border-radius:9px;flex-shrink:0;
+        background:linear-gradient(135deg,rgba(58,58,60,.6) 0%,rgba(44,44,46,.8) 100%);
+        border:1px solid rgba(255,255,255,.08);
+        display:flex;align-items:center;justify-content:center;
+        color:#8E8E93;
+        transition:all .25s cubic-bezier(.4,0,.2,1);
+        box-shadow:0 2px 6px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.08);
+      }
+      .ab:hover .ab-ic{
+        color:#ff9f0a;
+        background:linear-gradient(135deg,rgba(245,166,35,.20) 0%,rgba(220,150,30,.25) 100%);
+        border-color:rgba(245,166,35,.30);
+        box-shadow:0 0 16px rgba(255,159,10,.28),0 0 32px rgba(255,159,10,.16),
+                   0 4px 8px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.12);
+        transform:scale(1.06);
+      }
+      .ab:active .ab-ic{transform:scale(.96);}
 
       /* ── progress bar ── */
       .pbar-wrap{height:3px;background:rgba(255,255,255,.06);margin:0 -14px}
@@ -6044,16 +6074,22 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       </div>
 
       <div class="arow">
-        <div class="ab ab-o" id="btn-open">
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#30d158" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="ab" id="btn-open">
+          <div class="ab-ic">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
           Otwórz
         </div>
-        <div class="ab ab-s" id="btn-stop">
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="#ff9f0a"/></svg>
+        <div class="ab" id="btn-stop">
+          <div class="ab-ic">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="currentColor"/></svg>
+          </div>
           Stop
         </div>
-        <div class="ab ab-c" id="btn-close">
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="#ff453a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="ab" id="btn-close">
+          <div class="ab-ic">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
           Zamknij
         </div>
       </div>
