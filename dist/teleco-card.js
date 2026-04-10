@@ -39,7 +39,7 @@ class TelecoCard extends HTMLElement {
   }
 
   _slatInner(deg, w, h, color) {
-    const cx = w/2, cy = h/2, HL = w/2 - 2.5, TH = Math.max(2.5, h*0.22);
+    const cx = w/2, cy = h/2, HL = w/2 - 2.5, TH = Math.max(1.2, HL * 0.14);
     const r = deg * Math.PI / 180, ca = Math.cos(r), sa = Math.sin(r);
     const px = -sa * TH, py = ca * TH;
     const x1 = cx - HL*ca, y1 = cy - HL*sa;
@@ -68,10 +68,10 @@ class TelecoCard extends HTMLElement {
   _render() {
     // color per preset — grey→sky→blue→green
     const PC = {
-      0:   { bg:'rgba(72,72,74,.22)',    bd:'rgba(142,142,147,.28)', tx:'#8E8E93',  ic:'rgba(142,142,147,.75)' },
-      33:  { bg:'rgba(90,200,250,.15)',  bd:'rgba(90,200,250,.32)',  tx:'#5AC8FA',  ic:'rgba(90,200,250,.82)'  },
-      66:  { bg:'rgba(10,132,255,.15)',  bd:'rgba(10,132,255,.32)',  tx:'#0A84FF',  ic:'rgba(10,132,255,.85)'  },
-      100: { bg:'rgba(52,199,89,.14)',   bd:'rgba(52,199,89,.32)',   tx:'#34C759',  ic:'rgba(52,199,89,.82)'   },
+      0:   { bg:'rgba(72,72,74,.22)',    bd:'rgba(142,142,147,.28)', tx:'#8E8E93',  ic:'rgba(142,142,147,.75)', pg:'rgba(142,142,147,.20)' },
+      33:  { bg:'rgba(90,200,250,.15)',  bd:'rgba(90,200,250,.32)',  tx:'#5AC8FA',  ic:'rgba(90,200,250,.82)',  pg:'rgba(90,200,250,.28)'  },
+      66:  { bg:'rgba(10,132,255,.15)',  bd:'rgba(10,132,255,.32)',  tx:'#0A84FF',  ic:'rgba(10,132,255,.85)',  pg:'rgba(10,132,255,.30)'  },
+      100: { bg:'rgba(52,199,89,.14)',   bd:'rgba(52,199,89,.32)',   tx:'#34C759',  ic:'rgba(52,199,89,.82)',   pg:'rgba(52,199,89,.28)'   },
     };
     const PRESETS = [0, 33, 66, 100];
 
@@ -79,6 +79,11 @@ class TelecoCard extends HTMLElement {
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
+
+      @keyframes pill-glow {
+        0%,100% { box-shadow: 0 0 0 0 var(--pg, rgba(10,132,255,0)); }
+        50%      { box-shadow: 0 0 0 4px var(--pg, rgba(10,132,255,.22)); }
+      }
 
       .card{
         background:#2C2C2E;
@@ -118,7 +123,7 @@ class TelecoCard extends HTMLElement {
         opacity:.65;
       }
       .pill:active{transform:scale(.90)}
-      .pill.on{opacity:1;}
+      .pill.on{opacity:1;animation:pill-glow 2s ease-in-out infinite;}
       .pill-lbl{font-size:10px;font-weight:600;letter-spacing:-.1px}
 
       .pct-wrap{flex-shrink:0;text-align:right}
@@ -163,7 +168,7 @@ class TelecoCard extends HTMLElement {
                 const c = PC[t];
                 const deg = this._deg(t);
                 return `<div class="pill" data-tilt="${t}"
-                  style="background:${c.bg};border-color:${c.bd};">
+                  style="background:${c.bg};border-color:${c.bd};--pg:${c.pg};">
                   <svg width="14" height="10" viewBox="0 0 14 10" overflow="visible">
                     ${this._slatInner(deg, 14, 10, c.ic)}
                   </svg>
