@@ -73,21 +73,10 @@ Most setups here are:
 
 ## 📦 Installation via HACS
 
-1. In HACS go to **Frontend → Custom repositories**
-2. Add this repo URL, category: **Lovelace**
+1. In HACS go to **Dashboard → Custom repositories**
+2. Add this repo URL, category: **Dashboard**
 3. Install **Awesome HA Cards**
-4. Add each card as a Lovelace resource (`/hacsfiles/awesome-ha/dist/<filename>.js`)
-
-Or add resources manually in **Settings → Dashboards → Resources**:
-
-| File | Resource URL |
-|------|-------------|
-| `aha-action-apple-card.js` | `/hacsfiles/awesome-ha/dist/action-apple-card.js` |
-| `aha-entries-apple-card.js` | `/hacsfiles/awesome-ha/dist/entries-apple-card.js` |
-| `aha-garden-meters-card.js` | `/hacsfiles/awesome-ha/dist/garden-meters-card.js` |
-| `aha-szambo-apple-card.js` | `/hacsfiles/awesome-ha/dist/szambo-apple-card.js` |
-| `aha-szambo-predict-card.js` | `/hacsfiles/awesome-ha/dist/szambo-predict-card.js` |
-| `aha-waste-schedule-apple-card.js` | `/hacsfiles/awesome-ha/dist/waste-schedule-apple-card.js` |
+4. Reload the browser — cards are ready to use immediately, no manual resource setup needed
 
 ## 🃏 Custom Cards
 
