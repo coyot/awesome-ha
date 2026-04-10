@@ -162,6 +162,9 @@ class TelecoCard extends HTMLElement {
       </div>
     </div>`;
 
+    const svgInit = this.shadowRoot.getElementById('main-svg');
+    if (svgInit) svgInit.innerHTML = this._buildSVG(this._curDeg, 8, 22, 6, 5, 420, 44);
+
     this.shadowRoot.getElementById('btn-open').addEventListener('click', ()=>this._svc('open_cover'));
     this.shadowRoot.getElementById('btn-stop').addEventListener('click', ()=>this._svc('stop_cover'));
     this.shadowRoot.getElementById('btn-close').addEventListener('click',()=>this._svc('close_cover'));
@@ -202,3 +205,11 @@ class TelecoCard extends HTMLElement {
 }
 
 customElements.define('aha-teleco-card', TelecoCard);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type:        'aha-teleco-card',
+  name:        'Teleco Blind Card',
+  preview:     false,
+  description: 'Sterowanie żaluzjami z animowanym podglądem lameli.',
+});
