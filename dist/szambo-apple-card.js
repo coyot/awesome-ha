@@ -25,8 +25,6 @@
  *   entity_stale:        binary_sensor.ogrod_dane_nieaktualne
  */
 
-const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
-
 class SzamboAppleCard extends HTMLElement {
   constructor() {
     super();
@@ -372,6 +370,7 @@ class SzamboAppleCard extends HTMLElement {
 
   _render() {
     if (!this._hass) return;
+    const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
 
     const cap         = this._config.capacity;
     const warnObserve = this._config.warn_observe;

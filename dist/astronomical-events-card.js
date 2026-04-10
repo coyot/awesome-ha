@@ -4,8 +4,6 @@
 //   url: /local/astronomical-events-card.js
 //   type: module
 
-const MONTHS = window.AHA.MONTHS;
-
 const TYPES = {
   eclipse:       { label:'Zaćmienie Słońca',   r:220, g:160, b:30  },
   lunar_eclipse: { label:'Zaćmienie Księżyca', r:220, g:70,  b:70  },
@@ -57,7 +55,7 @@ const RAW = [
 
 function fmtDate(d) {
   const x = new Date(d + 'T00:00:00');
-  return x.getDate() + ' ' + MONTHS[x.getMonth()] + ' ' + x.getFullYear();
+  return x.getDate() + ' ' + window.AHA.MONTHS[x.getMonth()] + ' ' + x.getFullYear();
 }
 
 function makeIcon(type, r, g, b) {

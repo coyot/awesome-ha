@@ -12,9 +12,8 @@
  *   entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
  */
 
-const { CLR_D1, CLR_D2 } = window.AHA.SZAMBO;
-const R      = 38;
-const CIRC   = 2 * Math.PI * R;
+const R    = 38;
+const CIRC = 2 * Math.PI * R;
 
 class SzamboFinanceCard extends HTMLElement {
   constructor() {
@@ -49,6 +48,7 @@ class SzamboFinanceCard extends HTMLElement {
 
   _render() {
     if (!this._hass) return;
+    const { CLR_D1, CLR_D2 } = window.AHA.SZAMBO;
 
     const cost     = this._config.cost;
     const dom1Name = this._config.dom1_name;

@@ -6,7 +6,6 @@ const LAT = 52.40, LON = 16.87;
 const SHOW_PLANETS = true;
 
 const DAYS   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
-const MONTHS = window.AHA.MONTHS;
 const pad = n => String(n).padStart(2,'0');
 
 // ─── SUN MATH ────────────────────────────────────────────────────────────────
@@ -823,7 +822,7 @@ class SolarClockCard extends HTMLElement {
           <div class="top">
             <div>
               <div class="day-label">${DAYS[now.getDay()]}</div>
-              <div class="date-label">${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}</div>
+              <div class="date-label">${now.getDate()} ${window.AHA.MONTHS[now.getMonth()]} ${now.getFullYear()}</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
               <span class="phase-badge">${phaseName}</span>

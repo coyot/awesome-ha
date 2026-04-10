@@ -1660,8 +1660,6 @@ window.customCards.push({
  *   entity_stale:        binary_sensor.ogrod_dane_nieaktualne
  */
 
-const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
-
 class SzamboAppleCard extends HTMLElement {
   constructor() {
     super();
@@ -2007,6 +2005,7 @@ class SzamboAppleCard extends HTMLElement {
 
   _render() {
     if (!this._hass) return;
+    const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
 
     const cap         = this._config.capacity;
     const warnObserve = this._config.warn_observe;
@@ -3197,9 +3196,8 @@ window.customCards.push({
  *   entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
  */
 
-const { CLR_D1, CLR_D2 } = window.AHA.SZAMBO;
-const R      = 38;
-const CIRC   = 2 * Math.PI * R;
+const R    = 38;
+const CIRC = 2 * Math.PI * R;
 
 class SzamboFinanceCard extends HTMLElement {
   constructor() {
@@ -3234,6 +3232,7 @@ class SzamboFinanceCard extends HTMLElement {
 
   _render() {
     if (!this._hass) return;
+    const { CLR_D1, CLR_D2 } = window.AHA.SZAMBO;
 
     const cost     = this._config.cost;
     const dom1Name = this._config.dom1_name;
@@ -4099,8 +4098,6 @@ customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);/
 //   url: /local/astronomical-events-card.js
 //   type: module
 
-const MONTHS = window.AHA.MONTHS;
-
 const TYPES = {
   eclipse:       { label:'Zaćmienie Słońca',   r:220, g:160, b:30  },
   lunar_eclipse: { label:'Zaćmienie Księżyca', r:220, g:70,  b:70  },
@@ -4152,7 +4149,7 @@ const RAW = [
 
 function fmtDate(d) {
   const x = new Date(d + 'T00:00:00');
-  return x.getDate() + ' ' + MONTHS[x.getMonth()] + ' ' + x.getFullYear();
+  return x.getDate() + ' ' + window.AHA.MONTHS[x.getMonth()] + ' ' + x.getFullYear();
 }
 
 function makeIcon(type, r, g, b) {
@@ -4851,7 +4848,6 @@ const LAT = 52.40, LON = 16.87;
 const SHOW_PLANETS = true;
 
 const DAYS   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
-const MONTHS = window.AHA.MONTHS;
 const pad = n => String(n).padStart(2,'0');
 
 // ─── SUN MATH ────────────────────────────────────────────────────────────────
@@ -5668,7 +5664,7 @@ class SolarClockCard extends HTMLElement {
           <div class="top">
             <div>
               <div class="day-label">${DAYS[now.getDay()]}</div>
-              <div class="date-label">${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}</div>
+              <div class="date-label">${now.getDate()} ${window.AHA.MONTHS[now.getMonth()]} ${now.getFullYear()}</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
               <span class="phase-badge">${phaseName}</span>
