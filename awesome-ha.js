@@ -5956,17 +5956,18 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 
       /* ── presets ── */
       .divider{height:.5px;background:rgba(255,255,255,.07);margin:0 14px}
-      .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:10px 14px;gap:6px}
+      .pgrid{display:grid;grid-template-columns:repeat(4,1fr);padding:8px 14px;gap:5px}
       .pp{
-        border-radius:10px;padding:8px 4px 6px;text-align:center;cursor:pointer;
+        border-radius:8px;padding:5px 4px 4px;text-align:center;cursor:pointer;
+        min-height:44px;
         background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.07);
-        display:flex;flex-direction:column;align-items:center;gap:4px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
         transition:background .14s,border-color .14s,transform .10s;
         -webkit-tap-highlight-color:transparent;user-select:none;
       }
       .pp:active{transform:scale(.93)}
       .pp.on{background:rgba(10,132,255,.16);border-color:rgba(10,132,255,.38)}
-      .pl{font-size:11px;font-weight:500;color:rgba(255,255,255,.28);letter-spacing:-.1px}
+      .pl{font-size:10px;font-weight:500;color:rgba(255,255,255,.28);letter-spacing:-.1px}
       .pp.on .pl{color:rgba(10,132,255,.90)}
 
       /* ── actions ── */
@@ -6012,8 +6013,8 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         ${PRESETS.map(t => {
           const deg = this._deg(t);
           return `<div class="pp" data-tilt="${t}">
-            <svg width="36" height="22" viewBox="0 0 36 22" overflow="visible">
-              ${this._slatInner(deg, 36, 22, 'rgba(10,132,255,.55)')}
+            <svg width="28" height="16" viewBox="0 0 28 16" overflow="visible">
+              ${this._slatInner(deg, 28, 16, 'rgba(10,132,255,.55)')}
             </svg>
             <div class="pl">${t}%</div>
           </div>`;
