@@ -5935,21 +5935,21 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 
       /* ── glow wrapper ── */
       .glow{
-        border-radius:16px;
+        border-radius:18px;
         transition:box-shadow .5s ease;
       }
       .glow.on{
         box-shadow:
-          0 0 0 1px rgba(255,159,10,.25),
-          0 0 18px 2px rgba(255,159,10,.18),
-          0 0 40px 6px rgba(255,159,10,.08);
+          0 0 0 1px rgba(255,159,10,.22),
+          0 0 18px 2px rgba(255,159,10,.14),
+          0 0 40px 6px rgba(255,159,10,.07);
       }
 
       /* ── card ── */
       .card{
         background:#1c1c1e;
-        border-radius:16px;
-        padding:14px 16px;
+        border-radius:18px;
+        padding:14px 16px 16px;
         position:relative;
         overflow:hidden;
       }
@@ -5965,6 +5965,8 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       .iconbox{
         width:48px;height:48px;border-radius:13px;
         display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        background:rgba(142,142,147,.07);
+        border:.5px solid rgba(142,142,147,.15);
         transition:background .35s,border-color .35s;
       }
 
@@ -6017,19 +6019,23 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       .pill:active{transform:scale(.92)}
 
       /* ── action buttons ── */
-      .btns{display:flex;gap:6px}
+      .btns{
+        display:flex;gap:6px;
+        border-top:.5px solid rgba(255,255,255,.07);
+        padding-top:10px;
+      }
       .btn{
         flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
         padding:9px 4px;
         background:rgba(255,255,255,.05);border-radius:10px;
-        font-size:10px;font-weight:500;color:rgba(255,255,255,.50);
-        cursor:pointer;border:.5px solid rgba(255,255,255,.05);
+        font-size:10px;font-weight:500;color:rgba(255,255,255,.45);
+        cursor:pointer;border:.5px solid rgba(255,255,255,.08);
         transition:color .15s,background .15s,transform .1s;
         -webkit-tap-highlight-color:transparent;user-select:none;
       }
       .btn:active{transform:scale(.95);background:rgba(255,255,255,.09)}
-      .btn:hover{color:rgba(255,255,255,.80);background:rgba(255,255,255,.08)}
-      .btn.stop:hover{background:rgba(255,69,58,.12);color:#ff453a}
+      .btn:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)}
+      .btn.stop:hover{background:rgba(255,69,58,.12);color:#ff453a;border-color:rgba(255,69,58,.20)}
     </style>
 
     <div class="glow" id="glow">
@@ -6119,7 +6125,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     const iconbox  = r.getElementById('iconbox');
 
     if (pctEl)    { pctEl.textContent = tilt; pctEl.style.color = acc; }
-    if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); }
+    if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366'; }
     if (fillEl)   { fillEl.style.width = tilt + '%'; fillEl.style.background = on ? '#ff9f0a' : 'rgba(142,142,147,.4)'; }
 
     // glow
@@ -6146,7 +6152,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     }
   }
 
-  getCardSize() { return 2; }
+  getCardSize() { return 3; }
 }
 
 customElements.define('aha-teleco-card-slim', TelecoCard);
