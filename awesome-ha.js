@@ -1,3 +1,4 @@
+(function() {
 /**
  * action-apple-card.js — przycisk akcji + nawigacji, Apple Home Premium
  *
@@ -708,7 +709,11 @@ window.customCards.push({
   name:        'Action Apple Card',
   preview:     false,
   description: 'Premium action & navigation button — Apple Home style with glass morphism, gradient layers, smooth animations.',
-});/**
+});
+})();
+
+(function() {
+/**
  * entries-apple-card.js — ostatnie wjazdy, Apple Home style
  *
  * input_text.wjazd_x  →  format: "tk|2026-03-19 08:25:26"
@@ -1207,7 +1212,11 @@ window.customCards.push({
   name: 'Entries Apple Card',
   description: 'Apple Home style timeline ostatnich wjazdów z glass morphism i smooth animations.',
   preview: false,
-});/**
+});
+})();
+
+(function() {
+/**
  * garden-meters-card.js — liczniki ogrodowe, styl Apple iOS
  *
  * INSTALACJA:
@@ -1591,6 +1600,10 @@ window.customCards.push({
   preview:     false,
   description: 'Liczniki ogrodowe z edycją inline, statusem per-licznik i osobnymi przyciskami zapisu.',
 });
+
+})();
+
+(function() {
 /**
  * szambo-apple-card.js — Apple Home Premium Edition
  *
@@ -2706,7 +2719,11 @@ window.customCards.push({
   name:        'Szambo Apple Card',
   preview:     false,
   description: 'Premium septic tank visualization — Apple Home style with 3D liquid tank, glass morphism, gradient effects, interactive highlighting & smooth animations.',
-});/**
+});
+})();
+
+(function() {
+/**
  * szambo-predict-card.js — predykcja wywozu szamba, styl Apple Home
  *
  * INSTALACJA:
@@ -3146,7 +3163,11 @@ window.customCards.push({
   name:        'Szambo Predict Card',
   preview:     false,
   description: 'Predykcja wywozu szamba z countdown i paskiem postępu.',
-});/**
+});
+})();
+
+(function() {
+/**
  * szambo-finance-card.js — rozliczenie szamba, styl Apple Home
  *
  * UŻYCIE:
@@ -3449,7 +3470,11 @@ window.customCards.push({
   name:        'Szambo Finance Card',
   preview:     false,
   description: 'Rozliczenie koszt\u00f3w wywozu szamba z wykresem ko\u0142owym.',
-});/**
+});
+})();
+
+(function() {
+/**
  * waste-schedule-apple-card.js — Apple-style waste pickup schedule
  *
  * Config:
@@ -4057,7 +4082,11 @@ class WasteScheduleAppleCard extends HTMLElement {
   }
 }
 
-customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);// astronomical-events-card.js
+customElements.define('aha-waste-schedule-apple-card', WasteScheduleAppleCard);
+})();
+
+(function() {
+// astronomical-events-card.js
 // Place in: /config/www/astronomical-events-card.js
 // Register in Lovelace resources:
 //   url: /local/astronomical-events-card.js
@@ -4478,7 +4507,11 @@ class AstronomicalEventsCard extends HTMLElement {
   }
 }
 
-customElements.define('aha-astronomical-events-card', AstronomicalEventsCard);/**
+customElements.define('aha-astronomical-events-card', AstronomicalEventsCard);
+})();
+
+(function() {
+/**
  * climate-apple-card.js — kompaktowy kafelek, styl Apple Home
  * Ikonka dobierana automatycznie na podstawie obszaru (area) encji.
  *
@@ -4810,7 +4843,11 @@ window.customCards.push({
   name:        'Climate Apple Card',
   preview:     false,
   description: 'Kompaktowy kafelek klimatu — ikonka z obszaru, styl Apple Home.',
-});// solar-clock-card.js
+});
+})();
+
+(function() {
+// solar-clock-card.js
 // Place in: /config/www/solar-clock-card.js
 // Resource: url: /local/solar-clock-card.js  type: module
 
@@ -5835,7 +5872,11 @@ class SolarClockCard extends HTMLElement {
   getCardSize() { return 5; }
 }
 
-customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard extends HTMLElement {
+customElements.define('aha-solar-clock-card', SolarClockCard);
+})();
+
+(function() {
+class TelecoCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -6039,3 +6080,5 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 }
 
 customElements.define('aha-teleco-card', TelecoCard);
+})();
+
