@@ -6002,7 +6002,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       .ab{
         flex:1;padding:11px 6px;font-size:11px;font-weight:500;
         color:rgba(255,255,255,.65);
-        cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+        cursor:pointer;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;
         border-radius:14px;position:relative;overflow:hidden;
         background:linear-gradient(145deg,rgba(58,58,60,.95) 0%,rgba(44,44,46,.98) 100%);
         border:1px solid rgba(255,255,255,.08);
@@ -6040,7 +6040,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 
       /* ── progress bar ── */
       .pbar-wrap{height:3px;background:rgba(255,255,255,.06);margin:0 -14px}
-      .pbar-fill{height:100%;background:linear-gradient(90deg,rgba(10,100,220,.55),rgba(10,132,255,.90));transition:width .5s ease}
+      .pbar-fill{height:100%;background:linear-gradient(90deg,rgba(200,110,0,.55),rgba(255,159,10,.90));transition:width .5s ease}
     </style>
 
     <div class="card">
@@ -6073,11 +6073,11 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       </div>
 
       <div class="arow">
-        <div class="ab" id="btn-open">
+        <div class="ab" id="btn-close">
           <div class="ab-ic">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          Otwórz
+          Zamknij
         </div>
         <div class="ab" id="btn-stop">
           <div class="ab-ic">
@@ -6085,11 +6085,11 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
           </div>
           Stop
         </div>
-        <div class="ab" id="btn-close">
+        <div class="ab" id="btn-open">
           <div class="ab-ic">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          Zamknij
+          Otwórz
         </div>
       </div>
 
