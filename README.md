@@ -1,111 +1,70 @@
-# 🏠 awesome-ha
+# awesome-ha
 
-> Home Assistant yamls, ideas, cards, everything.
+> Custom dashboard cards for Home Assistant — Apple Home aesthetic, dark mode, mobile-first.
 
-A curated collection of my **Home Assistant experiments, UI ideas, YAML configs, and custom Lovelace setups**.
-
-This repo is a **playground + knowledge base** where I store:
-- reusable configs
-- UI concepts (Apple Home style 👀)
-- custom cards
-- automations
-- random ideas that actually worked
+A collection of hand-crafted Lovelace cards built with vanilla JS. No dependencies, no build step. Installs via HACS in one click.
 
 ---
 
-## ✨ What you'll find here
+## Installation
 
-### 🎛️ Lovelace UI
-- Apple Home–inspired dashboards
-- `custom:button-card` setups
-- layout experiments
-- mobile-first designs
-
-### ⚙️ YAML Configurations
-- reusable snippets
-- templating patterns
-- helpers & tricks
-
-### 🤖 Automations
-- practical automations
-- experiments with logic & triggers
-- ideas worth reusing
-
-### 📊 Visualizations
-- charts (`apexcharts-card`)
-- state visualizations
-- compact info panels
+1. In HACS go to **Dashboard → Custom repositories**
+2. Add `https://github.com/coyot/awesome-ha`, category: **Dashboard**
+3. Install **Awesome HA Cards**
+4. Hard-refresh the browser — all cards are ready, no manual resource setup needed
 
 ---
 
-## 🎯 Philosophy
+## Cards
 
-- **Minimalism > clutter**
-- **UX matters more than features**
-- **Consistency is everything**
-- **If it doesn’t feel like Apple, it’s not finished yet**
+All cards use the `aha-` prefix and register automatically in the card picker.
+
+### `aha-action-apple-card`
+Tappable button for triggering scripts, scenes, covers, lights or any HA service. Supports navigation, confirmation dialogs, compact mode, and conditional danger highlighting when an entity exceeds a threshold.
+
+### `aha-entries-apple-card`
+Timeline of recent gate/door entries. Reads `input_text` entities in `person|timestamp` format, groups simultaneous arrivals, and shows relative time labels ("3 min ago", "yesterday @ 08:25").
+
+### `aha-garden-meters-card`
+Dual water meter card with inline numeric editing. Displays current readings, stale-data warnings, and a confirm button that calls `input_number.set_value` + `input_button.press` in one tap.
+
+### `aha-szambo-apple-card`
+Septic tank monitor for two households. Shows fill level as a 3D isometric tank with layered liquids (sewage + garden water per house), warning thresholds, and optional cost breakdown.
+
+### `aha-szambo-predict-card`
+Predicts days until the septic tank needs emptying based on current fill level and daily usage rate. Shows a countdown, target date, and a progress bar from last emptying to full capacity.
+
+### `aha-szambo-finance-card`
+Cost split between two households for septic emptying. Displays a donut chart and per-house amounts based on actual water consumption ratio.
+
+### `aha-waste-schedule-apple-card`
+Waste pickup schedule with an optional 2-week mini calendar and an upcoming list. Urgency color-coding: red (today/tomorrow), orange (this week), blue (next week), green (later). Supports multiple waste types with custom icons and colors.
+
+### `aha-astronomical-events-card`
+Paginated calendar of upcoming astronomical events — solar/lunar eclipses, meteor showers, planetary conjunctions. Pre-loaded with events through 2031, filterable by type.
+
+### `aha-climate-apple-card`
+Compact climate tile showing temperature, humidity, and HVAC state for a room. Icon reflects the area type (bedroom, living room, office, etc.).
+
+### `aha-solar-clock-card`
+Analog clock with a sun arc showing today's sunrise, solar noon, and sunset. Displays current planetary positions and a date label with Polish month names.
+
+### `aha-teleco-card`
+Telecom service status card — shows signal strength, data usage, or any numeric sensor in a compact tile with status color coding.
 
 ---
 
-## 🧱 Tech Stack
+## Design
+
+- Dark mode optimized
+- Mobile-first layouts
+- Apple Home / iOS aesthetic
+- SF Pro typography, glass morphism, smooth animations
+- No external dependencies — pure vanilla JS
+
+---
+
+## Requirements
 
 - Home Assistant `2024.4.0+`
 - HACS
-- `custom:button-card`
-- `card-mod`
-- `layout-card`
-- `apexcharts-card`
-- more coming...
-
----
-
-## 🌙 Design Approach
-
-Most setups here are:
-- optimized for **dark mode**
-- focused on **mobile usability**
-- inspired by:
-  - Apple Home
-  - iOS Control Center
-  - iOS widgets
-
----
-
-## 📦 Installation via HACS
-
-1. In HACS go to **Dashboard → Custom repositories**
-2. Add this repo URL, category: **Dashboard**
-3. Install **Awesome HA Cards**
-4. Reload the browser — cards are ready to use immediately, no manual resource setup needed
-
-## 🃏 Custom Cards
-
-All cards use the `aha-` prefix.
-
-| Card type | Description |
-|-----------|-------------|
-| `custom:aha-action-apple-card` | Action & navigation button with glass morphism |
-| `custom:aha-entries-apple-card` | Timeline of recent entries/visits |
-| `custom:aha-garden-meters-card` | Garden water meter with inline editing |
-| `custom:aha-szambo-apple-card` | Septic tank monitor with 3D isometric visualization |
-| `custom:aha-szambo-predict-card` | Septic tank emptying prediction & countdown |
-| `custom:aha-szambo-finance-card` | Septic tank cost breakdown |
-| `custom:aha-waste-schedule-apple-card` | Waste pickup schedule with calendar view |
-| `custom:aha-astronomical-events-card` | Upcoming astronomical events calendar |
-| `custom:aha-climate-apple-card` | Compact climate tile, Apple Home style |
-| `custom:aha-solar-clock-card` | Solar clock with day/night arc visualization |
-| `custom:aha-teleco-card` | Telecommunications status card |
-
----
-
-## 📂 Structure (WIP)
-
-```bash
-awesome-ha/
-├── dist/          # Custom cards (aha-*)
-├── dashboards/
-├── cards/
-├── templates/
-├── automations/
-├── ideas/
-└── misc/
