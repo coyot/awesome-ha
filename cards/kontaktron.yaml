@@ -1,0 +1,22 @@
+# aha-kontaktron-card — kwadratowy kafelek czujnika drzwi/okna
+# Pokazuje: stan (otwarte/zamknięte), czas od otwarcia, poziom baterii
+# alarm_after: minuty po których aktywuje się alarm wizualny (domyślnie: 10)
+#
+# Stany:
+#   zamknięte  → zielony akcent
+#   otwarte    → pomarańczowy + licznik czasu
+#   alarm      → czerwony pulsujący (po upłynięciu alarm_after minut)
+#
+# Użycie w grid (np. 4 kafelki w rzędzie):
+#   type: grid
+#   columns: 4
+#   square: true
+#   cards:
+#     - type: custom:aha-kontaktron-card
+#       ...
+
+type: custom:aha-kontaktron-card
+entity: binary_sensor.kontaktron_drzwi
+name: Drzwi wejściowe
+battery_entity: sensor.kontaktron_drzwi_battery
+alarm_after: 10

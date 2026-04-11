@@ -52,6 +52,9 @@ Analog clock with a sun arc showing today's sunrise, solar noon, and sunset. Dis
 ### `aha-teleco-card`
 Telecom service status card — shows signal strength, data usage, or any numeric sensor in a compact tile with status color coding.
 
+### `aha-kontaktron-card`
+Square tile for a door/window contact sensor (`binary_sensor`). Shows open/closed state, elapsed time since opening, and optional battery level. Triggers a red pulsing alarm after a configurable number of minutes open (`alarm_after`, default 10).
+
 ---
 
 ## Design
