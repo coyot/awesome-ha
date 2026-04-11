@@ -1,0 +1,15 @@
+# aha-temp-slim-card — kompaktowy kwadratowy kafelek temperatury
+# Tylko: nazwa pomieszczenia + temperatura + termometr
+# Kliknięcie otwiera historię sensora
+#
+# Użycie w grid (np. 4 kafelki w rzędzie):
+#   type: grid
+#   columns: 4
+#   square: true
+#   cards:
+#     - type: custom:aha-temp-slim-card
+#       ...
+
+type: custom:aha-temp-slim-card
+temp_entity: sensor.temperature_salon
+name: Salon
