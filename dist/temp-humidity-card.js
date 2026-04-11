@@ -219,13 +219,13 @@ class TempHumidityCard extends HTMLElement {
     const st   = this._getTempState(temp);
     const hs   = this._getHumidityState(hum);
 
-    const TUBE_TOP = 30;
-    const TUBE_H   = 65;
+    const TUBE_TOP = 28;
+    const TUBE_H   = 100;
     const fillH = Math.min(TUBE_H, (st.fillPct / 100) * TUBE_H);
     const fillY = TUBE_TOP + TUBE_H - fillH;
 
-    // viewBox 200×150, tube x=158 w=12, bulb cx=164 cy=105 r=12
-    const BULB_CY = 105;
+    // viewBox 200×200, tube x=158 w=12, bulb cx=164 cy=140 r=12
+    const BULB_CY = 140;
     const isOffline = temp === null;
     const tempStr = isOffline ? '--°' : temp.toFixed(1) + '°';
 
@@ -236,7 +236,7 @@ class TempHumidityCard extends HTMLElement {
   .card {
     position: relative;
     width: 100%;
-    aspect-ratio: 4/3;
+    aspect-ratio: 1/1;
     border-radius: 18px;
     overflow: hidden;
     background: ${st.bg};
@@ -429,7 +429,7 @@ class TempHumidityCard extends HTMLElement {
   ${this._batteryHTML(bat)}
   <div class="temp-hit" id="temp-hit"></div>
 
-  <svg class="main-svg" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+  <svg class="main-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${st.gradStops[0]}"/>
@@ -441,7 +441,7 @@ class TempHumidityCard extends HTMLElement {
     </defs>
 
     <!-- temp value -->
-    <text x="12" y="68"
+    <text x="12" y="82"
       fill="${isOffline ? 'rgba(255,255,255,0.15)' : 'white'}"
       font-size="32" font-weight="700"
       font-family="-apple-system,system-ui"
@@ -461,10 +461,10 @@ class TempHumidityCard extends HTMLElement {
     ` : ''}
 
     <!-- tick marks -->
-    <line x1="170" y1="${TUBE_TOP + 10}" x2="175" y2="${TUBE_TOP + 10}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 25}" x2="175" y2="${TUBE_TOP + 25}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 40}" x2="175" y2="${TUBE_TOP + 40}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 55}" x2="175" y2="${TUBE_TOP + 55}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 12}" x2="175" y2="${TUBE_TOP + 12}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 37}" x2="175" y2="${TUBE_TOP + 37}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 62}" x2="175" y2="${TUBE_TOP + 62}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 87}" x2="175" y2="${TUBE_TOP + 87}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
 
     <!-- bulb glow -->
     ${!isOffline ? `<circle cx="164" cy="${BULB_CY}" r="14" fill="${st.glowColor}"/>` : ''}
