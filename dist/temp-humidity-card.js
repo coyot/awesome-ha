@@ -256,7 +256,7 @@ class TempHumidityCard extends HTMLElement {
     border-radius: 18px;
     padding: 14px;
     display: grid;
-    grid-template-rows: 1fr auto auto auto;
+    grid-template-rows: auto 1fr auto auto;
     aspect-ratio: 1/1;
     position: relative;
     overflow: hidden;
@@ -272,6 +272,17 @@ class TempHumidityCard extends HTMLElement {
   }
   .card:active { transform: scale(0.96); }
 
+  /* top row: icon badge + name */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+  }
+  .spacer { /* fills 1fr row, pushes primary/secondary to bottom */ }
+
   /* glow overlay */
   .glow {
     position: absolute; inset: 0; pointer-events: none;
@@ -282,7 +293,8 @@ class TempHumidityCard extends HTMLElement {
   /* icon badge */
   .icon-wrap {
     position: relative; width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center; z-index: 2;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
   }
   .icon-bg {
     width: 34px; height: 34px; border-radius: 10px;
@@ -294,9 +306,9 @@ class TempHumidityCard extends HTMLElement {
 
   /* text rows */
   .name {
-    font-size: 13px; font-weight: 500; color: #a1a1a6;
-    position: relative; z-index: 2;
+    font-size: 12px; font-weight: 500; color: #a1a1a6;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; min-width: 0;
   }
   .primary {
     font-size: 22px; font-weight: 600;
@@ -455,13 +467,16 @@ class TempHumidityCard extends HTMLElement {
 
   ${this._batteryHTML(bat)}
 
-  <div class="icon-wrap">
-    <div class="icon-bg">
-      <ha-icon icon="${icon}"></ha-icon>
+  <div class="top-bar">
+    <div class="icon-wrap">
+      <div class="icon-bg">
+        <ha-icon icon="${icon}"></ha-icon>
+      </div>
     </div>
+    <div class="name" id="temp-hit">${name}</div>
   </div>
 
-  <div class="name" id="temp-hit">${name}</div>
+  <div class="spacer"></div>
   <div class="primary">${tempStr}</div>
   <div class="secondary" id="hum-hit">${humStr}</div>
 </div>`;

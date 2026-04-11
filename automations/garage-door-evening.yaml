@@ -1,0 +1,45 @@
+alias: "Garaż – powiadomienie przy otwartych drzwiach o 20:00"
+description: >
+  Codziennie o 20:00 sprawdza czy drzwi garażu są otwarte.
+  Wysyła powiadomienie do osób aktualnie przebywających w domu
+  (iphone_tk i/lub iphone_monika).
+
+trigger:
+  - platform: time
+    at: "20:00:00"
+
+condition:
+  - condition: state
+    entity_id: binary_sensor.kontaktron_garaz
+    state: "on"
+
+action:
+  - if:
+      - condition: zone
+        entity_id: person.tk
+        zone: zone.home
+    then:
+      - service: notify.mobile_app_iphone_tk
+        data:
+          title: "Garaż otwarty"
+          message: "Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
+          data:
+            push:
+              sound: default
+            url: /lovelace/garaz
+
+  - if:
+      - condition: zone
+        entity_id: person.monika
+        zone: zone.home
+    then:
+      - service: notify.mobile_app_iphone_monika
+        data:
+          title: "Garaż otwarty"
+          message: "Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
+          data:
+            push:
+              sound: default
+            url: /lovelace/garaz
+
+mode: single

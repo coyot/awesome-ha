@@ -64,7 +64,7 @@ const STYLES = `
     border-radius: 18px;
     padding: 14px;
     display: grid;
-    grid-template-rows: 1fr auto auto auto;
+    grid-template-rows: auto 1fr auto auto;
     aspect-ratio: 1 / 1;
     position: relative;
     overflow: hidden;
@@ -80,12 +80,12 @@ const STYLES = `
     transform: scale(0.96);
   }
 
-  /* ── STATE: closed ── */
+  /* ── STATE: closed (normal / inactive) ── */
   .card.closed {
     background: #1c1c1e;
   }
   .card.closed .glow {
-    background: radial-gradient(ellipse at 30% 30%, rgba(48,209,88,0.13) 0%, transparent 68%);
+    background: none;
   }
 
   /* ── STATE: open (below threshold) ── */
@@ -114,15 +114,27 @@ const STYLES = `
     transition: background 0.4s ease;
   }
 
+  /* Top row: icon + name */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+  }
+
+  .spacer { /* fills 1fr grid row */ }
+
   /* Icon area */
   .icon-wrap {
     position: relative;
     width: 36px;
     height: 36px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2;
   }
 
   .icon-bg {
@@ -136,7 +148,7 @@ const STYLES = `
     z-index: 2;
     transition: background 0.4s ease;
   }
-  .closed  .icon-bg { background: rgba(48,209,88,0.18); }
+  .closed  .icon-bg { background: rgba(142,142,147,0.12); }
   .open    .icon-bg { background: rgba(255,214,10,0.18); }
   .alarm   .icon-bg { background: rgba(255,69,58,0.22); }
 
@@ -159,7 +171,7 @@ const STYLES = `
     --mdc-icon-size: 20px;
     transition: color 0.4s ease;
   }
-  .closed  ha-icon { color: #30d158; }
+  .closed  ha-icon { color: #8e8e93; }
   .open    ha-icon { color: #ffd60a; }
   .alarm   ha-icon {
     color: #ff453a;
@@ -171,13 +183,13 @@ const STYLES = `
   .name {
     font-size: 12px;
     font-weight: 500;
-    color: #ffffff;
+    color: #a1a1a6;
     line-height: 1.2;
-    position: relative;
-    z-index: 2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
   }
 
   .state-label {
@@ -188,7 +200,7 @@ const STYLES = `
     z-index: 2;
     transition: color 0.4s ease;
   }
-  .closed  .state-label { color: #30d158; }
+  .closed  .state-label { color: #8e8e93; }
   .open    .state-label { color: #ffd60a; }
   .alarm   .state-label { color: #ff453a; }
 
@@ -245,8 +257,8 @@ class KontaktronCard extends HTMLElement {
     this._config = {
       alarm_minutes: 10,
       icon_closed: 'mdi:lock',
-      icon_open:   'mdi:lock-open-outline',
-      icon_alarm:  'mdi:alert',
+      icon_open:   'mdi:lock-open-variant',
+      icon_alarm:  'mdi:bell-alert',
       ...config,
     };
   }
@@ -274,13 +286,16 @@ class KontaktronCard extends HTMLElement {
 
     this._card.innerHTML = `
       <div class="glow"></div>
-      <div class="icon-wrap">
-        <div class="ring"></div>
-        <div class="icon-bg">
-          <ha-icon icon="mdi:lock"></ha-icon>
+      <div class="top-bar">
+        <div class="icon-wrap">
+          <div class="ring"></div>
+          <div class="icon-bg">
+            <ha-icon icon="mdi:lock"></ha-icon>
+          </div>
         </div>
+        <div class="name">—</div>
       </div>
-      <div class="name">—</div>
+      <div class="spacer"></div>
       <div class="state-label">zamknięte</div>
       <div class="duration">—</div>
     `;
