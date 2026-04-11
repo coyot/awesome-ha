@@ -6491,6 +6491,12 @@ class TempHumidityCard extends HTMLElement {
     cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
   }
 
+  /* ── mobile: only name + temperature + effects ── */
+  @media (max-width: 600px) {
+    .bat-wrap  { display: none !important; }
+    .secondary { display: none; }
+  }
+
   /* battery */
   .bat-wrap {
     position: absolute; top: 9px; right: 10px; z-index: 12;
@@ -6966,13 +6972,16 @@ const STYLES = `
   }
 
   @keyframes alarm-pulse {
-    0%,100% {
+    0%, 100% {
       background: #2c1410;
-      box-shadow: 0 0 0 0 rgba(255,69,58,0);
+      box-shadow: 0 0 0 0 rgba(255,69,58,0),
+                  0 2px 8px rgba(0,0,0,0.35);
     }
     50% {
-      background: #3d1a14;
-      box-shadow: 0 0 0 6px rgba(255,69,58,0), 0 0 28px rgba(255,69,58,0.4);
+      background: #3a1610;
+      box-shadow: 0 0 0 5px rgba(255,69,58,0.28),
+                  0 0 22px rgba(255,69,58,0.5),
+                  0 2px 8px rgba(0,0,0,0.35);
     }
   }
 
@@ -7147,6 +7156,13 @@ const STYLES = `
   .closed  .duration { color: #636366; }
   .open    .duration { color: #636366; }
   .alarm   .duration { color: #ff6b60; font-weight: 600; }
+
+  /* ── mobile: only name + icon state + effects ── */
+  @media (max-width: 600px) {
+    .bat-wrap    { display: none !important; }
+    .state-label { display: none; }
+    .duration    { display: none; }
+  }
 
   /* ── battery ── */
   .bat-wrap {
