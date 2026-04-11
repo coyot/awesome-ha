@@ -6387,13 +6387,13 @@ window.customCards.push({
     const st   = this._getTempState(temp);
     const hs   = this._getHumidityState(hum);
 
-    const TUBE_TOP = 28;
-    const TUBE_H   = 100;
+    const TUBE_TOP = 45;
+    const TUBE_H   = 82;
     const fillH = Math.min(TUBE_H, (st.fillPct / 100) * TUBE_H);
     const fillY = TUBE_TOP + TUBE_H - fillH;
 
-    // viewBox 200×200, tube x=158 w=12, bulb cx=164 cy=140 r=12
-    const BULB_CY = 140;
+    // viewBox 200×200, tube x=158 w=12, bulb cx=164 cy=139 r=12
+    const BULB_CY = 139;
     const isOffline = temp === null;
     const tempStr = isOffline ? '--°' : temp.toFixed(1) + '°';
 
@@ -6431,7 +6431,7 @@ window.customCards.push({
     color: ${st.color}; white-space: nowrap; z-index: 10;
   }
   .humidity {
-    position: absolute; top: 57%; left: 12px;
+    position: absolute; top: 52%; left: 12px;
     font-size: 10px; font-weight: 600; z-index: 10;
     color: ${hs ? hs.color : 'transparent'};
     cursor: ${this._config.humidity_entity ? 'pointer' : 'default'};
@@ -6609,9 +6609,9 @@ window.customCards.push({
     </defs>
 
     <!-- temp value -->
-    <text x="12" y="82"
+    <text x="12" y="86"
       fill="${isOffline ? 'rgba(255,255,255,0.15)' : 'white'}"
-      font-size="32" font-weight="700"
+      font-size="44" font-weight="700"
       font-family="-apple-system,system-ui"
       letter-spacing="-2">${tempStr}</text>
 
@@ -6629,10 +6629,10 @@ window.customCards.push({
     ` : ''}
 
     <!-- tick marks -->
-    <line x1="170" y1="${TUBE_TOP + 12}" x2="175" y2="${TUBE_TOP + 12}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 37}" x2="175" y2="${TUBE_TOP + 37}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 62}" x2="175" y2="${TUBE_TOP + 62}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 87}" x2="175" y2="${TUBE_TOP + 87}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 10}" x2="175" y2="${TUBE_TOP + 10}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 30}" x2="175" y2="${TUBE_TOP + 30}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 51}" x2="175" y2="${TUBE_TOP + 51}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <line x1="170" y1="${TUBE_TOP + 71}" x2="175" y2="${TUBE_TOP + 71}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
 
     <!-- bulb glow -->
     ${!isOffline ? `<circle cx="164" cy="${BULB_CY}" r="14" fill="${st.glowColor}"/>` : ''}
