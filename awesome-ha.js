@@ -6166,7 +6166,17 @@ window.customCards.push({
   name:        'Teleco Blind Card',
   preview:     false,
   description: 'Sterowanie żaluzjami w stylu Apple Home.',
-});class TempHumidityCard extends HTMLElement {
+});function _hexToRgb(hex) {
+  // handles #rrggbb and rgba(...) / rgb(...) passthrough
+  if (!hex || hex[0] !== '#') return '142,142,147';
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `${r},${g},${b}`;
+}
+
+class TempHumidityCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -6387,78 +6397,98 @@ window.customCards.push({
     const st   = this._getTempState(temp);
     const hs   = this._getHumidityState(hum);
 
-    const TUBE_TOP = 45;
-    const TUBE_H   = 82;
-    const fillH = Math.min(TUBE_H, (st.fillPct / 100) * TUBE_H);
-    const fillY = TUBE_TOP + TUBE_H - fillH;
-
-    // viewBox 200×200, tube x=158 w=12, bulb cx=164 cy=139 r=12
-    const BULB_CY = 139;
     const isOffline = temp === null;
-    const tempStr = isOffline ? '--°' : temp.toFixed(1) + '°';
+    const tempStr   = isOffline ? '--°' : temp.toFixed(1) + '°';
+
+    /* icon per state */
+    const icon = isOffline       ? 'mdi:thermometer-off'
+               : st.effect === 'frost' ? 'mdi:snowflake'
+               : st.effect === 'heat'  ? 'mdi:fire'
+               : st.effect === 'warm'  ? 'mdi:weather-sunny'
+               : 'mdi:thermometer';
+
+    /* map st colours to design system */
+    const accent   = st.color;
+    const bg       = st.bg;
+    const border   = st.border;
+
+    /* humidity secondary line */
+    const humStr = hs ? `💧 ${hum.toFixed(0)}%` : '';
+    const humColor = hs ? hs.color : '#636366';
 
     this.shadowRoot.innerHTML = `
 <style>
   :host { display: block; width: 100%; height: 100%; }
 
   .card {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1/1;
     border-radius: 18px;
+    padding: 14px;
+    display: grid;
+    grid-template-rows: 1fr auto auto auto;
+    aspect-ratio: 1/1;
+    position: relative;
     overflow: hidden;
-    background: ${st.bg};
-    border: 1px solid ${st.border};
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.4s ease;
+    background: ${bg};
+    border: 1px solid ${border};
     box-sizing: border-box;
     font-family: -apple-system, system-ui, sans-serif;
-    cursor: default;
-    transition: transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
     ${st.pulseAnim}
   }
-  .card:active { transform: scale(0.97); }
+  .card:active { transform: scale(0.96); }
 
+  /* glow overlay */
+  .glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 30% 30%, ${isOffline ? 'transparent' : st.glowColor.replace(/[\d.]+\)$/, m => (parseFloat(m)*0.7).toFixed(2)+')')} 0%, transparent 68%);
+    transition: background 0.4s ease;
+  }
+
+  /* icon badge */
+  .icon-wrap {
+    position: relative; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center; z-index: 2;
+  }
+  .icon-bg {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: ${isOffline ? 'rgba(142,142,147,0.12)' : `rgba(${_hexToRgb(accent)}, 0.18)`};
+    transition: background 0.4s ease; z-index: 2; position: relative;
+  }
+  ha-icon { --mdc-icon-size: 20px; color: ${isOffline ? '#636366' : accent}; }
+
+  /* text rows */
   .name {
-    position: absolute; top: 10px; left: 12px;
-    font-size: 11px; font-weight: 500; z-index: 10;
-    color: ${isOffline ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.55)'};
-    pointer-events: none;
+    font-size: 13px; font-weight: 500; color: #a1a1a6;
+    position: relative; z-index: 2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .pill {
-    position: absolute; bottom: 10px; left: 12px;
-    padding: 3px 10px; border-radius: 20px;
-    font-size: 8px; font-weight: 700; letter-spacing: 0.4px;
-    background: ${st.pillBg}; border: 0.5px solid ${st.pillBorder};
-    color: ${st.color}; white-space: nowrap; z-index: 10;
+  .primary {
+    font-size: 22px; font-weight: 600;
+    color: ${isOffline ? '#636366' : accent};
+    position: relative; z-index: 2; line-height: 1.1;
+    transition: color 0.4s ease;
   }
-  .humidity {
-    position: absolute; top: 52%; left: 12px;
-    font-size: 10px; font-weight: 600; z-index: 10;
-    color: ${hs ? hs.color : 'transparent'};
-    cursor: ${this._config.humidity_entity ? 'pointer' : 'default'};
-  }
-  .main-svg {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%; z-index: 3;
-    pointer-events: none;
-  }
-  .temp-hit {
-    position: absolute; inset: 0; z-index: 4; cursor: pointer;
+  .secondary {
+    font-size: 11px; font-weight: 400; color: ${humStr ? humColor : '#636366'};
+    margin-top: 2px; position: relative; z-index: 2;
+    transition: color 0.4s ease;
+    cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
   }
 
-  /* ── battery ── */
+  /* battery */
   .bat-wrap {
     position: absolute; top: 9px; right: 10px; z-index: 12;
     display: flex; align-items: center; gap: 5px;
   }
   .bat-tip {
-    font-size: 10px; font-weight: 600;
-    color: rgba(255,255,255,.80);
-    background: rgba(28,28,30,.92);
-    border: .5px solid rgba(255,255,255,.15);
-    border-radius: 6px; padding: 2px 6px;
-    white-space: nowrap;
-    opacity: 0; pointer-events: none;
-    transition: opacity .15s;
+    font-size: 10px; font-weight: 600; color: rgba(255,255,255,.80);
+    background: rgba(28,28,30,.92); border: .5px solid rgba(255,255,255,.15);
+    border-radius: 6px; padding: 2px 6px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .15s;
     backdrop-filter: blur(8px);
   }
   .bat-wrap:hover .bat-tip { opacity: 1; }
@@ -6490,7 +6520,7 @@ window.customCards.push({
     background: linear-gradient(to top, rgba(255,120,0,0.07), transparent);
   }
   .warm-waves {
-    position:absolute; right:28px; bottom:30px;
+    position:absolute; right:14px; bottom:14px;
     display:flex; gap:3px; align-items:flex-end; z-index:4; pointer-events:none;
   }
   .ww {
@@ -6505,32 +6535,29 @@ window.customCards.push({
 
   /* ── HEAT ── */
   .heat-glow-bg {
-    position:absolute; bottom:0; right:0; width:130px; height:100%;
+    position:absolute; bottom:0; right:0; width:100%; height:60%;
     z-index:1; pointer-events:none;
     background: radial-gradient(ellipse at right bottom, rgba(255,60,0,0.14) 0%, transparent 65%);
   }
   .heat-blob {
-    position:absolute; right:22px; bottom:20px;
-    width:60px; height:18px; border-radius:50%;
+    position:absolute; right:14px; bottom:14px;
+    width:50px; height:16px; border-radius:50%;
     background: radial-gradient(ellipse, rgba(255,100,0,0.38) 0%, transparent 70%);
     filter: blur(3px); z-index:4; pointer-events:none;
   }
   .heat-embers {
-    position:absolute; right:26px; bottom:22px;
+    position:absolute; right:18px; bottom:16px;
     display:flex; gap:2px; align-items:flex-end;
     z-index:5; pointer-events:none;
   }
-  .ember {
-    border-radius: 50% 50% 30% 30%;
-    transform-origin: bottom center;
-  }
+  .ember { border-radius: 50% 50% 30% 30%; transform-origin: bottom center; }
   .e1 { width:6px;  height:22px; background:linear-gradient(to top,#FF6B00,#FF3A00,rgba(255,100,0,0.25),transparent); animation:flicker1 1.4s ease-in-out infinite 0s; }
   .e2 { width:8px;  height:30px; background:linear-gradient(to top,#FF8C00,#FF4500,#FF2200,rgba(255,80,0,0.15),transparent); animation:flicker2 1.6s ease-in-out infinite 0.15s; }
   .e3 { width:6px;  height:20px; background:linear-gradient(to top,#FF6B00,#FF3A00,rgba(255,80,0,0.2),transparent); animation:flicker3 1.3s ease-in-out infinite 0.3s; }
   .e4 { width:5px;  height:16px; background:linear-gradient(to top,#FF8000,#FF3A00,transparent); animation:flicker1 1.5s ease-in-out infinite 0.45s; }
   .e5 { width:7px;  height:25px; background:linear-gradient(to top,#FF6B00,#FF4500,rgba(255,60,0,0.18),transparent); animation:flicker2 1.7s ease-in-out infinite 0.6s; }
   .heat-shimmer-wrap {
-    position:absolute; right:20px; bottom:52px;
+    position:absolute; right:12px; bottom:46px;
     display:flex; gap:3px; align-items:flex-end;
     z-index:4; pointer-events:none;
   }
@@ -6589,73 +6616,22 @@ window.customCards.push({
 </style>
 
 <div class="card">
+  <div class="glow"></div>
   ${st.effect === 'frost' ? this._frostHTML() : ''}
   ${st.effect === 'warm'  ? this._warmHTML()  : ''}
   ${st.effect === 'heat'  ? this._heatHTML()  : ''}
 
-  <div class="name">${name}</div>
   ${this._batteryHTML(bat)}
-  <div class="temp-hit" id="temp-hit"></div>
 
-  <svg class="main-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="${st.gradStops[0]}"/>
-        <stop offset="100%" stop-color="${st.gradStops[1]}"/>
-      </linearGradient>
-      <clipPath id="tube-clip">
-        <rect x="158" y="${TUBE_TOP}" width="12" height="${TUBE_H}" rx="6"/>
-      </clipPath>
-    </defs>
+  <div class="icon-wrap">
+    <div class="icon-bg">
+      <ha-icon icon="${icon}"></ha-icon>
+    </div>
+  </div>
 
-    <!-- temp value -->
-    <text x="12" y="86"
-      fill="${isOffline ? 'rgba(255,255,255,0.15)' : 'white'}"
-      font-size="44" font-weight="700"
-      font-family="-apple-system,system-ui"
-      letter-spacing="-2">${tempStr}</text>
-
-    <!-- tube background -->
-    <rect x="158" y="${TUBE_TOP}" width="12" height="${TUBE_H}" rx="6"
-      fill="rgba(255,255,255,0.04)"
-      stroke="${isOffline ? 'rgba(255,255,255,0.07)' : st.border}"
-      stroke-width="1"/>
-
-    <!-- tube fill -->
-    ${!isOffline && fillH > 0 ? `
-    <rect x="158" y="${fillY}" width="12" height="${fillH}"
-      fill="url(#grad)"
-      clip-path="url(#tube-clip)"/>
-    ` : ''}
-
-    <!-- tick marks -->
-    <line x1="170" y1="${TUBE_TOP + 10}" x2="175" y2="${TUBE_TOP + 10}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 30}" x2="175" y2="${TUBE_TOP + 30}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 51}" x2="175" y2="${TUBE_TOP + 51}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <line x1="170" y1="${TUBE_TOP + 71}" x2="175" y2="${TUBE_TOP + 71}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-
-    <!-- bulb glow -->
-    ${!isOffline ? `<circle cx="164" cy="${BULB_CY}" r="14" fill="${st.glowColor}"/>` : ''}
-
-    <!-- bulb ring glow -->
-    <circle cx="164" cy="${BULB_CY}" r="12"
-      fill="none"
-      stroke="${isOffline ? 'rgba(255,255,255,0)' : st.glowColor}"
-      stroke-width="${st.glowWidth}"/>
-
-    <!-- bulb body -->
-    <circle cx="164" cy="${BULB_CY}" r="12"
-      fill="${isOffline ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.15)'}"
-      stroke="${isOffline ? 'rgba(255,255,255,0.1)' : st.bulbColor}"
-      stroke-width="1.5"/>
-
-    <!-- bulb fill -->
-    <circle cx="164" cy="${BULB_CY}" r="7.5"
-      fill="${isOffline ? 'rgba(255,255,255,0.08)' : st.bulbColor}"/>
-  </svg>
-
-  ${hs ? `<div class="humidity" id="hum-hit">${hs.label}</div>` : ''}
-  <div class="pill">${st.label}</div>
+  <div class="name" id="temp-hit">${name}</div>
+  <div class="primary">${tempStr}</div>
+  <div class="secondary" id="hum-hit">${humStr}</div>
 </div>`;
 
     this.shadowRoot.getElementById('temp-hit')?.addEventListener('click', () => {
