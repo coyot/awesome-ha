@@ -15,8 +15,28 @@
 #     - type: custom:aha-kontaktron-card
 #       ...
 
+# Minimalna konfiguracja:
 type: custom:aha-kontaktron-card
 entity: binary_sensor.kontaktron_drzwi
 name: Drzwi wejściowe
 battery_entity: sensor.kontaktron_drzwi_battery
-alarm_after: 10
+alarm_minutes: 10
+
+# Przykłady ikon (domyślne: lock / lock-open-variant / bell-alert):
+#
+# Okno:
+#   icon_closed: mdi:window-closed
+#   icon_open:   mdi:window-open
+#   icon_alarm:  mdi:window-open-variant
+#
+# Garaż:
+#   icon_closed: mdi:garage
+#   icon_open:   mdi:garage-open
+#   icon_alarm:  mdi:bell-alert
+#
+# Czujnik ruchu:
+#   icon_closed: mdi:motion-sensor-off
+#   icon_open:   mdi:motion-sensor
+#   icon_alarm:  mdi:motion-sensor
+#
+# Dowolne MDI: https://pictogrammers.com/library/mdi/

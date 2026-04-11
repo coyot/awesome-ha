@@ -132,8 +132,8 @@ const STYLES = `
   /* Icon area */
   .icon-wrap {
     position: relative;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -141,9 +141,9 @@ const STYLES = `
   }
 
   .icon-bg {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -157,9 +157,9 @@ const STYLES = `
 
   .ring {
     position: absolute;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     border: 2px solid rgba(255,69,58,0.75);
     z-index: 1;
     pointer-events: none;
@@ -171,7 +171,7 @@ const STYLES = `
   }
 
   ha-icon {
-    --mdc-icon-size: 20px;
+    --mdc-icon-size: 16px;
     transition: color 0.4s ease;
   }
   .closed  ha-icon { color: #8e8e93; }
