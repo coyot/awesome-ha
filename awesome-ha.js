@@ -6400,12 +6400,13 @@ class TempHumidityCard extends HTMLElement {
     const isOffline = temp === null;
     const tempStr   = isOffline ? '--°' : temp.toFixed(1) + '°';
 
-    /* icon per state */
-    const icon = isOffline       ? 'mdi:thermometer-off'
-               : st.effect === 'frost' ? 'mdi:snowflake'
-               : st.effect === 'heat'  ? 'mdi:fire'
-               : st.effect === 'warm'  ? 'mdi:weather-sunny'
-               : 'mdi:thermometer';
+    /* icon reactive to temperature */
+    const icon = isOffline ? 'mdi:thermometer-off'
+               : temp < 5  ? 'mdi:snowflake'
+               : temp < 17 ? 'mdi:thermometer-low'
+               : temp < 26 ? 'mdi:home-thermometer-outline'
+               : temp < 31 ? 'mdi:thermometer-high'
+               :              'mdi:fire';
 
     /* map st colours to design system */
     const accent   = st.color;
