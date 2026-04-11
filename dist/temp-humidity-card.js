@@ -71,21 +71,19 @@ class TempHumidityCard extends HTMLElement {
     const low   = pct < 20;
     const color = low ? '#FF453A' : 'rgba(255,255,255,0.55)';
     const fill  = Math.max(0, Math.min(100, pct));
-    // viewBox: 22x11 — body 18x9 + nub 2x4 centered right
-    const fillW = Math.round((fill / 100) * 14); // max inner fill width = 14
+    const fillW = Math.round((fill / 100) * 14);
     return `
-      <svg width="22" height="11" viewBox="0 0 22 11" xmlns="http://www.w3.org/2000/svg"
-           style="position:absolute;top:9px;right:9px;z-index:3;pointer-events:none;">
-        <!-- body -->
-        <rect x="0.5" y="0.5" width="18" height="10" rx="2.5"
-              fill="none" stroke="${color}" stroke-width="1.1" opacity="0.9"/>
-        <!-- nub -->
-        <rect x="19" y="3.5" width="2.5" height="4" rx="1.2"
-              fill="${color}" opacity="0.7"/>
-        <!-- fill -->
-        ${fillW > 0 ? `<rect x="2" y="2" width="${fillW}" height="7" rx="1.5"
-              fill="${low ? '#FF453A' : color}"/>` : ''}
-      </svg>`;
+      <div class="bat-wrap">
+        <svg width="22" height="11" viewBox="0 0 22 11" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.5" y="0.5" width="18" height="10" rx="2.5"
+                fill="none" stroke="${color}" stroke-width="1.1" opacity="0.9"/>
+          <rect x="19" y="3.5" width="2.5" height="4" rx="1.2"
+                fill="${color}" opacity="0.7"/>
+          ${fillW > 0 ? `<rect x="2" y="2" width="${fillW}" height="7" rx="1.5"
+                fill="${color}"/>` : ''}
+        </svg>
+        <div class="bat-tip">${Math.round(pct)}%</div>
+      </div>`;
   }
 
   _getFrostSVG() {
@@ -251,7 +249,37 @@ class TempHumidityCard extends HTMLElement {
         left: 12px;
         font-size: 9px;
         font-weight: 600;
+        cursor: ${this._config.humidity_entity ? 'pointer' : 'default'};
+        z-index: 4;
       }
+
+      /* ── battery ── */
+      .bat-wrap {
+        position: absolute;
+        top: 9px; right: 9px;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .bat-tip {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255,255,255,.80);
+        background: rgba(28,28,30,.92);
+        border: .5px solid rgba(255,255,255,.15);
+        border-radius: 6px;
+        padding: 2px 6px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s;
+        backdrop-filter: blur(8px);
+      }
+      .bat-wrap:hover .bat-tip { opacity: 1; }
+
+      /* ── temp area click ── */
+      .temp-hit { position: absolute; inset: 0; cursor: pointer; z-index: 2; }
 
       @keyframes frost-float {
         0%,100% { opacity: 0.6; transform: translateY(0) rotate(0deg); }
@@ -280,8 +308,10 @@ class TempHumidityCard extends HTMLElement {
       <div class="name">${name}</div>
       ${this._getBatteryHTML(bat)}
 
+      <div class="temp-hit" id="temp-hit"></div>
+
       <svg width="100%" height="100%" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg"
-           style="position:absolute;top:0;left:0;">
+           style="position:absolute;top:0;left:0;pointer-events:none;">
         <defs>
           <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="${stops[0]}"/>
@@ -330,11 +360,27 @@ class TempHumidityCard extends HTMLElement {
               letter-spacing="-0.5">${tempStr}</text>
       </svg>
 
-      ${hum ? `<div class="humidity" style="color:${hum.color}">${hum.label}</div>` : ''}
+      ${hum ? `<div class="humidity" id="hum-hit" style="color:${hum.color}">${hum.label}</div>` : ''}
 
       <div class="pill">${state.label}</div>
     </div>
     `;
+
+    this.shadowRoot.getElementById('temp-hit')?.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true, composed: true,
+        detail: { entityId: this._config.temp_entity },
+      }));
+    });
+
+    if (this._config.humidity_entity) {
+      this.shadowRoot.getElementById('hum-hit')?.addEventListener('click', () => {
+        this.dispatchEvent(new CustomEvent('hass-more-info', {
+          bubbles: true, composed: true,
+          detail: { entityId: this._config.humidity_entity },
+        }));
+      });
+    }
   }
 
   getCardSize() { return 2; }
