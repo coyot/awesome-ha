@@ -323,10 +323,16 @@ class TempHumidityCard extends HTMLElement {
     cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
   }
 
-  /* ── mobile: only name + temperature + effects ── */
+  /* ── mobile: temperature fills card, name at bottom ── */
   @media (max-width: 600px) {
     .bat-wrap  { display: none !important; }
     .secondary { display: none; }
+    .card      { grid-template-rows: 1fr auto; padding: 10px; }
+    .top-bar   { display: contents; }
+    .icon-wrap { display: none; }
+    .name      { grid-row: 2; font-size: 11px; }
+    .spacer    { display: none; }
+    .primary   { grid-row: 1; align-self: center; }
   }
 
   /* battery */

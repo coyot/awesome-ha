@@ -6491,10 +6491,16 @@ class TempHumidityCard extends HTMLElement {
     cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
   }
 
-  /* ── mobile: only name + temperature + effects ── */
+  /* ── mobile: temperature fills card, name at bottom ── */
   @media (max-width: 600px) {
     .bat-wrap  { display: none !important; }
     .secondary { display: none; }
+    .card      { grid-template-rows: 1fr auto; padding: 10px; }
+    .top-bar   { display: contents; }
+    .icon-wrap { display: none; }
+    .name      { grid-row: 2; font-size: 11px; }
+    .spacer    { display: none; }
+    .primary   { grid-row: 1; align-self: center; }
   }
 
   /* battery */
@@ -7157,11 +7163,16 @@ const STYLES = `
   .open    .duration { color: #636366; }
   .alarm   .duration { color: #ff6b60; font-weight: 600; }
 
-  /* ── mobile: only name + icon state + effects ── */
+  /* ── mobile: icon fills card, name at bottom ── */
   @media (max-width: 600px) {
     .bat-wrap    { display: none !important; }
     .state-label { display: none; }
     .duration    { display: none; }
+    .card        { grid-template-rows: 1fr auto; padding: 10px; }
+    .top-bar     { display: contents; }
+    .icon-wrap   { grid-row: 1; align-self: center; justify-self: start; }
+    .name        { grid-row: 2; }
+    .spacer      { display: none; }
   }
 
   /* ── battery ── */
