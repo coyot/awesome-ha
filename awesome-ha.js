@@ -6227,6 +6227,35 @@ window.customCards.push({
     return parseFloat(s.state);
   }
 
+  get _batVal() {
+    if (!this._hass || !this._config.battery_entity) return null;
+    const s = this._hass.states[this._config.battery_entity];
+    if (!s || s.state === 'unavailable' || s.state === 'unknown') return null;
+    return parseFloat(s.state);
+  }
+
+  _getBatteryHTML(pct) {
+    if (pct === null) return '';
+    const low   = pct < 20;
+    const color = low ? '#FF453A' : 'rgba(255,255,255,0.55)';
+    const fill  = Math.max(0, Math.min(100, pct));
+    // viewBox: 22x11 — body 18x9 + nub 2x4 centered right
+    const fillW = Math.round((fill / 100) * 14); // max inner fill width = 14
+    return `
+      <svg width="22" height="11" viewBox="0 0 22 11" xmlns="http://www.w3.org/2000/svg"
+           style="position:absolute;top:9px;right:9px;z-index:3;pointer-events:none;">
+        <!-- body -->
+        <rect x="0.5" y="0.5" width="18" height="10" rx="2.5"
+              fill="none" stroke="${color}" stroke-width="1.1" opacity="0.9"/>
+        <!-- nub -->
+        <rect x="19" y="3.5" width="2.5" height="4" rx="1.2"
+              fill="${color}" opacity="0.7"/>
+        <!-- fill -->
+        ${fillW > 0 ? `<rect x="2" y="2" width="${fillW}" height="7" rx="1.5"
+              fill="${low ? '#FF453A' : color}"/>` : ''}
+      </svg>`;
+  }
+
   _getFrostSVG() {
     return `
       <svg class="frost-corner frost-tl" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
@@ -6286,6 +6315,7 @@ window.customCards.push({
 
     const tempStr = temp !== null ? temp.toFixed(1) + '°' : '--°';
     const isOffline = temp === null;
+    const bat = this._batVal;
 
     // gradient colors per state
     const gradStops = {
@@ -6416,6 +6446,7 @@ window.customCards.push({
       ${state.effect === 'heat' ? this._getHeatWaves() : ''}
 
       <div class="name">${name}</div>
+      ${this._getBatteryHTML(bat)}
 
       <svg width="100%" height="100%" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg"
            style="position:absolute;top:0;left:0;">
