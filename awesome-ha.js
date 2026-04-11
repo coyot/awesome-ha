@@ -6950,10 +6950,10 @@ class KontaktronCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      entity:          'binary_sensor.kontaktron_drzwi',
-      battery_entity:  '',
-      name:            'Drzwi',
-      alarm_after:     10,
+      entity:         'binary_sensor.kontaktron_drzwi',
+      battery_entity: '',
+      name:           'Drzwi',
+      alarm_after:    10,
     };
   }
 
@@ -6994,15 +6994,20 @@ class KontaktronCard extends HTMLElement {
     const m = Math.floor(secs / 60), s = secs % 60;
     if (m < 60) return `${m}:${String(s).padStart(2, '0')}`;
     const h = Math.floor(m / 60), rm = m % 60;
-    return `${h}h ${String(rm).padStart(2, '0')}m`;
+    return `${h}h\u00a0${String(rm).padStart(2, '0')}m`;
   }
 
   _tick() {
-    const dur = this._openSecs();
-    const el  = this.shadowRoot?.getElementById('timer');
-    if (!el) return;
+    const dur     = this._openSecs();
+    const timerEl = this.shadowRoot?.getElementById('timer');
+    const fillEl  = this.shadowRoot?.getElementById('bar-fill');
+    if (!timerEl) return;
 
-    if (dur === null) { el.textContent = ''; return; }
+    if (dur === null) {
+      timerEl.textContent = '';
+      if (fillEl) fillEl.style.width = '0%';
+      return;
+    }
 
     const alarmSec = (this._config.alarm_after ?? 10) * 60;
     const isAlarm  = dur >= alarmSec;
@@ -7012,14 +7017,16 @@ class KontaktronCard extends HTMLElement {
       this._render();
       return;
     }
-    el.textContent = this._fmt(dur);
+
+    timerEl.textContent = this._fmt(dur);
+    if (fillEl) fillEl.style.width = Math.min(100, (dur / alarmSec) * 100).toFixed(1) + '%';
   }
 
   _batHTML(pct) {
     if (pct === null) return '';
     const low     = pct < 20;
-    const col     = low ? '#FF453A' : 'rgba(255,255,255,0.45)';
-    const fillCol = low ? '#FF453A' : 'rgba(255,255,255,0.50)';
+    const col     = low ? '#FF453A' : 'rgba(255,255,255,0.40)';
+    const fillCol = low ? '#FF453A' : 'rgba(255,255,255,0.48)';
     const fillW   = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
     return `
     <div class="bat-wrap">
@@ -7033,51 +7040,38 @@ class KontaktronCard extends HTMLElement {
     </div>`;
   }
 
-  _doorSVG(isOpen, accent) {
-    const c = accent;
-    // shared: floor threshold
-    const floor = `<line x1="37" y1="95" x2="93" y2="95" stroke="${c}" stroke-width="1.2" opacity="0.3"/>`;
+  /* Padlock SVG inside a 130×130 viewBox.
+     Body: x=42–88 (w=46) y=62–93 (h=31), center x=65.
+     Shackle arc: apex y≈36, enters body at y=63 on both sides.
+     Open: right arm raised to y=40 (above body). */
+  _lockSVG(isOpen, color) {
+    const c     = color;
+    const body  = `
+      <rect x="42" y="62" width="46" height="31" rx="6"
+            fill="${c}" fill-opacity="0.16" stroke="${c}" stroke-width="1.5"/>`;
+    const hole  = `
+      <circle cx="65" cy="76" r="4.5" fill="${c}" opacity="0.60"/>
+      <rect   x="62.8" y="76" width="4.4" height="7" rx="1.2" fill="${c}" opacity="0.60"/>`;
 
     if (!isOpen) {
       return `
-      <!-- frame -->
-      <rect x="41" y="20" width="48" height="75" rx="4"
-            fill="none" stroke="${c}" stroke-width="1.5" opacity="0.55"/>
-      <!-- panel -->
-      <rect x="43" y="22" width="44" height="71" rx="2.5"
-            fill="${c}" fill-opacity="0.17" stroke="${c}" stroke-width="1" opacity="0.75"/>
-      <!-- hinges -->
-      <rect x="43" y="31" width="3.5" height="9" rx="1.5" fill="${c}" opacity="0.45"/>
-      <rect x="43" y="57" width="3.5" height="9" rx="1.5" fill="${c}" opacity="0.45"/>
-      <!-- knob -->
-      <circle cx="80" cy="58" r="3.4" fill="${c}" opacity="0.8"/>
-      <circle cx="80" cy="58" r="1.6" fill="rgba(0,0,0,0.45)"/>
-      ${floor}`;
+      <path d="M 50,63 L 50,50 Q 50,36 65,36 Q 80,36 80,50 L 80,63"
+            fill="none" stroke="${c}" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      ${body}${hole}`;
     } else {
+      // right arm raised — shackle open
       return `
-      <!-- frame -->
-      <rect x="41" y="20" width="48" height="75" rx="4"
-            fill="none" stroke="${c}" stroke-width="1.5" opacity="0.55"/>
-      <!-- open door panel (perspective edge on hinge side) -->
-      <polygon points="43,22 57,27 57,88 43,93"
-               fill="${c}" fill-opacity="0.28" stroke="${c}" stroke-width="1" opacity="0.85"/>
-      <!-- swing arc (dashed) -->
-      <path d="M 43,22 A 48,48 0 0,1 91,22"
-            fill="none" stroke="${c}" stroke-width="1.2"
-            stroke-dasharray="3,5" opacity="0.38"/>
-      <!-- hinges (on frame) -->
-      <rect x="41" y="31" width="3.5" height="9" rx="1.5" fill="${c}" opacity="0.45"/>
-      <rect x="41" y="57" width="3.5" height="9" rx="1.5" fill="${c}" opacity="0.45"/>
-      <!-- subtle interior glow -->
-      <rect x="59" y="22" width="28" height="71"
-            fill="${c}" fill-opacity="0.04"/>
-      ${floor}`;
+      <path d="M 50,63 L 50,50 Q 50,36 65,36 Q 80,36 80,50 L 80,40"
+            fill="none" stroke="${c}" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      ${body}${hole}`;
     }
   }
 
   _render() {
-    const cfg          = this._config;
-    const name         = cfg.name || 'Czujnik';
+    const cfg           = this._config;
+    const name          = cfg.name || 'Czujnik';
     const alarmAfterSec = (cfg.alarm_after ?? 10) * 60;
 
     const state    = this._hass?.states[cfg.entity];
@@ -7087,6 +7081,8 @@ class KontaktronCard extends HTMLElement {
     const isAlarm  = dur !== null && dur >= alarmAfterSec;
     this._wasAlarm = isAlarm;
 
+    const barPct = dur !== null ? Math.min(100, (dur / alarmAfterSec) * 100) : 0;
+
     const batVal = (() => {
       if (!cfg.battery_entity) return null;
       const s = this._hass?.states[cfg.battery_entity];
@@ -7095,43 +7091,49 @@ class KontaktronCard extends HTMLElement {
     })();
 
     /* ── colour scheme ── */
-    let bg, border, accent, pillBg, pillBorder, pillLabel, pulseAnim;
+    let bg, border, accent, lockColor, pillBg, pillBorder, pillLabel, pulseAnim;
 
     if (!isOnline) {
       bg         = '#1C1C1E';
-      border     = 'rgba(255,255,255,0.08)';
-      accent     = 'rgba(255,255,255,0.25)';
-      pillBg     = 'rgba(255,255,255,0.05)';
-      pillBorder = 'rgba(255,255,255,0.10)';
+      border     = 'rgba(255,255,255,0.06)';
+      accent     = 'rgba(142,142,147,0.45)';
+      lockColor  = 'rgba(142,142,147,0.30)';
+      pillBg     = 'rgba(255,255,255,0.04)';
+      pillBorder = 'rgba(255,255,255,0.07)';
       pillLabel  = 'OFFLINE';
       pulseAnim  = '';
     } else if (isAlarm) {
       bg         = 'linear-gradient(150deg,#1a0404,#220a0a,#1C1C1E)';
       border     = 'rgba(255,69,58,0.55)';
       accent     = '#FF453A';
+      lockColor  = '#FF453A';
       pillBg     = 'rgba(255,69,58,0.22)';
       pillBorder = 'rgba(255,69,58,0.55)';
-      pillLabel  = '\u26a0 ALARM';
+      pillLabel  = '\u26a0\ufe0f ALARM';
       pulseAnim  = 'animation: alarm-pulse 1.5s ease-in-out infinite;';
     } else if (isOpen) {
-      bg         = 'linear-gradient(150deg,#1e1000,#231408,#1C1C1E)';
-      border     = 'rgba(255,159,10,0.32)';
-      accent     = '#FF9F0A';
-      pillBg     = 'rgba(255,159,10,0.14)';
-      pillBorder = 'rgba(255,159,10,0.38)';
+      bg         = 'linear-gradient(150deg,#1c1800,#1e1a00,#1C1C1E)';
+      border     = 'rgba(255,214,10,0.30)';
+      accent     = '#FFD60A';
+      lockColor  = '#FFD60A';
+      pillBg     = 'rgba(255,214,10,0.14)';
+      pillBorder = 'rgba(255,214,10,0.35)';
       pillLabel  = 'OTWARTE';
       pulseAnim  = '';
     } else {
-      bg         = 'linear-gradient(150deg,#0a1e0e,#1C1C1E)';
-      border     = 'rgba(48,209,88,0.22)';
-      accent     = '#30D158';
-      pillBg     = 'rgba(48,209,88,0.12)';
-      pillBorder = 'rgba(48,209,88,0.30)';
+      /* closed — subtle grey, nearly invisible like other inactive tiles */
+      bg         = '#1C1C1E';
+      border     = 'rgba(255,255,255,0.07)';
+      accent     = 'rgba(142,142,147,0.55)';
+      lockColor  = 'rgba(142,142,147,0.45)';
+      pillBg     = 'rgba(255,255,255,0.04)';
+      pillBorder = 'rgba(255,255,255,0.08)';
       pillLabel  = 'ZAMKNI\u0118TE';
       pulseAnim  = '';
     }
 
-    const doorAccent = isOnline ? accent : 'rgba(255,255,255,0.15)';
+    const showBar   = isOpen || isAlarm;
+    const showTimer = isOpen || isAlarm;
 
     this.shadowRoot.innerHTML = `
 <style>
@@ -7153,10 +7155,11 @@ class KontaktronCard extends HTMLElement {
   .name {
     position: absolute; top: 11px; left: 13px;
     font-size: 11px; font-weight: 500; z-index: 10;
-    color: ${isOnline ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.22)'};
+    color: ${isOnline ? 'rgba(255,255,255,0.50)' : 'rgba(255,255,255,0.20)'};
     pointer-events: none;
   }
 
+  /* pill + timer share the bottom strip */
   .pill {
     position: absolute; bottom: 11px; left: 13px;
     padding: 3px 9px; border-radius: 20px;
@@ -7165,13 +7168,28 @@ class KontaktronCard extends HTMLElement {
     color: ${accent}; white-space: nowrap; z-index: 10;
     pointer-events: none;
   }
-
   .timer {
-    position: absolute; bottom: 27px; left: 13px;
+    position: absolute; bottom: 12px; right: 13px;
     font-size: 9px; font-weight: 600; z-index: 10;
     color: ${isAlarm ? '#FF453A' : accent};
     font-variant-numeric: tabular-nums; letter-spacing: 0.3px;
     pointer-events: none;
+    display: ${showTimer ? 'block' : 'none'};
+  }
+
+  /* progress bar — just above pill row */
+  .bar-wrap {
+    position: absolute; left: 13px; right: 13px; bottom: 30px;
+    height: 2px; border-radius: 2px;
+    background: rgba(255,255,255,0.07);
+    z-index: 10;
+    display: ${showBar ? 'block' : 'none'};
+  }
+  .bar-fill {
+    height: 100%; border-radius: 2px;
+    width: ${barPct.toFixed(1)}%;
+    background: linear-gradient(to right, #FFD60A 0%, #FF9F0A 60%, #FF453A 100%);
+    transition: width 0.9s linear;
   }
 
   .main-svg {
@@ -7180,7 +7198,24 @@ class KontaktronCard extends HTMLElement {
     pointer-events: none;
   }
 
-  /* ── battery ── */
+  /* alarm exclamation — overlaid on lock body (~60% from top) */
+  .exclaim {
+    position: absolute; left: 50%; top: 60%;
+    transform: translate(-50%, -50%);
+    font-size: 36px; font-weight: 900; line-height: 1;
+    color: #FF453A; z-index: 8; pointer-events: none;
+    animation: exclaim-shake 2.2s ease-in-out infinite,
+               exclaim-glow  2.2s ease-in-out infinite;
+  }
+
+  /* alarm bg glow */
+  .alarm-bg {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 62%, rgba(255,69,58,0.13) 0%, transparent 65%);
+    animation: alarm-bg-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* battery */
   .bat-wrap {
     position: absolute; top: 9px; right: 10px; z-index: 12;
     display: flex; align-items: center; gap: 5px;
@@ -7191,41 +7226,49 @@ class KontaktronCard extends HTMLElement {
     background: rgba(28,28,30,.92);
     border: .5px solid rgba(255,255,255,.15);
     border-radius: 6px; padding: 2px 6px;
-    white-space: nowrap;
-    opacity: 0; pointer-events: none;
-    transition: opacity .15s;
-    backdrop-filter: blur(8px);
+    white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity .15s; backdrop-filter: blur(8px);
   }
   .bat-wrap:hover .bat-tip { opacity: 1; }
   @media (max-width: 400px) { .bat-wrap { display: none; } }
 
-  /* ── alarm flash overlay ── */
-  .alarm-flash {
-    position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    border-radius: 18px;
-    background: radial-gradient(ellipse at center, rgba(255,69,58,0.14) 0%, transparent 70%);
-    ${isAlarm ? 'animation: alarm-flash-anim 1.5s ease-in-out infinite;' : 'display: none;'}
-  }
-
+  /* ── keyframes ── */
   @keyframes alarm-pulse {
-    0%,100% { box-shadow: 0 0 0 0 rgba(255,69,58,0);    border-color: rgba(255,69,58,0.40); }
-    50%      { box-shadow: 0 0 0 9px rgba(255,69,58,0.15); border-color: rgba(255,69,58,0.80); }
+    0%,100% { box-shadow: 0 0 0 0    rgba(255,69,58,0);    border-color: rgba(255,69,58,0.42); }
+    50%      { box-shadow: 0 0 0 10px rgba(255,69,58,0.18); border-color: rgba(255,69,58,0.88); }
   }
-  @keyframes alarm-flash-anim {
-    0%,100% { opacity: 0.4; }
+  @keyframes alarm-bg-pulse {
+    0%,100% { opacity: 0.45; }
     50%      { opacity: 1; }
+  }
+  @keyframes exclaim-shake {
+    0%,40%,100% { transform: translate(-50%,-50%) rotate(  0deg); }
+    43%          { transform: translate(-56%,-52%) rotate( -9deg); }
+    46%          { transform: translate(-44%,-50%) rotate(  9deg); }
+    49%          { transform: translate(-55%,-51%) rotate( -7deg); }
+    52%          { transform: translate(-45%,-50%) rotate(  6deg); }
+    55%          { transform: translate(-52%,-51%) rotate( -3deg); }
+    58%          { transform: translate(-50%,-50%) rotate(  0deg); }
+  }
+  @keyframes exclaim-glow {
+    0%,100% { text-shadow: 0 0  6px rgba(255,69,58,0.35); }
+    50%      { text-shadow: 0 0 22px rgba(255,69,58,0.95), 0 0 42px rgba(255,69,58,0.30); }
   }
 </style>
 
 <div class="card">
-  <div class="alarm-flash"></div>
+  ${isAlarm ? '<div class="alarm-bg"></div>' : ''}
   <div class="name">${name}</div>
   ${this._batHTML(batVal)}
+  ${isAlarm ? '<div class="exclaim">!</div>' : ''}
 
   <svg class="main-svg" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg">
-    ${this._doorSVG(isOpen && isOnline, doorAccent)}
+    ${this._lockSVG(isOpen && isOnline, lockColor)}
   </svg>
 
+  <div class="bar-wrap">
+    <div class="bar-fill" id="bar-fill"></div>
+  </div>
   <div class="timer" id="timer">${dur !== null ? this._fmt(dur) : ''}</div>
   <div class="pill">${pillLabel}</div>
 </div>`;
@@ -7241,5 +7284,5 @@ window.customCards.push({
   type:        'aha-kontaktron-card',
   name:        'Kontaktron Card',
   preview:     false,
-  description: 'Kwadratowy kafelek czujnika drzwi/okna z alarmem czasowym i poziomem baterii.',
+  description: 'Kwadratowy kafelek czujnika drzwi/okna: k\u0142\u00f3dka, minutnik, pasek progresu, alarm z pulsuj\u0105cym wykrzyknikiem.',
 });
