@@ -121,7 +121,7 @@ class TempHumidityCard extends HTMLElement {
   }
 
   _batteryHTML(pct) {
-    if (pct === null) return '';
+    if (pct === null || pct >= 25) return ''; /* show only when low */
     const low = pct < 20;
     const col = low ? '#FF453A' : 'rgba(255,255,255,0.45)';
     const fillW = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
@@ -276,10 +276,11 @@ class TempHumidityCard extends HTMLElement {
   .top-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
     position: relative;
     z-index: 2;
     min-width: 0;
+    margin-left: -4px; /* pull icon ~4px toward card edge */
   }
   .spacer { /* fills 1fr row, pushes primary/secondary to bottom */ }
 
@@ -292,17 +293,17 @@ class TempHumidityCard extends HTMLElement {
 
   /* icon badge */
   .icon-wrap {
-    position: relative; width: 36px; height: 36px;
+    position: relative; width: 30px; height: 30px;
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
   }
   .icon-bg {
-    width: 34px; height: 34px; border-radius: 10px;
+    width: 28px; height: 28px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     background: ${isOffline ? 'rgba(142,142,147,0.12)' : `rgba(${_hexToRgb(accent)}, 0.18)`};
     transition: background 0.4s ease; z-index: 2; position: relative;
   }
-  ha-icon { --mdc-icon-size: 20px; color: ${isOffline ? '#636366' : accent}; }
+  ha-icon { --mdc-icon-size: 16px; color: ${isOffline ? '#636366' : accent}; }
 
   /* text rows */
   .name {
