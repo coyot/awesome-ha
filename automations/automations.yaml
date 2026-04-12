@@ -1,0 +1,513 @@
+- id: '1773306989018'
+  alias: akcja wywoz szamba
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_button.wywoz_szamba
+  conditions: []
+  actions:
+  - action: logbook.log
+    data:
+      name: "Wywóz szamba 🚛"
+      message: >
+        Dom 1: {{ states('sensor.szambo_dom_1_zuzycie') }} m³ = {{ states('sensor.szambo_dom_1_do_zaplaty') }} zł |
+        Dom 2: {{ states('sensor.szambo_dom_2_zuzycie') }} m³ = {{ states('sensor.szambo_dom_2_do_zaplaty') }} zł |
+        Łącznie: {{ states('sensor.szambo_zuzycie') }} m³ = 320 zł
+  - action: rest_command.szambo_google_sheets
+    data:
+      dom1_m3: '{{ states(''sensor.szambo_dom_1_zuzycie'') }}'
+      dom1_zl: '{{ states(''sensor.szambo_dom_1_do_zaplaty'') }}'
+      dom2_m3: '{{ states(''sensor.szambo_dom_2_zuzycie'') }}'
+      dom2_zl: '{{ states(''sensor.szambo_dom_2_do_zaplaty'') }}'
+      lacznie_m3: '{{ states(''sensor.szambo_zuzycie'') }}'
+  - action: script.log_push
+    data:
+      wpis: >
+        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"szambo",
+        "d1m":{{ states('sensor.szambo_dom_1_zuzycie') | float(0) | round(2) }},
+        "d1z":{{ states('sensor.szambo_dom_1_do_zaplaty') | float(0) | round(0) | int }},
+        "d2m":{{ states('sensor.szambo_dom_2_zuzycie') | float(0) | round(2) }},
+        "d2z":{{ states('sensor.szambo_dom_2_do_zaplaty') | float(0) | round(0) | int }},
+        "lm":{{ states('sensor.szambo_zuzycie') | float(0) | round(2) }}}
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 3
+      milliseconds: 0
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz
+    data:
+      value: '{{ states(''sensor.water_1_total_2'') | float(0) + states(''sensor.water_2_total'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_dom_1
+    data:
+      value: '{{ states(''sensor.water_1_total_2'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_dom_2
+    data:
+      value: '{{ states(''sensor.water_2_total'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_ogrod_1
+    data:
+      value: '{{ states(''input_number.ogrod_1'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_ogrod_2
+    data:
+      value: '{{ states(''input_number.ogrod_2'') | float(0) }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h10
+      value: '{{ states(''input_text.szambo_h9'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h9
+      value: '{{ states(''input_text.szambo_h8'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h8
+      value: '{{ states(''input_text.szambo_h7'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h7
+      value: '{{ states(''input_text.szambo_h6'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h6
+      value: '{{ states(''input_text.szambo_h5'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h5
+      value: '{{ states(''input_text.szambo_h4'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h4
+      value: '{{ states(''input_text.szambo_h3'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h3
+      value: '{{ states(''input_text.szambo_h2'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h2
+      value: '{{ states(''input_text.szambo_h1'') }}'
+  - action: input_text.set_value
+    data:
+      entity_id: input_text.szambo_h1
+      value: >
+        {"d":"{{ now().strftime('%Y-%m-%d') }}",
+        "d1m":{{ states('sensor.szambo_dom_1_zuzycie') | float(0) | round(2) }},
+        "d1z":{{ states('sensor.szambo_dom_1_do_zaplaty') | float(0) | round(0) | int }},
+        "d2m":{{ states('sensor.szambo_dom_2_zuzycie') | float(0) | round(2) }},
+        "d2z":{{ states('sensor.szambo_dom_2_do_zaplaty') | float(0) | round(0) | int }},
+        "lm":{{ states('sensor.szambo_zuzycie') | float(0) | round(2) }}}
+  - target:
+      entity_id: input_datetime.ostatni_wywoz_szamba
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+    action: input_datetime.set_datetime
+  mode: single
+
+
+- id: '1773346567560'
+  alias: Ogród - potwierdź dane
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id: input_button.ogrod_potwierdz
+  actions:
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.ogrod_ostatnia_aktualizacja
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+
+
+- id: '1773672846823'
+  alias: Szambo - dzienny alert poziomu o 7:00
+  description: Sprawdza poziom szamba i wysyła powiadomienie raz dziennie
+  triggers:
+  - at: 07:00:00
+    trigger: time
+  actions:
+  - choose:
+    - conditions:
+      - condition: numeric_state
+        entity_id: sensor.szambo_zuzycie
+        above: 9
+      sequence:
+      - data:
+          title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
+          message: >
+            Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz.
+        action: notify.mobile_app_iphone_tk
+      - data:
+          title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
+          message: >
+            Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz.
+        action: notify.mobile_app_iphone_monika
+    - conditions:
+      - condition: numeric_state
+        entity_id: sensor.szambo_zuzycie
+        above: 8
+      sequence:
+      - data:
+          title: ⚠️ Szambo blisko pełnego
+          message: >
+            Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz.
+        action: notify.mobile_app_iphone_tk
+      - data:
+          title: ⚠️ Szambo blisko pełnego
+          message: >
+            Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz.
+        action: notify.mobile_app_iphone_monika
+    - conditions:
+      - condition: numeric_state
+        entity_id: sensor.szambo_zuzycie
+        above: 7
+      sequence:
+      - data:
+          title: ℹ️ Szambo zaczyna się zapełniać
+          message: >
+            Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj.
+        action: notify.mobile_app_iphone_tk
+      - data:
+          title: ℹ️ Szambo zaczyna się zapełniać
+          message: >
+            Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj.
+        action: notify.mobile_app_iphone_monika
+  mode: single
+
+
+- id: '1773775004210'
+  alias: Otwórz bramę gdy ktoś wraca do domu
+  triggers:
+  - trigger: zone
+    entity_id: device_tracker.iphone_tk
+    zone: zone.home
+    event: enter
+  - trigger: zone
+    entity_id: device_tracker.iphone_monika
+    zone: zone.home
+    event: enter
+  actions:
+  - action: rest_command.blynk_open_gate
+  - variables:
+      kto: >
+        {% if trigger.entity_id == 'device_tracker.iphone_tk' %}
+          tk
+        {% elif trigger.entity_id == 'device_tracker.iphone_monika' %}
+          mk
+        {% else %}
+          unknown
+        {% endif %}
+      czas: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+      wpis: '{{ kto }}|{{ czas }}'
+  - target:
+      entity_id: input_text.wjazd_3
+    data:
+      value: '{{ states(''input_text.wjazd_2'') }}'
+    action: input_text.set_value
+  - target:
+      entity_id: input_text.wjazd_2
+    data:
+      value: '{{ states(''input_text.wjazd_1'') }}'
+    action: input_text.set_value
+  - target:
+      entity_id: input_text.wjazd_1
+    data:
+      value: '{{ wpis }}'
+    action: input_text.set_value
+  - action: script.log_push
+    data:
+      wpis: >
+        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"wjazd",
+        "kto":"{% if trigger.entity_id == 'device_tracker.iphone_tk' %}tk{% else %}mk{% endif %}"}
+  - action: >
+      {% if trigger.entity_id == 'device_tracker.iphone_tk' %}
+        notify.mobile_app_iphone_tk
+      {% elif trigger.entity_id == 'device_tracker.iphone_monika' %}
+        notify.mobile_app_iphone_monika
+      {% endif %}
+    data:
+      title: "🏠 Witaj w domu!"
+      message: >
+        {% if trigger.entity_id == 'device_tracker.iphone_tk' %}
+          🙋 Cześć Tomek, brama otwarta!
+        {% elif trigger.entity_id == 'device_tracker.iphone_monika' %}
+          🙋 Cześć Monika, brama otwarta!
+        {% endif %}
+  mode: queued
+  max: 2
+
+
+- alias: Ogród 1 – ustaw datę potwierdzenia
+  id: 26aea2f2de354af88438f3b51f91a172
+  trigger:
+  - platform: state
+    entity_id: input_button.ogrod_1_potwierdz
+  action:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.ogrod_1_ostatnia_aktualizacja
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+
+
+- alias: Ogród 2 – ustaw datę potwierdzenia
+  id: fa06e85fe1a84251bcff5bc09129bbf6
+  trigger:
+  - platform: state
+    entity_id: input_button.ogrod_2_potwierdz
+  action:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.ogrod_2_ostatnia_aktualizacja
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+
+
+- id: '1775157994830'
+  alias: 'Powiadomienie o wywozie śmieci (Logic: Monika & Tomek)'
+  description: Wysyła powiadomienia o 17:30 na dzień przed wywozem do osób w domu.
+  triggers:
+  - at: '17:30:00'
+    trigger: time
+  actions:
+  - variables:
+      sensors:
+      - entity: sensor.harmonogram_bio
+        name: "🌿 Bio"
+      - entity: sensor.harmonogram_segregowane
+        name: "♻️ Segregowane (Papier/Plastik/Szkło)"
+      - entity: sensor.harmonogram_zmieszane
+        name: "🗑️ Zmieszane"
+      - entity: sensor.harmonogram_gabaryty
+        name: "🛋️ Gabaryty"
+      items_tomorrow: >
+        {% set found = ns(types=[]) %}
+        {% for s in sensors if states(s.entity) == '1' %}
+          {% set found.types = found.types + [s.name] %}
+        {% endfor %}
+        {{ found.types | join(', ') }}
+      monika_home: '{{ is_state(''device_tracker.iphone_monika'', ''home'') }}'
+      tomek_home: '{{ is_state(''device_tracker.iphone_tk'', ''home'') }}'
+  - condition: template
+    value_template: '{{ items_tomorrow != "" }}'
+  - if:
+    - condition: template
+      value_template: '{{ monika_home }}'
+    then:
+    - data:
+        title: "🚛 Jutro wywóz śmieci!"
+        message: >
+          Witaj Monika, jutro wywozimy: {{ items_tomorrow }}.
+          {% if tomek_home %} 📢 Powiedz Tomkowi, żeby wystawił kubły przed dom!
+          {% else %} ⚠️ Pamiętaj o wystawieniu kubłów przed dom. {% endif %}
+      action: notify.mobile_app_iphone_monika
+  - if:
+    - condition: template
+      value_template: '{{ tomek_home }}'
+    then:
+    - data:
+        title: "🚛 Jutro wywóz śmieci!"
+        message: >
+          Witaj Tomek, jutro wywozimy: {{ items_tomorrow }}. ⚠️ Nie zapomnij wystawić kubłów przed dom!
+      action: notify.mobile_app_iphone_tk
+  mode: restart
+
+
+# ============================================================
+# AUTOMATYZACJA: Poręcz klatka schodowa — oświetlenie
+# switch.porecz_klatka_schodowa_socket_1
+#
+# LOGIKA:
+#   WŁĄCZENIE wieczorem:
+#     - pogodnie  (solar_radiation >= 50 W/m²) → 20 min przed zachodem słońca
+#     - pochmurno (solar_radiation <  50 W/m²) → 90 min przed zachodem słońca
+#
+#   WYŁĄCZENIE rano:
+#     - pogodnie  (weather in sunny/partlycloudy) → 10 min po wschodzie słońca
+#     - pochmurno (pozostałe stany weather)       → 90 min po wschodzie słońca
+#
+#   WARUNEK WIECZÓR: iphone_tk LUB iphone_monika musi być w zone.home
+# ============================================================
+
+- id: porecz_wlacz_wieczor
+  alias: "Poręcz klatka — włącz wieczorem"
+  trigger:
+    - platform: sun
+      event: sunset
+      offset: "-01:30:00"
+  condition:
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.stacja_pogodowa_solar_radiation') | float(-1) >= 50 }}
+          sequence:
+            - delay:
+                minutes: 70
+            - service: switch.turn_on
+              target:
+                entity_id: switch.porecz_klatka_schodowa_socket_1
+            - action: logbook.log
+              data:
+                name: "Poręcz klatka"
+                entity_id: switch.porecz_klatka_schodowa_socket_1
+                message: >
+                  WŁĄCZONO | zachód −20 min | pogodnie |
+                  radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+            - action: script.log_push
+              data:
+                wpis: >
+                  {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+                  "akcja":"ON","info":"pogodnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −20min"}
+      default:
+        - service: switch.turn_on
+          target:
+            entity_id: switch.porecz_klatka_schodowa_socket_1
+        - action: logbook.log
+          data:
+            name: "Poręcz klatka"
+            entity_id: switch.porecz_klatka_schodowa_socket_1
+            message: >
+              WŁĄCZONO | zachód −90 min | pochmurnie |
+              radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+        - action: script.log_push
+          data:
+            wpis: >
+              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+              "akcja":"ON","info":"pochmurnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −90min"}
+  mode: single
+
+
+- id: porecz_wylacz_rano
+  alias: "Poręcz klatka — wyłącz rano"
+  trigger:
+    - platform: sun
+      event: sunrise
+      offset: "00:10:00"
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('weather.forecast_home') in ['sunny','partlycloudy','clear-night'] }}
+          sequence:
+            - service: switch.turn_off
+              target:
+                entity_id: switch.porecz_klatka_schodowa_socket_1
+            - action: logbook.log
+              data:
+                name: "Poręcz klatka"
+                entity_id: switch.porecz_klatka_schodowa_socket_1
+                message: >
+                  WYŁĄCZONO | wschód +10 min | pogodnie |
+                  weather: {{ states('weather.forecast_home') }}
+            - action: script.log_push
+              data:
+                wpis: >
+                  {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+                  "akcja":"OFF","info":"pogodnie · {{ states('weather.forecast_home') }} · wschód +10min"}
+      default:
+        - delay:
+            minutes: 80
+        - service: switch.turn_off
+          target:
+            entity_id: switch.porecz_klatka_schodowa_socket_1
+        - action: logbook.log
+          data:
+            name: "Poręcz klatka"
+            entity_id: switch.porecz_klatka_schodowa_socket_1
+            message: >
+              WYŁĄCZONO | wschód +90 min | pochmurnie |
+              weather: {{ states('weather.forecast_home') }}
+        - action: script.log_push
+          data:
+            wpis: >
+              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+              "akcja":"OFF","info":"pochmurnie · {{ states('weather.forecast_home') }} · wschód +90min"}
+  mode: single
+
+
+- id: porecz_wlacz_powrot_po_zmroku
+  alias: "Poręcz klatka — włącz przy powrocie po zmroku"
+  description: >
+    Gdy ktoś wraca do domu po zachodzie słońca,
+    a oświetlenie jest wyłączone — włącz je.
+  trigger:
+    - platform: state
+      entity_id:
+        - device_tracker.iphone_tk
+        - device_tracker.iphone_monika
+      to: home
+  condition:
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
+    - condition: state
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      state: "off"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+    - action: logbook.log
+      data:
+        name: "Poręcz klatka"
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: >
+          WŁĄCZONO | powrót do domu po zmroku |
+          kto: {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% elif trigger.entity_id == 'device_tracker.iphone_monika' %}Monika{% else %}nieznany{% endif %} |
+          radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+          "akcja":"ON","info":"powrót po zmroku · {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}"}
+  mode: single
+
+
+- id: porecz_wylacz_failsafe
+  alias: "Poręcz klatka — wyłącz failsafe w południe"
+  description: >
+    Awaryjnie wyłącza oświetlenie o 12:00 jeśli nadal świeci.
+  trigger:
+    - platform: time
+      at: "12:00:00"
+  condition:
+    - condition: state
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      state: "on"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+    - action: logbook.log
+      data:
+        name: "Poręcz klatka"
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: >
+          WYŁĄCZONO | failsafe 12:00 | switch był nadal włączony |
+          radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+          "akcja":"OFF","info":"⚠️ failsafe 12:00 · switch był nadal włączony"}
+  mode: single
