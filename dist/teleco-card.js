@@ -296,15 +296,12 @@ class TelecoCard extends HTMLElement {
   getCardSize() { return 3; }
 }
 
-customElements.define('aha-teleco-card-slim', TelecoCard);
-// backward-compat alias — old dashboards using aha-teleco-card keep working
-class _TelecoCardCompat extends TelecoCard {}
-customElements.define('aha-teleco-card', _TelecoCardCompat);
+customElements.define('aha-teleco-card', TelecoCard);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type:        'aha-teleco-card-slim',
+  type:        'aha-teleco-card',
   name:        'Teleco Blind Card',
   preview:     false,
-  description: 'Sterowanie żaluzjami w stylu Apple Home.',
+  description: 'Sterowanie żaluzjami w stylu Apple Home (pełna karta z presetami).',
 });
