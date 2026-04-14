@@ -281,15 +281,13 @@ class AhaTempHumidityCard extends HTMLElement {
     transition: background 0.5s ease;
   }
   .room-name {
-    font-size: 10px;
-    color: ${st.nameColor || '#3a3a3c'};
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
+    font-size: 11px;
+    font-weight: 500;
+    color: #a1a1a6;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 96px;
-    transition: color 0.5s ease;
   }
 
   /* bottom section */
