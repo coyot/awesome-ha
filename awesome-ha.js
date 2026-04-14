@@ -7562,7 +7562,7 @@ class KontaktronCard extends HTMLElement {
       stateClass   = 'closed';
       icon         = this._config.icon_closed;
       stateText    = 'zamknięte';
-      durationText = this._formatDuration(diffMin);
+      durationText = '';
     } else if (!isAlarm) {
       stateClass   = 'open';
       icon         = this._config.icon_open;
@@ -7593,6 +7593,7 @@ class KontaktronCard extends HTMLElement {
       return;
     }
     const pct     = parseFloat(s.state);
+    if (pct >= 25) { this._batWrap.style.display = 'none'; return; }
     const low     = pct < 20;
     const col     = low ? '#FF453A' : 'rgba(255,255,255,0.42)';
     const fillCol = low ? '#FF453A' : 'rgba(255,255,255,0.50)';
