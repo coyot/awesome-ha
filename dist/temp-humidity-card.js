@@ -201,8 +201,10 @@ class AhaTempHumidityCard extends HTMLElement {
     const maxT = parseFloat(cfg.max_temp ?? 40);
 
     const tempStr  = temp === null ? '--°' : temp.toFixed(1) + '°';
-    const humStr   = hum  === null ? '--'  : hum.toFixed(0)  + '%';
     const isOffline = temp === null;
+    // show humidity only when out of comfortable range (< 35% or ≥ 66%)
+    const showHum  = hum !== null && (hum < 35 || hum >= 66);
+    const humStr   = showHum ? hum.toFixed(0) + '%' : '';
 
     /* ── thermometer geometry (viewBox "0 0 24 84") ── */
     const TX = 7, TW = 10, TTOP = 3, TH = 56;
@@ -350,7 +352,7 @@ class AhaTempHumidityCard extends HTMLElement {
     </div>
     <div class="bottom">
       <div class="temp-val" id="temp-hit">${tempStr}</div>
-      <div class="hum-val"  id="hum-hit">💧 ${humStr}</div>
+      ${showHum ? `<div class="hum-val" id="hum-hit">💧 ${humStr}</div>` : '<div id="hum-hit"></div>'}
     </div>
   </div>
 
