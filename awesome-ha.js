@@ -6410,6 +6410,8 @@ class AhaTempHumidityCard extends HTMLElement {
       humidity_entity: 'sensor.salon_humidity',
       battery_entity: '',
       icon: '🛋️',
+      min_temp: -10,
+      max_temp: 40,
     };
   }
 
@@ -6588,10 +6590,30 @@ class AhaTempHumidityCard extends HTMLElement {
     const st   = this._tempState(temp);
     const hCol = this._humColor(hum, st);
 
-    const tempStr = temp === null ? '--°' : temp.toFixed(1) + '°';
-    const humStr  = hum  === null ? '--'  : hum.toFixed(0)  + '%';
+    const minT = parseFloat(cfg.min_temp ?? -10);
+    const maxT = parseFloat(cfg.max_temp ?? 40);
 
+    const tempStr  = temp === null ? '--°' : temp.toFixed(1) + '°';
+    const humStr   = hum  === null ? '--'  : hum.toFixed(0)  + '%';
     const isOffline = temp === null;
+
+    /* ── thermometer geometry (viewBox "0 0 24 120") ── */
+    const TX = 7, TW = 10, TTOP = 4, TH = 86;
+    const BCY = 100, BR = 10;
+    const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / (maxT - minT) * 100));
+    const fillH   = (fillPct / 100) * TH;
+    const fillY   = TTOP + TH - fillH;
+
+    const gradMap = {
+      offline: ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.08)'],
+      frost:   ['#5AC8FA', '#0A84FF'],
+      cold:    ['#a8dff8', '#7dd4f8'],
+      comfort: ['#30D158', '#25a244'],
+      warm:    ['#FFD60A', '#FF9F0A'],
+      fire:    ['#FF6B6B', '#FF453A'],
+    };
+    const [g0, g1]  = gradMap[st.key] || gradMap.comfort;
+    const glowFill  = isOffline ? 'none' : `${st.dotColor}33`;
 
     this.shadowRoot.innerHTML = `
 <style>
@@ -6602,8 +6624,8 @@ class AhaTempHumidityCard extends HTMLElement {
     border-radius: 16px;
     padding: 12px;
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    flex-direction: row;
+    align-items: stretch;
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
@@ -6617,38 +6639,28 @@ class AhaTempHumidityCard extends HTMLElement {
   }
   .card:active { transform: scale(0.97); }
 
-  /* bg glow layer */
   .bg-glow {
     position: absolute; inset: 0; pointer-events: none; z-index: 0;
     background: ${st.glowCss || 'none'};
     transition: background 0.5s ease;
   }
 
-  /* frost / fire overlays */
-  .overlay-svg {
-    position: absolute; pointer-events: none; z-index: 1;
-  }
+  .overlay-svg { position: absolute; pointer-events: none; z-index: 1; }
   .frost-svg { top: 0; left: 0; width: 100px; height: 100px; opacity: 0.6; }
 
-  /* flames */
   .flames {
-    position: absolute; bottom: 10px; right: 10px;
+    position: absolute; bottom: 10px; right: 40px;
     display: flex; gap: 2px; align-items: flex-end;
     z-index: 1; pointer-events: none;
   }
-  .flame {
-    border-radius: 50% 50% 30% 30%;
-    transform-origin: bottom center;
-    animation: flicker 1.8s ease-in-out infinite;
-  }
+  .flame { border-radius: 50% 50% 30% 30%; transform-origin: bottom center; animation: flicker 1.8s ease-in-out infinite; }
   .fl1 { width: 5px;  height: 18px; background: linear-gradient(to top, #FF6B00, #FF3A00, rgba(255,80,0,0.06));  animation-duration: 1.5s; animation-delay: 0s;    }
   .fl2 { width: 8px;  height: 28px; background: linear-gradient(to top, #FF8C00, #FF4500, rgba(255,60,0,0.05));  animation-duration: 1.9s; animation-delay: 0.18s; }
   .fl3 { width: 6px;  height: 20px; background: linear-gradient(to top, #FF6B00, #FF3A00, rgba(255,70,0,0.06));  animation-duration: 1.4s; animation-delay: 0.35s; }
   .fl4 { width: 5px;  height: 14px; background: linear-gradient(to top, #FF5500, #FF2200, rgba(255,50,0,0.05));  animation-duration: 1.6s; animation-delay: 0.55s; }
 
-  /* battery */
   .bat {
-    position: absolute; top: 9px; right: 10px; z-index: 10;
+    position: absolute; top: 9px; right: 38px; z-index: 10;
     display: flex; align-items: center; gap: 5px;
   }
   .bat-pct {
@@ -6660,12 +6672,14 @@ class AhaTempHumidityCard extends HTMLElement {
   }
   .bat:hover .bat-pct { opacity: 1; }
 
-  /* top section */
-  .top {
+  /* ── left column ── */
+  .left {
+    flex: 1; min-width: 0;
     display: flex; flex-direction: column;
-    align-items: flex-start; gap: 4px;
+    justify-content: space-between;
     position: relative; z-index: 2;
   }
+  .top { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
   .icon-wrap {
     width: 30px; height: 30px; border-radius: 9px;
     background: ${st.iconBg};
@@ -6674,64 +6688,35 @@ class AhaTempHumidityCard extends HTMLElement {
     transition: background 0.5s ease;
   }
   .room-name {
-    font-size: 11px;
-    font-weight: 500;
-    color: #a1a1a6;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 11px; font-weight: 500; color: #a1a1a6;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     max-width: 96px;
   }
-
-  /* bottom section */
-  .bottom { position: relative; z-index: 2; }
-
   .temp-val {
-    font-size: 28px; font-weight: 700;
-    letter-spacing: -1.5px; line-height: 1;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -1px; line-height: 1;
     color: ${st.tempColor};
     transition: color 0.5s ease;
     cursor: pointer;
   }
-
   .hum-val {
-    font-size: 12px; font-weight: 500;
+    font-size: 11px; font-weight: 500;
     color: ${hCol};
-    margin-top: 4px;
+    margin-top: 3px;
     transition: color 0.4s ease;
     cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
   }
 
-  /* gradient range bar */
-  .range {
-    position: relative; height: 3px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 2px; margin-top: 7px;
-    overflow: visible;
+  /* ── right thermometer column ── */
+  .thermo-col {
+    width: 24px; flex-shrink: 0;
+    display: flex; align-items: stretch;
+    position: relative; z-index: 2;
+    margin-left: 4px;
+    padding: 2px 0;
   }
-  .range-track {
-    position: absolute; inset: 0; border-radius: 2px;
-    background: linear-gradient(90deg,
-      #0A84FF  0%,
-      #5AC8FA  20%,
-      #30D158  42%,
-      #30D158  58%,
-      #FF9F0A  80%,
-      #FF453A  100%
-    );
-    opacity: 0.3;
-  }
-  .range-dot {
-    position: absolute; top: 50%;
-    transform: translate(-50%, -50%);
-    width: 7px; height: 7px; border-radius: 50%;
-    background: ${st.dotColor};
-    box-shadow: ${st.dotGlow};
-    left: ${st.dotPct.toFixed(1)}%;
-    transition: left 0.6s ease, background 0.5s ease, box-shadow 0.5s ease;
-  }
+  .thermo-svg { width: 100%; height: 100%; overflow: visible; }
 
-  /* ── keyframes ── */
   @keyframes flicker {
     0%,100% { transform: scaleX(1)    scaleY(1)    translateY(0);   opacity: 0.9; }
     25%      { transform: scaleX(0.85) scaleY(1.12) translateY(-3px); opacity: 1;   }
@@ -6748,18 +6733,60 @@ class AhaTempHumidityCard extends HTMLElement {
 
   ${this._batteryHTML(bat)}
 
-  <div class="top">
-    <div class="icon-wrap">${icon}</div>
-    <div class="room-name">${name}</div>
+  <div class="left">
+    <div class="top">
+      <div class="icon-wrap">${icon}</div>
+      <div class="room-name">${name}</div>
+    </div>
+    <div class="bottom">
+      <div class="temp-val" id="temp-hit">${tempStr}</div>
+      <div class="hum-val"  id="hum-hit">💧 ${humStr}</div>
+    </div>
   </div>
 
-  <div class="bottom">
-    <div class="temp-val" id="temp-hit">${tempStr}</div>
-    <div class="hum-val"  id="hum-hit">💧 ${humStr}</div>
-    <div class="range">
-      <div class="range-track"></div>
-      <div class="range-dot"></div>
-    </div>
+  <div class="thermo-col">
+    <svg class="thermo-svg" viewBox="0 0 24 120"
+         preserveAspectRatio="xMidYMid meet"
+         xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="thg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${g0}"/>
+          <stop offset="100%" stop-color="${g1}"/>
+        </linearGradient>
+        <clipPath id="thc">
+          <rect x="${TX}" y="${TTOP}" width="${TW}" height="${TH}" rx="5"/>
+        </clipPath>
+      </defs>
+
+      <!-- tube background -->
+      <rect x="${TX}" y="${TTOP}" width="${TW}" height="${TH}" rx="5"
+        fill="rgba(255,255,255,0.04)"
+        stroke="${isOffline ? 'rgba(255,255,255,0.07)' : st.cardBorder}"
+        stroke-width="1"/>
+
+      <!-- tube fill -->
+      ${!isOffline && fillH > 0 ? `
+      <rect x="${TX}" y="${fillY.toFixed(1)}" width="${TW}" height="${fillH.toFixed(1)}"
+        fill="url(#thg)" clip-path="url(#thc)"/>` : ''}
+
+      <!-- tick marks at 25 / 50 / 75 % -->
+      <line x1="${TX + TW}" y1="${(TTOP + TH * 0.25).toFixed(1)}" x2="${TX + TW + 4}" y2="${(TTOP + TH * 0.25).toFixed(1)}" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+      <line x1="${TX + TW}" y1="${(TTOP + TH * 0.5 ).toFixed(1)}" x2="${TX + TW + 4}" y2="${(TTOP + TH * 0.5 ).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="0.8"/>
+      <line x1="${TX + TW}" y1="${(TTOP + TH * 0.75).toFixed(1)}" x2="${TX + TW + 4}" y2="${(TTOP + TH * 0.75).toFixed(1)}" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+
+      <!-- bulb glow -->
+      ${!isOffline ? `<circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR + 4}" fill="${glowFill}"/>` : ''}
+
+      <!-- bulb body -->
+      <circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR}"
+        fill="${isOffline ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.15)'}"
+        stroke="${isOffline ? 'rgba(255,255,255,0.1)' : st.dotColor}"
+        stroke-width="1.4"/>
+
+      <!-- bulb fill -->
+      <circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR - 3.5}"
+        fill="${isOffline ? 'rgba(255,255,255,0.08)' : st.dotColor}"/>
+    </svg>
   </div>
 </div>`;
 
