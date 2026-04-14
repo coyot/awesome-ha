@@ -204,9 +204,9 @@ class AhaTempHumidityCard extends HTMLElement {
     const humStr   = hum  === null ? '--'  : hum.toFixed(0)  + '%';
     const isOffline = temp === null;
 
-    /* ── thermometer geometry (viewBox "0 0 24 120") ── */
-    const TX = 7, TW = 10, TTOP = 4, TH = 86;
-    const BCY = 100, BR = 10;
+    /* ── thermometer geometry (viewBox "0 0 24 84") ── */
+    const TX = 7, TW = 10, TTOP = 3, TH = 56;
+    const BCY = 68, BR = 9;
     const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / (maxT - minT) * 100));
     const fillH   = (fillPct / 100) * TH;
     const fillY   = TTOP + TH - fillH;
@@ -220,7 +220,7 @@ class AhaTempHumidityCard extends HTMLElement {
       fire:    ['#FF6B6B', '#FF453A'],
     };
     const [g0, g1]  = gradMap[st.key] || gradMap.comfort;
-    const glowFill  = isOffline ? 'none' : `${st.dotColor}33`;
+    const glowFill  = isOffline ? 'none' : `${g1}44`;
 
     this.shadowRoot.innerHTML = `
 <style>
@@ -317,12 +317,15 @@ class AhaTempHumidityCard extends HTMLElement {
   /* ── right thermometer column ── */
   .thermo-col {
     width: 24px; flex-shrink: 0;
-    display: flex; align-items: stretch;
     position: relative; z-index: 2;
     margin-left: 4px;
-    padding: 2px 0;
   }
-  .thermo-svg { width: 100%; height: 100%; overflow: visible; }
+  .thermo-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    overflow: visible;
+  }
 
   @keyframes flicker {
     0%,100% { transform: scaleX(1)    scaleY(1)    translateY(0);   opacity: 0.9; }
@@ -352,7 +355,7 @@ class AhaTempHumidityCard extends HTMLElement {
   </div>
 
   <div class="thermo-col">
-    <svg class="thermo-svg" viewBox="0 0 24 120"
+    <svg class="thermo-svg" viewBox="0 0 24 84"
          preserveAspectRatio="xMidYMid meet"
          xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -387,12 +390,12 @@ class AhaTempHumidityCard extends HTMLElement {
       <!-- bulb body -->
       <circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR}"
         fill="${isOffline ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.15)'}"
-        stroke="${isOffline ? 'rgba(255,255,255,0.1)' : st.dotColor}"
+        stroke="${isOffline ? 'rgba(255,255,255,0.1)' : g0}"
         stroke-width="1.4"/>
 
       <!-- bulb fill -->
       <circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR - 3.5}"
-        fill="${isOffline ? 'rgba(255,255,255,0.08)' : st.dotColor}"/>
+        fill="${isOffline ? 'rgba(255,255,255,0.08)' : g1}"/>
     </svg>
   </div>
 </div>`;
