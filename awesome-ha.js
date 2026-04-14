@@ -6795,9 +6795,133 @@ window.customCards.push({
   name:        'AHA Temp & Humidity Card',
   preview:     false,
   description: 'Kafelek temperatury i wilgotności — Apple Home dark style. Reaktywne tło (mróz/komfort/upał), gradient range-bar, ikona jako parametr.',
-});class TempSlimCard extends TempHumidityCard {
+});class TempSlimCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
   static getStubConfig() {
     return { temp_entity: 'sensor.temperature_salon', name: 'Salon' };
+  }
+
+  setConfig(config) {
+    if (!config.temp_entity) throw new Error('temp_entity jest wymagane');
+    this._config = config;
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  get _tempVal() {
+    if (!this._hass || !this._config.temp_entity) return null;
+    const s = this._hass.states[this._config.temp_entity];
+    if (!s || s.state === 'unavailable' || s.state === 'unknown') return null;
+    return parseFloat(s.state);
+  }
+
+  _getTempState(t) {
+    if (t === null) return {
+      label: 'OFFLINE', color: 'rgba(255,255,255,0.2)',
+      border: 'rgba(255,255,255,0.08)', bg: '#1C1C1E',
+      fillPct: 0, bulbColor: 'rgba(255,255,255,0.15)',
+      glowColor: 'rgba(255,255,255,0)', glowWidth: 5,
+      pillBg: 'rgba(255,255,255,0.05)', pillBorder: 'rgba(255,255,255,0.1)',
+      gradStops: ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.08)'],
+      effect: 'none', pulseAnim: '',
+    };
+    if (t < 5)  return {
+      label: 'MRÓZ', color: '#0A84FF',
+      border: 'rgba(10,132,255,0.32)', bg: 'linear-gradient(150deg,#040c18,#111820,#1C1C1E)',
+      fillPct: Math.max(4, ((t + 10) / 15) * 28),
+      bulbColor: '#0A84FF', glowColor: 'rgba(10,132,255,0.25)', glowWidth: 6,
+      pillBg: 'rgba(10,132,255,0.15)', pillBorder: 'rgba(10,132,255,0.42)',
+      gradStops: ['#5AC8FA', '#0A84FF'],
+      effect: 'frost', pulseAnim: 'animation: frost-pulse 3s ease-in-out infinite;',
+    };
+    if (t < 17) return {
+      label: 'ZIMNO', color: '#5AC8FA',
+      border: 'rgba(90,200,250,0.2)', bg: 'linear-gradient(150deg,#081420,#1C1C1E)',
+      fillPct: 18 + ((t - 5) / 12) * 24,
+      bulbColor: '#5AC8FA', glowColor: 'rgba(90,200,250,0.18)', glowWidth: 5,
+      pillBg: 'rgba(90,200,250,0.12)', pillBorder: 'rgba(90,200,250,0.3)',
+      gradStops: ['#5AC8FA', '#0A84FF'],
+      effect: 'none', pulseAnim: '',
+    };
+    if (t < 26) return {
+      label: 'KOMFORT', color: '#30D158',
+      border: 'rgba(48,209,88,0.2)', bg: 'linear-gradient(150deg,#0a1e0e,#1C1C1E)',
+      fillPct: 42 + ((t - 17) / 9) * 20,
+      bulbColor: '#30D158', glowColor: 'rgba(48,209,88,0.2)', glowWidth: 5,
+      pillBg: 'rgba(48,209,88,0.12)', pillBorder: 'rgba(48,209,88,0.3)',
+      gradStops: ['#30D158', '#25a244'],
+      effect: 'none', pulseAnim: '',
+    };
+    if (t < 31) return {
+      label: 'ZA CIEPŁO', color: '#FF9F0A',
+      border: 'rgba(255,159,10,0.25)', bg: 'linear-gradient(150deg,#1e1000,#231408,#1C1C1E)',
+      fillPct: 62 + ((t - 26) / 5) * 20,
+      bulbColor: '#FF9F0A', glowColor: 'rgba(255,159,10,0.22)', glowWidth: 5,
+      pillBg: 'rgba(255,159,10,0.14)', pillBorder: 'rgba(255,159,10,0.38)',
+      gradStops: ['#FFD60A', '#FF9F0A'],
+      effect: 'warm', pulseAnim: 'animation: warm-pulse 2.8s ease-in-out infinite;',
+    };
+    return {
+      label: '⚠ UPAŁ', color: '#FF453A',
+      border: 'rgba(255,69,58,0.38)', bg: 'linear-gradient(150deg,#1a0404,#220808,#1C1C1E)',
+      fillPct: 100,
+      bulbColor: '#FF2200', glowColor: 'rgba(255,69,58,0.35)', glowWidth: 7,
+      pillBg: 'rgba(255,69,58,0.2)', pillBorder: 'rgba(255,69,58,0.55)',
+      gradStops: ['#FF6B6B', '#FF2200'],
+      effect: 'heat', pulseAnim: 'animation: heat-pulse 2s ease-in-out infinite;',
+    };
+  }
+
+  _frostHTML() {
+    return `
+    <svg class="fx frost-tl" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,0 Q10,18 0,36" stroke="rgba(140,210,255,0.4)" stroke-width="1.2" fill="none"/>
+      <path d="M0,0 Q22,8 42,0" stroke="rgba(140,210,255,0.4)" stroke-width="1.2" fill="none"/>
+      <path d="M0,0 Q18,18 28,28" stroke="rgba(140,210,255,0.28)" stroke-width="0.9" fill="none"/>
+      <line x1="14" y1="14" x2="14" y2="26" stroke="rgba(160,225,255,0.65)" stroke-width="1"/>
+      <line x1="8"  y1="20" x2="20" y2="20" stroke="rgba(160,225,255,0.65)" stroke-width="1"/>
+      <line x1="10" y1="16" x2="18" y2="24" stroke="rgba(160,225,255,0.38)" stroke-width="0.8"/>
+      <line x1="18" y1="16" x2="10" y2="24" stroke="rgba(160,225,255,0.38)" stroke-width="0.8"/>
+      <circle cx="6"  cy="6"  r="1.5" fill="rgba(180,235,255,0.6)"/>
+      <circle cx="18" cy="4"  r="1"   fill="rgba(180,235,255,0.5)"/>
+      <circle cx="4"  cy="20" r="1.2" fill="rgba(180,235,255,0.5)"/>
+    </svg>`;
+  }
+
+  _warmHTML() {
+    return `
+    <div class="sun-glow"></div>
+    <svg class="fx sun-rays" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
+      <line x1="55" y1="15" x2="62" y2="8"  stroke="rgba(255,180,0,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="60" y1="25" x2="68" y2="22" stroke="rgba(255,180,0,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="55" y1="35" x2="64" y2="35" stroke="rgba(255,180,0,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>
+    <div class="warm-haze"></div>
+    <div class="warm-waves">
+      <div class="ww ww1"></div><div class="ww ww2"></div>
+      <div class="ww ww3"></div><div class="ww ww4"></div>
+    </div>`;
+  }
+
+  _heatHTML() {
+    return `
+    <div class="heat-glow-bg"></div>
+    <div class="heat-embers">
+      <div class="ember e1"></div><div class="ember e2"></div>
+      <div class="ember e3"></div><div class="ember e4"></div>
+    </div>
+    <div class="heat-shimmer-wrap">
+      <div class="hs hs1"></div><div class="hs hs2"></div>
+      <div class="hs hs3"></div><div class="hs hs4"></div>
+    </div>
+    <div class="heat-blob"></div>`;
   }
 
   _render() {
