@@ -6711,7 +6711,7 @@ class AhaTempHumidityCard extends HTMLElement {
 
   /* ── right thermometer column ── */
   .thermo-col {
-    width: 24px; flex-shrink: 0;
+    width: clamp(14px, 18%, 24px); flex-shrink: 0;
     position: relative; z-index: 2;
     margin-left: 4px;
   }
