@@ -206,12 +206,8 @@ class AhaTempHumidityCard extends HTMLElement {
     const showHum  = hum !== null && (hum < 35 || hum >= 66);
     const humStr   = showHum ? hum.toFixed(0) + '%' : '';
 
-    /* ── thermometer geometry (viewBox "0 0 24 84") ── */
-    const TX = 7, TW = 10, TTOP = 3, TH = 56;
-    const BCY = 68, BR = 9;
+    /* ── thermometer fill % ── */
     const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / (maxT - minT) * 100));
-    const fillH   = (fillPct / 100) * TH;
-    const fillY   = TTOP + TH - fillH;
 
     const gradMap = {
       offline: ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.08)'],
@@ -323,7 +319,52 @@ class AhaTempHumidityCard extends HTMLElement {
     width: 20px;
     z-index: 2;
   }
-  .thermo-svg { width: 100%; height: 100%; overflow: visible; }
+  .tube {
+    position: absolute;
+    top: 0; bottom: 10px;
+    left: 50%; transform: translateX(-50%);
+    width: 10px;
+    border-radius: 5px 5px 2px 2px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid ${isOffline ? 'rgba(255,255,255,0.07)' : st.cardBorder};
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .tube-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, ${g1}, ${g0});
+    transition: height 0.6s ease;
+  }
+  .bulb {
+    position: absolute;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: ${isOffline ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.15)'};
+    border: 1.4px solid ${isOffline ? 'rgba(255,255,255,0.1)' : g0};
+    box-shadow: ${isOffline ? 'none' : `0 0 8px ${glowFill}`};
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bulb-fill {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: ${isOffline ? 'rgba(255,255,255,0.08)' : g1};
+  }
+  @media (max-width: 400px) {
+    .thermo-col { width: 16px; }
+    .left { padding-right: 20px; }
+    .tube { width: 8px; border-radius: 4px 4px 1.5px 1.5px; }
+    .bulb { width: 14px; height: 14px; }
+    .bulb-fill { width: 9px; height: 9px; }
+  }
+  @media (max-width: 320px) {
+    .thermo-col { width: 12px; }
+    .left { padding-right: 15px; }
+    .tube { width: 6px; border-radius: 3px 3px 1px 1px; }
+    .bulb { width: 11px; height: 11px; }
+    .bulb-fill { width: 6px; height: 6px; }
+  }
 
   @keyframes flicker {
     0%,100% { transform: scaleX(1)    scaleY(1)    translateY(0);   opacity: 0.9; }
@@ -347,54 +388,18 @@ class AhaTempHumidityCard extends HTMLElement {
       <div class="room-name">${name}</div>
     </div>
     <div class="bottom">
-      <div class="temp-val" id="temp-hit">${tempStr}</div>
       ${showHum ? `<div class="hum-val" id="hum-hit">💧 ${humStr}</div>` : '<div id="hum-hit"></div>'}
+      <div class="temp-val" id="temp-hit">${tempStr}</div>
     </div>
   </div>
 
   <div class="thermo-col">
-    <svg class="thermo-svg" viewBox="0 0 24 84"
-         preserveAspectRatio="none"
-         xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="thg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${g0}"/>
-          <stop offset="100%" stop-color="${g1}"/>
-        </linearGradient>
-        <clipPath id="thc">
-          <rect x="${TX}" y="${TTOP}" width="${TW}" height="${TH}" rx="5"/>
-        </clipPath>
-      </defs>
-
-      <!-- tube background -->
-      <rect x="${TX}" y="${TTOP}" width="${TW}" height="${TH}" rx="5"
-        fill="rgba(255,255,255,0.04)"
-        stroke="${isOffline ? 'rgba(255,255,255,0.07)' : st.cardBorder}"
-        stroke-width="1"/>
-
-      <!-- tube fill -->
-      ${!isOffline && fillH > 0 ? `
-      <rect x="${TX}" y="${fillY.toFixed(1)}" width="${TW}" height="${fillH.toFixed(1)}"
-        fill="url(#thg)" clip-path="url(#thc)"/>` : ''}
-
-      <!-- tick marks at 25 / 50 / 75 % -->
-      <line x1="${TX + TW}" y1="${(TTOP + TH * 0.25).toFixed(1)}" x2="${TX + TW + 4}" y2="${(TTOP + TH * 0.25).toFixed(1)}" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
-      <line x1="${TX + TW}" y1="${(TTOP + TH * 0.5 ).toFixed(1)}" x2="${TX + TW + 4}" y2="${(TTOP + TH * 0.5 ).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="0.8"/>
-      <line x1="${TX + TW}" y1="${(TTOP + TH * 0.75).toFixed(1)}" x2="${TX + TW + 4}" y2="${(TTOP + TH * 0.75).toFixed(1)}" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
-
-      <!-- bulb glow -->
-      ${!isOffline ? `<circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR + 4}" fill="${glowFill}"/>` : ''}
-
-      <!-- bulb body -->
-      <circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR}"
-        fill="${isOffline ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.15)'}"
-        stroke="${isOffline ? 'rgba(255,255,255,0.1)' : g0}"
-        stroke-width="1.4"/>
-
-      <!-- bulb fill -->
-      <circle cx="${TX + TW / 2}" cy="${BCY}" r="${BR - 3.5}"
-        fill="${isOffline ? 'rgba(255,255,255,0.08)' : g1}"/>
-    </svg>
+    <div class="tube">
+      <div class="tube-fill" style="height:${fillPct.toFixed(1)}%"></div>
+    </div>
+    <div class="bulb">
+      <div class="bulb-fill"></div>
+    </div>
   </div>
 </div>`;
 
