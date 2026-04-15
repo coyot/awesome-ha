@@ -269,7 +269,7 @@ class AhaTempHumidityCard extends HTMLElement {
   .fl4 { width: 5px;  height: 14px; background: linear-gradient(to top, #FF5500, #FF2200, rgba(255,50,0,0.05));  animation-duration: 1.6s; animation-delay: 0.55s; }
 
   .bat {
-    position: absolute; top: 9px; right: 38px; z-index: 10;
+    position: absolute; top: 9px; right: 34px; z-index: 10;
     display: flex; align-items: center; gap: 5px;
   }
   .bat-pct {
@@ -287,6 +287,7 @@ class AhaTempHumidityCard extends HTMLElement {
     display: flex; flex-direction: column;
     justify-content: space-between;
     position: relative; z-index: 2;
+    padding-right: 26px; /* space reserved for absolute thermometer */
   }
   .top { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
   .icon-wrap {
@@ -299,7 +300,6 @@ class AhaTempHumidityCard extends HTMLElement {
   .room-name {
     font-size: 11px; font-weight: 500; color: #a1a1a6;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 96px;
   }
   .temp-val {
     font-size: 22px; font-weight: 700;
@@ -316,18 +316,14 @@ class AhaTempHumidityCard extends HTMLElement {
     cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
   }
 
-  /* ── right thermometer column ── */
+  /* ── right thermometer — absolute, outside flex flow ── */
   .thermo-col {
-    width: clamp(14px, 18%, 24px); flex-shrink: 0;
-    position: relative; z-index: 2;
-    margin-left: 4px;
-  }
-  .thermo-svg {
     position: absolute;
-    inset: 0;
-    width: 100%; height: 100%;
-    overflow: visible;
+    top: 12px; right: 12px; bottom: 12px;
+    width: 20px;
+    z-index: 2;
   }
+  .thermo-svg { width: 100%; height: 100%; overflow: visible; }
 
   @keyframes flicker {
     0%,100% { transform: scaleX(1)    scaleY(1)    translateY(0);   opacity: 0.9; }
