@@ -370,7 +370,7 @@ class KontaktronCard extends HTMLElement {
       stateClass   = 'alarm';
       icon         = this._config.icon_alarm;
       stateText    = 'ALARM';
-      durationText = `otwarte ${diffMin} min`;
+      durationText = this._formatDuration(diffMin);
     }
 
     /* Apply */
@@ -411,8 +411,13 @@ class KontaktronCard extends HTMLElement {
     if (minutes < 1)   return 'przed chwilą';
     if (minutes < 60)  return `od ${minutes} min`;
     const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return m === 0 ? `od ${h}h` : `od ${h}h ${m}min`;
+    if (h < 24) {
+      const m = minutes % 60;
+      return m === 0 ? `od ${h}h` : `od ${h}h ${m}min`;
+    }
+    const d  = Math.floor(h / 24);
+    const hr = h % 24;
+    return hr === 0 ? `od ${d}d` : `od ${d}d ${hr}h`;
   }
 
   _handleClick() {
