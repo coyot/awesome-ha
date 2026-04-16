@@ -8343,576 +8343,521 @@ window.customCards.push({
   name:        'Kontaktron Card',
   description: 'Karta dla czujnika otwarcia z animowanym alarmem po przekroczeniu czasu',
   preview:     true,
-});class KosiarkaCard extends HTMLElement {
+});/**
+ * kosiarka-card.js
+ * Pełna karta dla lawn_mower — styl zbliżony do teleco-card / Lamele.
+ * Kompaktowa: ikonka w boxie, bateria jako duża liczba, pasek, przyciski.
+ *
+ * Config:
+ *   entity:            (required) lawn_mower.*
+ *   name:              (optional) override nazwy
+ *   capacity_m2:       (optional) powierzchnia ogrodu w m², default 400
+ *   battery_entity:    (optional) sensor.* — poziom baterii
+ *   party_mode_entity: (optional) switch.* — tryb party
+ *   error_entity:      (optional) sensor.* — komunikat błędu
+ */
+
+class KosiarkaCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this._hass = null;
-    this._config = null;
-    this._animFrame = null;
+    this._rendered = false;
   }
 
   setConfig(config) {
     if (!config.entity) throw new Error('Podaj entity kosiarski');
     this._config = {
-      entity: config.entity,
-      name: config.name || 'Kosiarka',
-      capacity_m2: config.capacity_m2 || 400,
+      entity:            config.entity,
+      name:              config.name              || 'Kosiarka',
+      capacity_m2:       config.capacity_m2       || 400,
       battery_entity:    config.battery_entity    || null,
       party_mode_entity: config.party_mode_entity || null,
       error_entity:      config.error_entity      || null,
     };
-    this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._updateState();
+    if (!this._rendered) { this._render(); this._rendered = true; }
+    this._update();
   }
 
-  _getState() {
-    if (!this._hass || !this._config) return null;
-    const e = this._hass.states[this._config.entity];
+  /* ─── helpers ─────────────────────────────────────────── */
+
+  _stateColor(state) {
+    return {
+      mowing:    '#97C459',
+      docking:   '#85B7EB',
+      returning: '#85B7EB',
+      charging:  '#FF9F0A',
+      paused:    '#FF9F0A',
+      docked:    '#636366',
+      error:     '#FF453A',
+      idle:      '#636366',
+    }[state] || '#636366';
+  }
+
+  _stateLabel(state) {
+    return {
+      mowing:      'Kosi',
+      docking:     'Wraca do bazy',
+      returning:   'Wraca',
+      charging:    'Ładuje się',
+      paused:      'Pauza',
+      docked:      'W bazie',
+      error:       'Błąd',
+      idle:        'Bezczynna',
+      unknown:     'Nieznany',
+      unavailable: 'Niedostępna',
+    }[state] || state;
+  }
+
+  _getData() {
+    const hass = this._hass;
+    const cfg  = this._config;
+    const e    = hass.states[cfg.entity];
     if (!e) return null;
     const a = e.attributes || {};
-    const cfg = this._config;
 
-    // Battery: dedicated sensor → attribute fallback
     let battery = a.battery_level ?? a.battery ?? null;
     if (cfg.battery_entity) {
-      const bs = this._hass.states[cfg.battery_entity];
+      const bs = hass.states[cfg.battery_entity];
       if (bs && bs.state !== 'unavailable' && bs.state !== 'unknown') {
         const v = parseFloat(bs.state);
         if (!isNaN(v)) battery = v;
       }
     }
 
-    // Error: dedicated sensor → attribute fallback
     let error = a.error ?? a.error_description ?? null;
     if (cfg.error_entity) {
-      const es = this._hass.states[cfg.error_entity];
-      if (es && es.state !== 'unavailable' && es.state !== 'unknown' && es.state !== '0' && es.state !== 'none') {
-        error = es.attributes?.friendly_name
-              ? `${es.attributes.friendly_name}: ${es.state}`
-              : es.state;
+      const es = hass.states[cfg.error_entity];
+      if (es && es.state !== 'unavailable' && es.state !== 'unknown'
+             && es.state !== '0' && es.state !== 'none') {
+        error = es.state;
       }
     }
 
-    // Party mode: dedicated switch entity
     let partyMode = false;
     if (cfg.party_mode_entity) {
-      const ps = this._hass.states[cfg.party_mode_entity];
+      const ps = hass.states[cfg.party_mode_entity];
       if (ps) partyMode = ps.state === 'on';
     }
 
     return {
-      state: e.state,
+      state:    e.state || 'unknown',
       battery,
-      activity: a.activity ?? a.status_description ?? null,
-      zone: a.zone ?? a.current_zone ?? null,
-      area_today: a.work_time_today ?? null,
-      distance_today: a.distance ?? null,
+      zone:     a.zone ?? a.current_zone ?? null,
+      workTime: a.work_time_today ?? null,
       error,
       partyMode,
-      next_schedule: a.next_schedule ?? null,
-      pitch: a.pitch ?? null,
-      rssi: a.rssi ?? null,
     };
   }
 
-  _stateLabel(state) {
-    const map = {
-      mowing: 'Kosi',
-      docking: 'Wraca do bazy',
-      docked: 'W bazie',
-      charging: 'Ładuje się',
-      paused: 'Zatrzymana',
-      returning: 'Wraca',
-      idle: 'Bezczynna',
-      error: 'Błąd',
-      unknown: 'Nieznany',
-      unavailable: 'Niedostępna',
-    };
-    return map[state] || state;
+  /* ─── SVG icons ───────────────────────────────────────── */
+
+  _svgMowing(col) {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none"
+        style="animation:kos-mow 1.8s ease-in-out infinite;">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="${col}" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <path d="M10 9V7a3 3 0 0 1 6 0v2" stroke="${col}" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M3 15 Q6 14 9 15" stroke="${col}" stroke-width="0.9" stroke-opacity="0.5" fill="none"/>
+    </svg>`;
   }
 
-  _stateColor(state) {
-    const map = {
-      mowing: '#30d158',
-      docked: '#0a84ff',
-      charging: '#ff9f0a',
-      docking: '#ff9f0a',
-      returning: '#ff9f0a',
-      paused: '#636366',
-      error: '#ff453a',
-      idle: '#636366',
-    };
-    return map[state] || '#636366';
+  _svgReturning(col) {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none"
+        style="animation:kos-ret 1.3s ease-in-out infinite alternate;">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="${col}" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <path d="M15 5 L11 9 L15 13" stroke="${col}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
   }
+
+  _svgCharging(col) {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none"
+        style="animation:kos-charge 1.6s ease-in-out infinite;">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="${col}" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <path d="M14 9.5 L11 14 L13.5 14 L12 17" stroke="${col}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  _svgDocked(col) {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="${col}" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="13" cy="14.5" r="2" fill="#97C459"/>
+    </svg>`;
+  }
+
+  _svgPaused(col) {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="${col}" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <rect x="11" y="12" width="2" height="5" rx="0.8" fill="${col}"/>
+      <rect x="14" y="12" width="2" height="5" rx="0.8" fill="${col}"/>
+    </svg>`;
+  }
+
+  _svgError() {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <circle cx="13" cy="13" r="9" stroke="#FF453A" stroke-width="1.4"/>
+      <path d="M13 8.5 L13 14" stroke="#FF453A" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="13" cy="17" r="1" fill="#FF453A"/>
+    </svg>`;
+  }
+
+  _svgParty() {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="#FF9F0A" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="#FF9F0A" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="#FF9F0A" stroke-width="1.2"/>
+      <path d="M13 5 L14 8 L12 8 Z" fill="#FF453A"/>
+      <circle cx="13" cy="4.5" r="0.8" fill="#FF9F0A"/>
+      <path d="M9 7 L10.5 9.5" stroke="#97C459" stroke-width="1" stroke-linecap="round"/>
+      <path d="M17 7 L15.5 9.5" stroke="#85B7EB" stroke-width="1" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  /* ─── Render DOM skeleton (once) ─────────────────────── */
 
   _render() {
-    if (!this._config) return;
     this.shadowRoot.innerHTML = `
-      <style>
-        :host {
-          display: block;
-          font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :host { display: block; font-family: -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 
-        .card {
-          background: #1c1c1e;
-          border-radius: 20px;
-          overflow: hidden;
-          border: 0.5px solid rgba(255,255,255,0.08);
-          position: relative;
-          user-select: none;
-        }
-
-        /* ── glow behind card based on state ── */
-        .card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 20px;
-          opacity: 0;
-          transition: opacity 0.5s ease;
-          pointer-events: none;
-        }
-        .card.mowing::before { background: radial-gradient(ellipse at 50% 0%, rgba(48,209,88,0.07) 0%, transparent 70%); opacity: 1; }
-        .card.charging::before { background: radial-gradient(ellipse at 50% 0%, rgba(255,159,10,0.07) 0%, transparent 70%); opacity: 1; }
-        .card.docked::before { background: radial-gradient(ellipse at 50% 0%, rgba(10,132,255,0.06) 0%, transparent 70%); opacity: 1; }
-        .card.error::before { background: radial-gradient(ellipse at 50% 0%, rgba(255,69,58,0.08) 0%, transparent 70%); opacity: 1; }
-
-        /* ── header ── */
-        .header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 18px 18px 0;
-        }
-        .header-left { display: flex; align-items: center; gap: 12px; }
-
-        .icon-wrap {
-          width: 42px;
-          height: 42px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background 0.4s ease;
-          flex-shrink: 0;
-        }
-
-        .icon-wrap svg {
-          width: 24px;
-          height: 24px;
-          transition: stroke 0.4s ease;
-        }
-
-        .name { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.2px; }
-        .status-pill {
-          font-size: 11px;
-          font-weight: 500;
-          padding: 3px 8px;
-          border-radius: 20px;
-          margin-top: 3px;
-          display: inline-block;
-          transition: background 0.4s, color 0.4s;
-          letter-spacing: 0.01em;
-        }
-
-        /* ── battery ── */
-        .battery {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .bat-shell {
-          position: relative;
-          width: 28px;
-          height: 13px;
-          border: 1.5px solid rgba(255,255,255,0.25);
-          border-radius: 3px;
-        }
-        .bat-shell::after {
-          content: '';
-          position: absolute;
-          right: -4px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 2.5px;
-          height: 6px;
-          background: rgba(255,255,255,0.25);
-          border-radius: 0 1.5px 1.5px 0;
-        }
-        .bat-fill {
-          position: absolute;
-          left: 2px;
-          top: 2px;
-          bottom: 2px;
-          border-radius: 1.5px;
-          transition: width 0.6s ease, background 0.4s;
-        }
-        .bat-pct { font-size: 12px; color: #a1a1a6; font-weight: 500; }
-
-        /* ── animated mower SVG area ── */
-        .mower-area {
-          padding: 20px 18px 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 100px;
-          position: relative;
-        }
-
-        /* grass strips */
-        .grass-row {
-          display: flex;
-          gap: 3px;
-          position: absolute;
-          bottom: 8px;
-          left: 18px;
-          right: 18px;
-          height: 6px;
-        }
-        .grass-strip {
-          flex: 1;
-          border-radius: 3px;
-          background: rgba(48,209,88,0.12);
-          transition: background 0.3s;
-        }
-        .grass-strip.cut { background: rgba(48,209,88,0.35); }
-
-        .mower-svg {
-          position: relative;
-          z-index: 2;
-        }
-        .mower-svg svg { width: 64px; height: 64px; }
-
-        /* mowing animation */
-        @keyframes mow-float {
-          0%, 100% { transform: translateY(0px) rotate(-1deg); }
-          50% { transform: translateY(-3px) rotate(1deg); }
-        }
-        @keyframes mow-drive {
-          0% { left: 15%; }
-          50% { left: 65%; }
-          100% { left: 15%; }
-        }
-        .mowing-wrap {
-          position: absolute;
-          animation: mow-float 2s ease-in-out infinite, mow-drive 8s ease-in-out infinite;
-        }
-        @keyframes dock-float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-2px); }
-        }
-        .docked-wrap { animation: dock-float 3s ease-in-out infinite; }
-
-        /* returning/docking — szybszy, kierunkowy ruch */
-        @keyframes return-drive {
-          0%   { transform: translateY(0px) translateX(4px) rotate(1deg); }
-          50%  { transform: translateY(-3px) translateX(-4px) rotate(-1deg); }
-          100% { transform: translateY(0px) translateX(4px) rotate(1deg); }
-        }
-        .returning-wrap {
-          animation: return-drive 1.4s ease-in-out infinite;
-        }
-
-        /* ── divider ── */
-        .divider { height: 0.5px; background: rgba(255,255,255,0.07); margin: 12px 18px; }
-
-        /* ── metrics row ── */
-        .metrics {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
-          padding: 0 18px;
-        }
-        .metric {
-          background: #2c2c2e;
-          border-radius: 12px;
-          padding: 11px 10px 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-        }
-        .metric-icon { margin-bottom: 2px; }
-        .metric-icon svg { width: 14px; height: 14px; stroke: #636366; }
-        .metric-val { font-size: 14px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
-        .metric-label { font-size: 10px; color: #636366; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
-
-        /* ── progress bar ── */
-        .progress-wrap { padding: 10px 18px 0; }
-        .progress-label {
-          display: flex;
-          justify-content: space-between;
-          font-size: 11px;
-          color: #636366;
-          margin-bottom: 5px;
-          font-weight: 500;
-        }
-        .progress-track {
-          height: 3px;
-          background: rgba(255,255,255,0.08);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-        .progress-fill {
-          height: 100%;
-          border-radius: 2px;
-          transition: width 0.8s ease, background 0.4s;
-        }
-
-        /* ── actions ── */
-        .actions {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
-          padding: 14px 18px 18px;
-        }
-        .action-btn {
-          border: none;
-          cursor: pointer;
-          border-radius: 12px;
-          padding: 11px 6px 9px;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.01em;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 5px;
-          transition: opacity 0.15s, transform 0.12s;
-          -webkit-tap-highlight-color: transparent;
-        }
-        .action-btn:active { opacity: 0.7; transform: scale(0.96); }
-        .action-btn svg { width: 18px; height: 18px; }
-
-        .btn-start { background: #0a84ff; color: #fff; }
-        .btn-pause { background: rgba(255,159,10,0.18); color: #ff9f0a; }
-        .btn-home  { background: #2c2c2e; color: #a1a1a6; }
-        .btn-disabled { opacity: 0.35; pointer-events: none; }
-
-        /* ── error bar ── */
-        .error-bar {
-          margin: 0 18px 0;
-          background: rgba(255,69,58,0.12);
-          border: 0.5px solid rgba(255,69,58,0.25);
-          border-radius: 10px;
-          padding: 8px 12px;
-          font-size: 12px;
-          color: #ff453a;
-          display: flex;
-          align-items: center;
-          gap: 7px;
-        }
-        .error-bar svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-        /* ── unavailable overlay ── */
-        .unavail {
-          padding: 40px 18px;
-          text-align: center;
-          color: #636366;
-          font-size: 13px;
-        }
-      </style>
-
-      <div class="card" id="card">
-        <div id="content"></div>
-      </div>
-    `;
-    this._updateState();
+  .glow {
+    border-radius: 18px;
+    transition: box-shadow .5s ease;
+  }
+  .glow.mowing {
+    box-shadow: 0 0 0 1px rgba(151,196,89,.25),
+                0 0 20px 2px rgba(151,196,89,.14),
+                0 0 44px 8px rgba(151,196,89,.07);
+  }
+  .glow.returning, .glow.docking {
+    box-shadow: 0 0 0 1px rgba(133,183,235,.22),
+                0 0 18px 2px rgba(133,183,235,.12),
+                0 0 38px 6px rgba(133,183,235,.06);
+  }
+  .glow.party {
+    box-shadow: 0 0 0 1px rgba(255,159,10,.30),
+                0 0 22px 4px rgba(255,159,10,.16),
+                0 0 50px 10px rgba(255,159,10,.08);
   }
 
-  _updateState() {
-    const root = this.shadowRoot;
-    if (!root) return;
-    const content = root.getElementById('content');
-    const card = root.getElementById('card');
-    if (!content || !card) return;
+  .card {
+    background: #1c1c1e;
+    border-radius: 18px;
+    padding: 14px 16px 16px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background .4s ease;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+    pointer-events: none;
+  }
+  .card.party-bg { background: #1c1600; }
+  .card:active { transform: scale(0.97); transition: transform .12s ease; }
 
-    const s = this._getState();
+  /* ── main row ── */
+  .main { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+
+  .iconbox {
+    width: 48px; height: 48px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: rgba(142,142,147,.07);
+    border: .5px solid rgba(142,142,147,.15);
+    transition: background .35s, border-color .35s;
+  }
+
+  .mid { flex: 1; min-width: 0; }
+  .name {
+    font-size: 13px; font-weight: 600; color: rgba(255,255,255,.90);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .status { font-size: 11px; color: #636366; margin-top: 3px; transition: color .3s; }
+
+  .bat-wrap { flex-shrink: 0; text-align: right; }
+  .bat-val {
+    font-size: 28px; font-weight: 700; letter-spacing: -1px;
+    line-height: 1; font-variant-numeric: tabular-nums;
+    transition: color .3s;
+  }
+  .bat-unit { font-size: 12px; font-weight: 400; color: rgba(255,255,255,.28); }
+
+  /* ── party banner ── */
+  .party-bar {
+    display: none;
+    align-items: center; gap: 6px;
+    background: rgba(255,159,10,.10);
+    border: .5px solid rgba(255,159,10,.22);
+    border-radius: 9px;
+    padding: 5px 10px;
+    margin-bottom: 10px;
+    font-size: 11px; font-weight: 600; color: #FF9F0A;
+  }
+  .party-bar.visible { display: flex; }
+
+  /* ── progress bar ── */
+  .track {
+    height: 3px; background: rgba(255,255,255,.06);
+    border-radius: 2px; overflow: hidden; margin-bottom: 10px;
+  }
+  .fill { height: 100%; border-radius: 2px; transition: width .45s cubic-bezier(.4,0,.2,1), background .35s; }
+
+  /* ── error bar ── */
+  .error-bar {
+    display: none;
+    align-items: center; gap: 7px;
+    background: rgba(255,69,58,.10);
+    border: .5px solid rgba(255,69,58,.22);
+    border-radius: 9px;
+    padding: 6px 10px; margin-bottom: 10px;
+    font-size: 11px; color: #FF453A;
+  }
+  .error-bar.visible { display: flex; }
+
+  /* ── zone chip ── */
+  .zone-row { display: flex; gap: 6px; margin-bottom: 10px; }
+  .zone-chip {
+    font-size: 10px; font-weight: 600; padding: 3px 9px;
+    border-radius: 7px;
+    background: rgba(133,183,235,.12); color: #85B7EB;
+  }
+
+  /* ── action buttons ── */
+  .btns {
+    display: flex; gap: 6px;
+    border-top: .5px solid rgba(255,255,255,.07);
+    padding-top: 10px;
+  }
+  .btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 9px 4px;
+    background: rgba(255,255,255,.05); border-radius: 10px;
+    font-size: 10px; font-weight: 500; color: rgba(255,255,255,.45);
+    cursor: pointer; border: .5px solid rgba(255,255,255,.08);
+    transition: color .15s, background .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.95); background: rgba(255,255,255,.09); }
+  .btn.btn-start { background: rgba(10,132,255,.12); color: #0A84FF; border-color: rgba(10,132,255,.20); }
+  .btn.btn-pause { background: rgba(255,159,10,.10); color: #FF9F0A; border-color: rgba(255,159,10,.18); }
+  .btn.btn-home  { background: rgba(255,255,255,.05); color: rgba(255,255,255,.40); }
+  .btn.btn-disabled { opacity: .30; pointer-events: none; }
+
+  @keyframes kos-mow {
+    0%,100% { transform: translateX(0) rotate(-1deg); }
+    50%     { transform: translateX(2px) rotate(1deg); }
+  }
+  @keyframes kos-ret {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-3px); }
+  }
+  @keyframes kos-charge {
+    0%,100% { opacity: 1; }
+    50%     { opacity: .55; }
+  }
+</style>
+
+<div class="glow" id="glow">
+  <div class="card" id="card">
+
+    <div class="main">
+      <div class="iconbox" id="iconbox"><div id="icon"></div></div>
+      <div class="mid">
+        <div class="name" id="name">—</div>
+        <div class="status" id="status">—</div>
+      </div>
+      <div class="bat-wrap">
+        <span class="bat-val" id="bat-val">—</span><span class="bat-unit">%</span>
+      </div>
+    </div>
+
+    <div class="party-bar" id="party-bar">
+      <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
+        <path d="M5 15 L9 5 L12 12 L14 8 L17 15 Z" fill="#FF9F0A" fill-opacity=".7"/>
+        <circle cx="5" cy="5" r="1.5" fill="#97C459"/>
+        <circle cx="15" cy="4" r="1.5" fill="#85B7EB"/>
+        <circle cx="17" cy="11" r="1" fill="#FF453A"/>
+      </svg>
+      Tryb party aktywny
+    </div>
+
+    <div class="error-bar" id="error-bar">
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="8" stroke="#FF453A" stroke-width="1.5"/>
+        <path d="M10 6 L10 11" stroke="#FF453A" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="10" cy="14" r="1" fill="#FF453A"/>
+      </svg>
+      <span id="error-text"></span>
+    </div>
+
+    <div class="zone-row" id="zone-row" style="display:none;"></div>
+
+    <div class="track"><div class="fill" id="fill"></div></div>
+
+    <div class="btns">
+      <button class="btn btn-start" id="btn-start">
+        <svg width="11" height="11" viewBox="0 0 14 14" fill="currentColor"><polygon points="3 1 13 7 3 13"/></svg>
+        Start
+      </button>
+      <button class="btn btn-pause" id="btn-pause">
+        <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="2" x2="4" y2="12"/><line x1="10" y1="2" x2="10" y2="12"/></svg>
+        Pauza
+      </button>
+      <button class="btn btn-home" id="btn-home">
+        <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 6L7 1l6 5v6a1 1 0 0 1-1 1H8v-4H6v4H2a1 1 0 0 1-1-1z"/></svg>
+        Baza
+      </button>
+    </div>
+  </div>
+</div>`;
+
+    this.shadowRoot.getElementById('card').addEventListener('click', e => {
+      if (!e.target.closest('button')) this._moreInfo();
+    });
+    this.shadowRoot.getElementById('btn-start').addEventListener('click', e => {
+      e.stopPropagation();
+      this._svc('start_mowing');
+    });
+    this.shadowRoot.getElementById('btn-pause').addEventListener('click', e => {
+      e.stopPropagation();
+      this._svc('pause');
+    });
+    this.shadowRoot.getElementById('btn-home').addEventListener('click', e => {
+      e.stopPropagation();
+      this._svc('dock');
+    });
+  }
+
+  /* ─── Update on state change ─────────────────────────── */
+
+  _update() {
+    if (!this._hass || !this._config) return;
+    const r   = this.shadowRoot;
     const cfg = this._config;
+    const d   = this._getData();
 
-    if (!s) {
-      card.className = 'card';
-      content.innerHTML = `<div class="unavail">Encja nie znaleziona:<br><code>${cfg.entity}</code></div>`;
+    if (!d) {
+      r.getElementById('name').textContent   = cfg.entity;
+      r.getElementById('status').textContent = 'Encja nie znaleziona';
       return;
     }
 
-    const state = s.state || 'unknown';
-    const color = this._stateColor(state);
-    const label = this._stateLabel(state);
-    const battery = s.battery;
-    const batColor = battery === null ? '#636366' : battery > 50 ? '#30d158' : battery > 20 ? '#ff9f0a' : '#ff453a';
-    const batWidth = battery === null ? 50 : Math.max(4, battery);
+    const state    = d.state;
+    const color    = this._stateColor(state);
+    const label    = this._stateLabel(state);
+    const battery  = d.battery;
+    const isMowing    = state === 'mowing';
+    const isReturning = state === 'docking' || state === 'returning';
+    const isCharging  = state === 'charging';
+    const isDocked    = state === 'docked' || isCharging;
+    const isPaused    = state === 'paused';
+    const isError     = state === 'error';
 
-    card.className = `card ${state}`;
+    const batPct   = battery !== null ? Math.round(battery) : null;
+    const batColor = batPct === null ? '#636366'
+                   : batPct > 50    ? '#97C459'
+                   : batPct > 20    ? '#FF9F0A'
+                   :                  '#FF453A';
+    const barGrad  = batPct === null ? 'rgba(255,255,255,0.08)'
+                   : batPct > 50    ? 'linear-gradient(90deg,#5F8932,#97C459)'
+                   : batPct > 20    ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
+                   :                  'linear-gradient(90deg,#8F2320,#E24B4A)';
 
-    // mower animation wrapper class
-    let moverClass = 'docked-wrap';
-    if (state === 'mowing') moverClass = 'mowing-wrap';
-    if (state === 'docking' || state === 'returning') moverClass = 'returning-wrap';
+    // glow class
+    const glowEl = r.getElementById('glow');
+    glowEl.className = 'glow' + (d.partyMode ? ' party' : isMowing ? ' mowing' : isReturning ? ' returning docking' : '');
 
-    // grass strips — fill based on fake progress
-    const grassCount = 12;
-    const progress = this._getProgress(s);
-    const cutCount = Math.round((progress / 100) * grassCount);
-    const grassHtml = Array.from({ length: grassCount }, (_, i) =>
-      `<div class="grass-strip${i < cutCount ? ' cut' : ''}"></div>`
-    ).join('');
+    // card bg
+    r.getElementById('card').className = 'card' + (d.partyMode ? ' party-bg' : '');
 
-    const mowerSvg = `
-      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="8" y="22" width="48" height="24" rx="7" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5"/>
-        <rect x="14" y="28" width="36" height="12" rx="4" fill="${color}" fill-opacity="0.12"/>
-        <circle cx="17" cy="48" r="6" fill="#2c2c2e" stroke="${color}" stroke-width="1.5"/>
-        <circle cx="17" cy="48" r="2.5" fill="${color}"/>
-        <circle cx="47" cy="48" r="6" fill="#2c2c2e" stroke="${color}" stroke-width="1.5"/>
-        <circle cx="47" cy="48" r="2.5" fill="${color}"/>
-        <rect x="28" y="14" width="8" height="10" rx="2" fill="${color}" fill-opacity="0.6"/>
-        <line x1="32" y1="14" x2="32" y2="22" stroke="${color}" stroke-width="1.5"/>
-        ${state === 'mowing' ? `
-        <path d="M6 54 Q12 50 18 54 Q24 58 30 54" stroke="${color}" stroke-width="1" stroke-opacity="0.4" fill="none"/>
-        ` : ''}
-      </svg>`;
+    // name + status
+    r.getElementById('name').textContent   = cfg.name;
+    const statusEl = r.getElementById('status');
+    statusEl.textContent = label + (d.zone !== null && (isMowing || isReturning) ? ` · strefa ${d.zone}` : '');
+    statusEl.style.color = (isMowing || isReturning || isCharging) ? color + 'cc' : '#636366';
 
-    const fmtTime = (mins) => {
-      const v = parseInt(mins);
-      if (isNaN(v) || v <= 0) return '—';
-      if (v < 60) return `${v}min`;
-      const h = Math.floor(v / 60), m = v % 60;
-      return m === 0 ? `${h}h` : `${h}h ${m}m`;
-    };
-    const metricTime = fmtTime(s.area_today);
-    const metricDist = s.distance_today ? `${(s.distance_today / 1000).toFixed(1)}km` : '—';
-    const metricArea = `${cfg.capacity_m2}m²`;
+    // battery
+    const batEl = r.getElementById('bat-val');
+    batEl.textContent  = batPct !== null ? batPct : '—';
+    batEl.style.color  = batPct !== null ? batColor : '#636366';
 
-    const isMowing = state === 'mowing';
-    const isDocked = ['docked', 'charging'].includes(state);
-    const isError = state === 'error';
+    // iconbox
+    const iconbox = r.getElementById('iconbox');
+    iconbox.style.background   = `${color}1a`;
+    iconbox.style.borderColor  = `${color}33`;
 
-    content.innerHTML = `
-      <div class="header">
-        <div class="header-left">
-          <div class="icon-wrap" style="background: ${color}1a;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="8" width="20" height="10" rx="4"/>
-              <path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>
-              <circle cx="7" cy="18" r="2" fill="${color}" stroke="none"/>
-              <circle cx="17" cy="18" r="2" fill="${color}" stroke="none"/>
-            </svg>
-          </div>
-          <div>
-            <div class="name">${cfg.name}</div>
-            <div class="status-pill" style="background:${color}1a; color:${color};">${label}${s.zone !== null ? ` · strefa ${s.zone}` : ''}${s.partyMode ? ' · party' : ''}</div>
-          </div>
-        </div>
-        <div class="battery">
-          <div class="bat-shell">
-            <div class="bat-fill" style="width:${batWidth}%; background:${batColor};"></div>
-          </div>
-          <div class="bat-pct">${battery !== null ? battery + '%' : '—'}</div>
-        </div>
-      </div>
+    // SVG icon
+    const iconEl = r.getElementById('icon');
+    iconEl.innerHTML = d.partyMode && isDocked ? this._svgParty()
+                     : isMowing               ? this._svgMowing(color)
+                     : isReturning            ? this._svgReturning(color)
+                     : isCharging             ? this._svgCharging(color)
+                     : isPaused               ? this._svgPaused(color)
+                     : isError                ? this._svgError()
+                     :                          this._svgDocked(color);
 
-      <div class="mower-area">
-        <div class="${moverClass} mower-svg">${mowerSvg}</div>
-        <div class="grass-row">${grassHtml}</div>
-      </div>
+    // fill bar
+    r.getElementById('fill').style.width      = (batPct !== null ? batPct : 0) + '%';
+    r.getElementById('fill').style.background = barGrad;
 
-      ${isError && s.error ? `
-      <div class="error-bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#ff453a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        ${s.error}
-      </div>` : ''}
+    // party banner
+    r.getElementById('party-bar').className = 'party-bar' + (d.partyMode ? ' visible' : '');
 
-      <div class="divider"></div>
+    // error bar
+    const errBar  = r.getElementById('error-bar');
+    const errText = r.getElementById('error-text');
+    if (isError && d.error) {
+      errBar.className  = 'error-bar visible';
+      errText.textContent = d.error;
+    } else {
+      errBar.className  = 'error-bar';
+    }
 
-      <div class="metrics">
-        <div class="metric">
-          <div class="metric-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-          </div>
-          <div class="metric-val">${metricTime}</div>
-          <div class="metric-label">Czas dziś</div>
-        </div>
-        <div class="metric">
-          <div class="metric-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          </div>
-          <div class="metric-val">${metricDist}</div>
-          <div class="metric-label">Dystans</div>
-        </div>
-        <div class="metric">
-          <div class="metric-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          </div>
-          <div class="metric-val">${metricArea}</div>
-          <div class="metric-label">Ogród</div>
-        </div>
-      </div>
+    // zone chip (only when mowing/returning)
+    const zoneRow = r.getElementById('zone-row');
+    if (d.zone !== null && (isMowing || isReturning)) {
+      zoneRow.style.display = 'flex';
+      zoneRow.innerHTML = `<span class="zone-chip" style="background:${color}1a;color:${color};">strefa ${d.zone}</span>`;
+    } else {
+      zoneRow.style.display = 'none';
+    }
 
-      ${progress > 0 ? `
-      <div class="progress-wrap">
-        <div class="progress-label">
-          <span>${state === 'docked' || state === 'charging' ? 'Naładowana' : 'Postęp koszenia'}</span>
-          <span>${progress}%</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width:${progress}%; background:${color};"></div>
-        </div>
-      </div>` : ''}
-
-      <div class="actions">
-        <button class="action-btn btn-start${isMowing ? ' btn-disabled' : ''}" id="btn-start">
-          <svg viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          Start
-        </button>
-        <button class="action-btn btn-pause${!isMowing ? ' btn-disabled' : ''}" id="btn-pause">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2.5"><rect x="6" y="4" width="4" height="16" rx="1" fill="#ff9f0a" stroke="none"/><rect x="14" y="4" width="4" height="16" rx="1" fill="#ff9f0a" stroke="none"/></svg>
-          Pauza
-        </button>
-        <button class="action-btn btn-home${isDocked ? ' btn-disabled' : ''}" id="btn-home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#a1a1a6" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Baza
-        </button>
-      </div>
-    `;
-
-    // bind actions
-    this._bindActions(state);
+    // buttons
+    r.getElementById('btn-start').className = 'btn btn-start' + (isMowing ? ' btn-disabled' : '');
+    r.getElementById('btn-pause').className = 'btn btn-pause' + (!isMowing ? ' btn-disabled' : '');
+    r.getElementById('btn-home').className  = 'btn btn-home'  + (isDocked  ? ' btn-disabled' : '');
   }
 
-  _getProgress(s) {
-    if (s.state === 'docked' || s.state === 'charging') return 100;
-    // Brak wiarygodnego źródła procentu — ukryjemy pasek gdy 0
-    return 0;
+  _svc(service) {
+    this._hass.callService('lawn_mower', service, { entity_id: this._config.entity });
   }
 
-  _bindActions(state) {
-    const root = this.shadowRoot;
-    const hass = this._hass;
-    const entity = this._config.entity;
-
-    const call = (service) => {
-      hass.callService('lawn_mower', service, { entity_id: entity });
-    };
-
-    const s = root.getElementById('btn-start');
-    const p = root.getElementById('btn-pause');
-    const h = root.getElementById('btn-home');
-
-    if (s) s.addEventListener('click', () => call('start_mowing'));
-    if (p) p.addEventListener('click', () => call('pause'));
-    if (h) h.addEventListener('click', () => call('dock'));
+  _moreInfo() {
+    this.dispatchEvent(new CustomEvent('hass-more-info', {
+      bubbles: true, composed: true,
+      detail: { entityId: this._config.entity },
+    }));
   }
 
-  static getConfigElement() {
-    return document.createElement('div');
-  }
+  getCardSize() { return 3; }
+
+  static getConfigElement() { return document.createElement('div'); }
 
   static getStubConfig() {
     return {
@@ -8924,8 +8869,6 @@ window.customCards.push({
       error_entity:      'sensor.kosiarka_error',
     };
   }
-
-  getCardSize() { return 5; }
 }
 
 customElements.define('aha-kosiarka-card', KosiarkaCard);
@@ -8936,9 +8879,10 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type:        'aha-kosiarka-card',
   name:        'Kosiarka Card',
-  description: 'Apple-style karta dla kosiark Worx Landroid / lawn_mower',
+  description: 'Kompaktowa karta kosiarka w stylu teleco — ikonka, bateria, przyciski, party mode',
   preview:     true,
-});/**
+});
+/**
  * kosiarka-slim-card.js
  * Kompaktowa karta dla lawn_mower (Worx Landroid i inne).
  * Styl spójny z vacuum.yaml i ac.yaml:
