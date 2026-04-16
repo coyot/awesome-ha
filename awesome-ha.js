@@ -7836,23 +7836,24 @@ class AhaTempGaugeCard extends HTMLElement {
           fill="${valColor}">${valStr}</text>
       </g>`;
 
-    /* ── Pills (top row, next to icon) ── */
+    /* ── Pills — only for non-normal states (nie komfort/offline) ── */
     const pillDefs = {
-      frost:   { bg: 'rgba(90,200,250,0.12)',  border: 'rgba(90,200,250,0.28)',  color: '#5AC8FA' },
-      cold:    { bg: 'rgba(90,200,250,0.08)',  border: 'rgba(90,200,250,0.18)',  color: '#7dd4f8' },
-      comfort: { bg: 'rgba(48,209,88,0.10)',   border: 'rgba(48,209,88,0.22)',   color: '#30D158' },
-      warm:    { bg: 'rgba(255,159,10,0.10)',  border: 'rgba(255,159,10,0.24)',  color: '#FF9F0A' },
-      fire:    { bg: 'rgba(255,69,58,0.12)',   border: 'rgba(255,69,58,0.28)',   color: '#FF453A' },
-      offline: { bg: 'rgba(100,100,100,0.08)', border: 'rgba(100,100,100,0.18)', color: '#636366' },
+      frost: { bg: 'rgba(90,200,250,0.14)',  border: 'rgba(90,200,250,0.35)',  color: '#5AC8FA' },
+      cold:  { bg: 'rgba(90,200,250,0.09)',  border: 'rgba(90,200,250,0.22)',  color: '#7dd4f8' },
+      warm:  { bg: 'rgba(255,159,10,0.12)',  border: 'rgba(255,159,10,0.30)',  color: '#FF9F0A' },
+      fire:  { bg: 'rgba(255,69,58,0.14)',   border: 'rgba(255,69,58,0.35)',   color: '#FF453A' },
     };
     const pills = [];
-    if (temp !== null) {
-      const p = pillDefs[st.key] || pillDefs.offline;
-      pills.push({ label: st.label, ...p });
+    // temperature pill — only when NOT comfort and NOT offline
+    const showTempPill = temp !== null && st.key !== 'comfort';
+    if (showTempPill) {
+      const p = pillDefs[st.key];
+      if (p) pills.push({ label: st.label, ...p });
     }
+    // humidity pill — only when out of healthy range
     if (hum !== null) {
-      if      (hum < 35)  pills.push({ label: '🏜️', bg: 'rgba(255,159,10,0.10)', border: 'rgba(255,159,10,0.24)', color: '#FF9F0A' });
-      else if (hum >= 81) pills.push({ label: '💦', bg: 'rgba(10,132,255,0.10)', border: 'rgba(10,132,255,0.22)', color: '#0A84FF' });
+      if      (hum < 35)  pills.push({ label: '🏜️ sucho',    bg: 'rgba(255,159,10,0.12)', border: 'rgba(255,159,10,0.30)', color: '#FF9F0A' });
+      else if (hum >= 81) pills.push({ label: '💦 wilgotno', bg: 'rgba(10,132,255,0.12)', border: 'rgba(10,132,255,0.28)', color: '#0A84FF' });
     }
     const pillsHTML = pills.map(p =>
       `<span class="pill" style="background:${p.bg};border-color:${p.border};color:${p.color}">${p.label}</span>`
@@ -7898,20 +7899,60 @@ class AhaTempGaugeCard extends HTMLElement {
     background: ${st.glowCss || 'none'}; transition: background .5s ease;
   }
 
-  /* ── frost ── */
+  /* ── frost card + arc ── */
   @keyframes frost-pulse  { 0%,100%{opacity:.5}  50%{opacity:.95} }
-  @keyframes frost-card   { 0%,100%{box-shadow:0 0 0 0 rgba(90,200,250,0)}   50%{box-shadow:0 0 20px 3px rgba(90,200,250,.18)} }
+  @keyframes frost-card   { 0%,100%{box-shadow:0 0 0 0 rgba(90,200,250,0)}   50%{box-shadow:0 0 22px 4px rgba(90,200,250,.20)} }
   @keyframes frost-arc    { 0%,100%{filter:brightness(1)}  50%{filter:brightness(1.28) saturate(1.3)} }
 
-  /* ── fire ── */
-  @keyframes fire-card    { 0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,0)}    50%{box-shadow:0 0 24px 4px rgba(255,80,20,.22)} }
-  @keyframes fire-arc     { 0%,50%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.3) saturate(1.4)} 75%{opacity:.82;filter:brightness(.9)} }
-  @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.06)} }
+  /* ── frost icon: shiver + icy glow ── */
+  @keyframes icon-frost {
+    0%   { transform: scale(1) translateX(0);        box-shadow: 0 0 5px 1px rgba(90,200,250,0.35), inset 0 0 6px rgba(90,200,250,0.15); }
+    18%  { transform: scale(1.05) translateX(-1.5px); box-shadow: 0 0 12px 3px rgba(90,200,250,0.65), inset 0 0 8px rgba(90,200,250,0.25); }
+    36%  { transform: scale(0.97) translateX(1.5px);  box-shadow: 0 0 7px 2px rgba(90,200,250,0.45), inset 0 0 6px rgba(90,200,250,0.18); }
+    54%  { transform: scale(1.04) translateX(-1px);   box-shadow: 0 0 16px 5px rgba(90,200,250,0.75), inset 0 0 10px rgba(140,220,255,0.3); }
+    72%  { transform: scale(0.98) translateX(1px);    box-shadow: 0 0 9px 2px rgba(90,200,250,0.50), inset 0 0 7px rgba(90,200,250,0.2); }
+    100% { transform: scale(1) translateX(0);        box-shadow: 0 0 5px 1px rgba(90,200,250,0.35), inset 0 0 6px rgba(90,200,250,0.15); }
+  }
+
+  /* ── fire card + arc ── */
+  @keyframes fire-card    { 0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,0)}    50%{box-shadow:0 0 26px 5px rgba(255,80,20,.25)} }
+  @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.32) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
+  @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.07)} }
+
+  /* ── fire icon: flicker + rising glow ── */
+  @keyframes icon-fire {
+    0%   { transform: scale(1)    translateY(0px)   scaleX(1);    box-shadow: 0 -3px 8px  2px rgba(255,80,0,0.50); }
+    12%  { transform: scale(1.07) translateY(-2px)  scaleX(0.94); box-shadow: 0 -5px 18px 4px rgba(255,110,0,0.75); }
+    28%  { transform: scale(0.96) translateY( 0px)  scaleX(1);    box-shadow: 0 -2px 5px  1px rgba(255,60,0,0.35); }
+    45%  { transform: scale(1.09) translateY(-3px)  scaleX(0.91); box-shadow: 0 -6px 22px 5px rgba(255,130,0,0.85); }
+    62%  { transform: scale(0.97) translateY(-1px)  scaleX(1.02); box-shadow: 0 -3px 10px 2px rgba(255,80,0,0.55); }
+    78%  { transform: scale(1.06) translateY(-2px)  scaleX(0.95); box-shadow: 0 -5px 16px 3px rgba(255,100,0,0.70); }
+    90%  { transform: scale(0.98) translateY( 0px)  scaleX(1);    box-shadow: 0 -2px 6px  1px rgba(255,60,0,0.40); }
+    100% { transform: scale(1)    translateY(0px)   scaleX(1);    box-shadow: 0 -3px 8px  2px rgba(255,80,0,0.50); }
+  }
+
+  /* ── warm icon: gentle warm pulse ── */
+  @keyframes icon-warm {
+    0%,100% { box-shadow: 0 0 5px 1px rgba(255,159,10,0.35); }
+    50%     { box-shadow: 0 0 12px 3px rgba(255,159,10,0.65); transform: scale(1.04); }
+  }
+
+  /* ── cold icon: slow cool pulse ── */
+  @keyframes icon-cold {
+    0%,100% { box-shadow: 0 0 4px 1px rgba(90,200,250,0.22); }
+    50%     { box-shadow: 0 0 9px 2px rgba(90,200,250,0.42); }
+  }
 
   .card.frost { animation: frost-card 3.5s ease-in-out infinite; }
   .card.fire  { animation: fire-card  2.5s ease-in-out infinite; }
   .card.frost .arc-temp-fill { animation: frost-arc 3.5s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.2s ease-in-out infinite; }
+
+  /* icon animations */
+  .card.frost .icon-wrap { animation: icon-frost 2.8s ease-in-out infinite; transform-origin: center; }
+  .card.fire  .icon-wrap { animation: icon-fire  1.6s ease-in-out infinite; transform-origin: center bottom; }
+  .card.warm  .icon-wrap { animation: icon-warm  2.4s ease-in-out infinite; }
+  .card.cold  .icon-wrap { animation: icon-cold  3.5s ease-in-out infinite; }
 
   .frost-overlay {
     display:none; position:absolute; inset:0; z-index:1;
@@ -7925,9 +7966,9 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .card.fire .fire-overlay { display:block; animation: fire-shimmer 2.5s ease-in-out infinite; }
 
-  /* ── top row: icon + pills ── */
+  /* ── top row: icon left, pills right ── */
   .top-row {
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; justify-content: space-between;
     flex-shrink: 0; position: relative; z-index: 5;
     transition: opacity .22s ease;
   }
@@ -7939,12 +7980,12 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .pills {
     display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
-    flex: 1; min-width: 0;
+    justify-content: flex-end;
   }
   .pill {
     display: inline-flex; align-items: center;
-    padding: 2px 6px; border-radius: 99px; border: .5px solid;
-    font-size: 8px; font-weight: 500; white-space: nowrap;
+    padding: 2px 7px; border-radius: 99px; border: .5px solid;
+    font-size: 8px; font-weight: 600; white-space: nowrap;
     letter-spacing: .01em;
   }
 
@@ -7972,10 +8013,10 @@ class AhaTempGaugeCard extends HTMLElement {
   /* ── room name (bottom label — iOS icon pattern) ── */
   .room-name {
     flex-shrink: 0; position: relative; z-index: 5;
-    font-size: 9.5px; font-weight: 500; color: rgba(255,255,255,0.28);
+    font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.62);
     text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    margin-top: 3px; padding: 0 4px;
-    letter-spacing: .02em;
+    margin-top: 2px; padding: 0 4px;
+    letter-spacing: .01em;
     transition: opacity .22s ease;
   }
 
