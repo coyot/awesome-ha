@@ -348,15 +348,7 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .gauge-svg { width: 100%; height: 100%; overflow: visible; }
 
-  /* ── room name (bottom label — iOS icon pattern) ── */
-  .room-name {
-    flex-shrink: 0; position: relative; z-index: 5;
-    font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.72);
-    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    margin-top: 2px; padding: 0 4px;
-    letter-spacing: .01em;
-    transition: opacity .22s ease;
-  }
+  /* room-name lives inside SVG now — no separate row */
 
   /* ══ HOVER FOCUS MODE ══
      When hovering an arc:
@@ -373,9 +365,9 @@ class AhaTempGaugeCard extends HTMLElement {
 
   /* chrome dims */
   .card:has(#g-temp:hover) .top-row,
-  .card:has(#g-hum:hover)  .top-row,
-  .card:has(#g-temp:hover) .room-name,
-  .card:has(#g-hum:hover)  .room-name { opacity: 0.28; }
+  .card:has(#g-hum:hover)  .top-row { opacity: 0.28; }
+  .card:has(#g-temp:hover) .room-name-svg,
+  .card:has(#g-hum:hover)  .room-name-svg { opacity: 0.28; transition: opacity .22s ease; }
 
   /* arc fill brightens */
   .arc-temp-fill, .arc-hum-fill { transition: filter .2s ease; }
@@ -546,16 +538,21 @@ class AhaTempGaugeCard extends HTMLElement {
         fill="rgba(255,255,255,0.95)"/>
       ` : ''}
 
-      <!-- range labels -->
+      <!-- range labels — flanking the gap -->
       <text x="${(CX + LR * Math.cos(minA)).toFixed(1)}" y="${(CY + LR * Math.sin(minA) + 3).toFixed(1)}"
         text-anchor="end"   class="range-text">${fmtT(minT)}</text>
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
+
+      <!-- room name — embedded in gauge gap (no extra HTML row needed) -->
+      <text class="room-name-svg"
+        x="${CX}" y="152"
+        text-anchor="middle" dominant-baseline="central"
+        font-family="-apple-system,system-ui,sans-serif"
+        font-size="12" font-weight="600"
+        fill="rgba(255,255,255,0.68)">${name}</text>
     </svg>
   </div>
-
-  <!-- ROOM NAME — bottom label (iOS icon-label pattern) -->
-  <div class="room-name">${name}</div>
 </div>`;
 
     /* click → more-info */
