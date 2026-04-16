@@ -8035,29 +8035,30 @@ const STYLES = `
     color: #ff453a;
   }
 
-  /* Icon area — wypełnia dostępną przestrzeń, centruje ikonę jak gauge w temp-gauge */
+  /* Icon area — wypełnia dostępną przestrzeń; padding-top daje luz pod pillem */
   .icon-area {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-top: 20px;
     position: relative;
     z-index: 2;
   }
 
   .icon-wrap {
     position: relative;
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .icon-bg {
-    width: 50px;
-    height: 50px;
-    border-radius: 15px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -8071,9 +8072,9 @@ const STYLES = `
 
   .ring {
     position: absolute;
-    width: 50px;
-    height: 50px;
-    border-radius: 15px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
     border: 2px solid rgba(255,69,58,0.75);
     z-index: 1;
     pointer-events: none;
@@ -8085,7 +8086,7 @@ const STYLES = `
   }
 
   ha-icon {
-    --mdc-icon-size: 28px;
+    --mdc-icon-size: 24px;
     transition: color 0.4s ease;
   }
   .closed  ha-icon { color: #8e8e93; }
@@ -8164,12 +8165,14 @@ class KontaktronCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) throw new Error('kontaktron-card: brak pola "entity"');
+    const iconClosed = config.icon_closed || 'mdi:lock';
     this._config = {
       alarm_minutes: 10,
-      icon_closed: 'mdi:lock',
-      icon_open:   'mdi:lock-open-variant',
-      icon_alarm:  'mdi:bell-alert',
+      icon_alarm:    'mdi:bell-alert',
       ...config,
+      icon_closed: iconClosed,
+      // Jeśli icon_open nie podano → użyj icon_closed (garage zawsze ten sam icon)
+      icon_open: config.icon_open || iconClosed,
     };
   }
 
