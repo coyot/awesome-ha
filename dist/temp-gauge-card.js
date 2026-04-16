@@ -443,16 +443,12 @@ class AhaTempGaugeCard extends HTMLElement {
   #g-temp, #g-hum { transition: opacity .22s ease; }
   .state-label { transition: color .5s ease, opacity .22s ease; }
 
-  /* temperature value — HTML overlay, nie skaluje sie z SVG */
-  .temp-val-html {
-    position: absolute; top: 54%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 36px; font-weight: 700; letter-spacing: -1.5px;
-    color: ${st.tempColor};
-    transition: opacity .2s ease, color .5s ease;
-    pointer-events: none;
-    z-index: 3; white-space: nowrap;
+  /* temperature value — SVG text, wewnątrz łuków */
+  .center-val {
+    font-family: -apple-system,system-ui,sans-serif;
+    font-size: 34px; font-weight: 700; letter-spacing: -1.5px;
+    fill: ${st.tempColor}; transition: opacity .2s ease;
+    cursor: pointer;
   }
 
   /* tooltips — opacity controlled by JS, rendered last in SVG for proper z-order */
@@ -531,9 +527,10 @@ class AhaTempGaugeCard extends HTMLElement {
       <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- invisible click target for center (temp value is HTML overlay) -->
-      <circle id="temp-hit" cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}"
-        fill="rgba(0,0,0,0.001)" stroke="none" style="cursor:pointer;" pointer-events="all"/>
+      <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
+      <text id="temp-hit" class="center-val"
+        x="${CX}" y="77"
+        text-anchor="middle" dominant-baseline="central">${tempStr}</text>
 
       <!-- ══ TEMP ARC GROUP ══ -->
       <g id="g-temp" style="cursor:pointer">
@@ -599,23 +596,21 @@ class AhaTempGaugeCard extends HTMLElement {
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
-      <!-- icon inside gauge — centered in the arc gap at the bottom -->
+      <!-- icon inside gauge — poniżej wartości temperatury, wewnątrz wewnętrznego łuku -->
       ${svgIcon
-        ? `<g transform="translate(${CX},138) scale(1.5)" pointer-events="none">
+        ? `<g transform="translate(${CX},108) scale(1.2)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
-             x="${CX}" y="138"
+             x="${CX}" y="108"
              text-anchor="middle" dominant-baseline="central"
-             font-size="26">${emojiIcon}</text>`
+             font-size="22">${emojiIcon}</text>`
       }
 
       <!-- tooltips — LAST in SVG for correct z-order (render above icon/labels) -->
       ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
       ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
     </svg>
-    <!-- HTML overlay — temperatura nie skaluje sie z viewBox -->
-    <div id="temp-val" class="temp-val-html">${tempStr}</div>
   </div>
 
   <!-- ROOM NAME: HTML element at bottom -->
@@ -648,7 +643,7 @@ class AhaTempGaugeCard extends HTMLElement {
       const gH  = this.shadowRoot.getElementById('g-hum');
       const ttT = this.shadowRoot.querySelector('.tt-temp');
       const ttH = this.shadowRoot.querySelector('.tt-hum');
-      const cv  = this.shadowRoot.getElementById('temp-val');  /* HTML overlay */
+      const cv  = this.shadowRoot.getElementById('temp-hit');
       const sl  = this.shadowRoot.querySelector('.state-label');
       const rn  = this.shadowRoot.querySelector('.room-name');
 
