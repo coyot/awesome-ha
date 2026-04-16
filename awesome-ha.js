@@ -7908,6 +7908,8 @@ window.customCards.push({
 const STYLES = `
   :host {
     display: block;
+    width: 100%;
+    height: 100%;
   }
 
   @keyframes alarm-pulse {
@@ -7941,11 +7943,12 @@ const STYLES = `
   }
 
   .card {
+    width: 100%;
+    aspect-ratio: 1 / 1;
     border-radius: 20px;
     padding: 10px 10px 8px;
     display: flex;
     flex-direction: column;
-    aspect-ratio: 1 / 1;
     position: relative;
     overflow: hidden;
     cursor: pointer;
@@ -8033,7 +8036,6 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 20px;
     position: relative;
     z-index: 2;
   }
