@@ -7269,10 +7269,10 @@ const STYLES = `
   }
 
   .card {
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 14px;
     display: grid;
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-rows: auto 1fr auto auto auto;
     aspect-ratio: 1 / 1;
     position: relative;
     overflow: hidden;
@@ -7322,14 +7322,12 @@ const STYLES = `
     transition: background 0.4s ease;
   }
 
-  /* Top row: icon + name */
+  /* Top row: icon only (name moved to bottom) */
   .top-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
     position: relative;
     z-index: 2;
-    min-width: 0;
   }
 
   .spacer { /* fills 1fr grid row */ }
@@ -7337,8 +7335,8 @@ const STYLES = `
   /* Icon area */
   .icon-wrap {
     position: relative;
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -7346,9 +7344,9 @@ const STYLES = `
   }
 
   .icon-bg {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -7362,9 +7360,9 @@ const STYLES = `
 
   .ring {
     position: absolute;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     border: 2px solid rgba(255,69,58,0.75);
     z-index: 1;
     pointer-events: none;
@@ -7376,7 +7374,7 @@ const STYLES = `
   }
 
   ha-icon {
-    --mdc-icon-size: 16px;
+    --mdc-icon-size: 20px;
     transition: color 0.4s ease;
   }
   .closed  ha-icon { color: #8e8e93; }
@@ -7390,14 +7388,15 @@ const STYLES = `
   /* Text */
   .name {
     font-size: 12px;
-    font-weight: 500;
-    color: #a1a1a6;
+    font-weight: 600;
+    color: rgba(255,255,255,0.65);
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex: 1;
-    min-width: 0;
+    position: relative;
+    z-index: 2;
+    margin-top: 2px;
   }
 
   .state-label {
@@ -7424,7 +7423,7 @@ const STYLES = `
   .open    .duration { color: #636366; }
   .alarm   .duration { color: #ff6b60; font-weight: 600; }
 
-  /* ── mobile: icon fills card, name at bottom ── */
+  /* ── mobile: icon + name only ── */
   @media (max-width: 600px) {
     .bat-wrap    { display: none !important; }
     .state-label { display: none; }
@@ -7432,8 +7431,8 @@ const STYLES = `
     .card        { grid-template-rows: 1fr auto; padding: 10px; }
     .top-bar     { display: contents; }
     .icon-wrap   { grid-row: 1; align-self: center; justify-self: start; }
-    .name        { grid-row: 2; }
     .spacer      { display: none; }
+    .name        { grid-row: 2; margin-top: 0; }
   }
 
   /* ── battery ── */
@@ -7513,11 +7512,11 @@ class KontaktronCard extends HTMLElement {
             <ha-icon icon="mdi:lock"></ha-icon>
           </div>
         </div>
-        <div class="name">—</div>
       </div>
       <div class="spacer"></div>
       <div class="state-label">zamknięte</div>
       <div class="duration">—</div>
+      <div class="name">—</div>
     `;
 
     this._card.addEventListener('click', () => this._handleClick());
