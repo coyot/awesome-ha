@@ -8921,7 +8921,7 @@ window.customCards.push({
       capacity_m2:       400,
       battery_entity:    'sensor.kosiarka_battery',
       party_mode_entity: 'switch.s_party_mode',
-      error_entity:      'sensor.kosiarka_errory',
+      error_entity:      'sensor.kosiarka_error',
     };
   }
 
@@ -9297,7 +9297,7 @@ class KosiarkaSlimCard extends HTMLElement {
       name:              'Kosiarka',
       battery_entity:    'sensor.kosiarka_battery',
       party_mode_entity: 'switch.s_party_mode',
-      error_entity:      'sensor.kosiarka_errory',
+      error_entity:      'sensor.kosiarka_error',
     };
   }
 }

@@ -576,7 +576,7 @@ class KosiarkaCard extends HTMLElement {
       capacity_m2:       400,
       battery_entity:    'sensor.kosiarka_battery',
       party_mode_entity: 'switch.s_party_mode',
-      error_entity:      'sensor.kosiarka_errory',
+      error_entity:      'sensor.kosiarka_error',
     };
   }
 
