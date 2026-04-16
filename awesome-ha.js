@@ -7427,8 +7427,8 @@ class AhaTempGaugeCard extends HTMLElement {
 
     /* ── SVG tooltip helper ── */
     const TT = { x: 61, y: 63, w: 78, h: 54, rx: 11 };
-    const _tooltip = (label, valStr, valColor, extraClass) => `
-      <g class="arc-tooltip ${extraClass}" pointer-events="none">
+    const _tooltip = (label, valStr, valColor, cls) => `
+      <g class="${cls}" pointer-events="none">
         <rect x="${TT.x}" y="${TT.y}" width="${TT.w}" height="${TT.h}" rx="${TT.rx}"
           fill="rgba(12,12,16,0.94)" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
         <text x="${CX}" y="${CY - 9}"
@@ -7633,27 +7633,9 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .gauge-svg { width: 100%; height: 100%; overflow: visible; }
 
-  /* ══ HOVER FOCUS MODE ══
-     When hovering an arc:
-     - the hovered arc brightens (in SVG)
-     - opposite arc dims to 20%
-     - chrome (top-row, room-name) dims to 30%
-     - center-val fades out, tooltip fades in
-  */
+  /* ══ HOVER FOCUS MODE — JS-driven (shadow DOM safe) ══ */
 
-  /* opposite arc dims */
-  #g-temp, #g-hum { transition: opacity .22s ease; }
-  .gauge-svg:has(#g-temp:hover) #g-hum { opacity: 0.18; }
-  .gauge-svg:has(#g-hum:hover)  #g-temp { opacity: 0.18; }
-
-  /* chrome dims */
-  .state-label { transition: color .5s ease, opacity .22s ease; }
-  .card:has(#g-temp:hover) .state-label,
-  .card:has(#g-hum:hover)  .state-label,
-  .card:has(#g-temp:hover) .room-name,
-  .card:has(#g-hum:hover)  .room-name { opacity: 0.28; }
-
-  /* arc fill brightens */
+  /* arc fill brightens on direct :hover (CSS, reliable) */
   .arc-temp-fill, .arc-hum-fill { transition: filter .2s ease; }
   #g-temp:hover .arc-temp-fill { filter: brightness(1.4) saturate(1.15) !important; }
   #g-hum:hover  .arc-hum-fill  { filter: brightness(1.4) saturate(1.15); }
@@ -7662,20 +7644,18 @@ class AhaTempGaugeCard extends HTMLElement {
   #g-temp:hover .arc-track-temp,
   #g-hum:hover  .arc-track-hum  { filter: brightness(3); transition: filter .2s ease; }
 
-  /* center temp value fades out → tooltip fades in */
+  /* JS-controlled transition targets */
+  #g-temp, #g-hum { transition: opacity .22s ease; }
+  .state-label { transition: color .5s ease, opacity .22s ease; }
   .center-val {
     font-family: -apple-system,system-ui,sans-serif;
     font-size: 34px; font-weight: 700; letter-spacing: -1.5px;
     fill: ${st.tempColor}; transition: opacity .2s ease;
     cursor: pointer;
   }
-  .gauge-svg:has(#g-temp:hover) .center-val,
-  .gauge-svg:has(#g-hum:hover)  .center-val { opacity: 0; }
 
-  /* tooltip */
-  .arc-tooltip { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
-  .gauge-svg:has(#g-temp:hover) .arc-tooltip-temp,
-  .gauge-svg:has(#g-hum:hover)  .arc-tooltip-hum  { opacity: 1; }
+  /* tooltips — opacity controlled by JS, rendered last in SVG for proper z-order */
+  .tt-temp, .tt-hum { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
 
   .range-text {
     font-family: -apple-system,system-ui,sans-serif;
@@ -7778,8 +7758,6 @@ class AhaTempGaugeCard extends HTMLElement {
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"
           pointer-events="stroke"/>
 
-        <!-- tooltip -->
-        ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'arc-tooltip-temp')}
       </g>
 
       <!-- ══ HUM ARC GROUP ══ -->
@@ -7805,8 +7783,6 @@ class AhaTempGaugeCard extends HTMLElement {
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"
           pointer-events="stroke"/>
 
-        <!-- tooltip -->
-        ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'arc-tooltip-hum')}
       </g>
 
       <!-- indicator dot -->
@@ -7833,6 +7809,10 @@ class AhaTempGaugeCard extends HTMLElement {
              text-anchor="middle" dominant-baseline="central"
              font-size="26">${emojiIcon}</text>`
       }
+
+      <!-- tooltips — LAST in SVG for correct z-order (render above icon/labels) -->
+      ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
+      ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
     </svg>
   </div>
 
@@ -7859,6 +7839,39 @@ class AhaTempGaugeCard extends HTMLElement {
         bubbles: true, composed: true, detail: { entityId: cfg.temp_entity },
       }));
     });
+
+    /* hover focus mode — JS driven for shadow DOM reliability */
+    {
+      const gT  = this.shadowRoot.getElementById('g-temp');
+      const gH  = this.shadowRoot.getElementById('g-hum');
+      const ttT = this.shadowRoot.querySelector('.tt-temp');
+      const ttH = this.shadowRoot.querySelector('.tt-hum');
+      const cv  = this.shadowRoot.getElementById('temp-hit');
+      const sl  = this.shadowRoot.querySelector('.state-label');
+      const rn  = this.shadowRoot.querySelector('.room-name');
+
+      const enter = (showTT, dimArc) => {
+        if (showTT)  showTT.style.opacity  = '1';
+        if (cv)      cv.style.opacity      = '0';
+        if (dimArc)  dimArc.style.opacity  = '0.18';
+        if (sl)      sl.style.opacity      = '0.28';
+        if (rn)      rn.style.opacity      = '0.28';
+      };
+      const leave = () => {
+        if (ttT) ttT.style.opacity = '0';
+        if (ttH) ttH.style.opacity = '0';
+        if (cv)  cv.style.opacity  = '1';
+        if (gT)  gT.style.opacity  = '1';
+        if (gH)  gH.style.opacity  = '1';
+        if (sl)  sl.style.opacity  = '';
+        if (rn)  rn.style.opacity  = '';
+      };
+
+      gT?.addEventListener('mouseenter', () => enter(ttT, gH));
+      gT?.addEventListener('mouseleave', leave);
+      gH?.addEventListener('mouseenter', () => enter(ttH, gT));
+      gH?.addEventListener('mouseleave', leave);
+    }
   }
 
   getCardSize() { return 3; }
