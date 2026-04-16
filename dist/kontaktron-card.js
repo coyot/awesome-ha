@@ -65,7 +65,7 @@ const STYLES = `
 
   .card {
     border-radius: 20px;
-    padding: 14px;
+    padding: 10px 10px 8px;
     display: grid;
     grid-template-rows: auto 1fr auto auto auto;
     aspect-ratio: 1 / 1;
@@ -189,7 +189,6 @@ const STYLES = `
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-shrink: 0;
     padding-bottom: 4px;
     position: relative;
     z-index: 2;
