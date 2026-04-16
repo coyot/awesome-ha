@@ -529,7 +529,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
       <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
       <text id="temp-hit" class="center-val"
-        x="${CX}" y="77"
+        x="${CX}" y="${CY}"
         text-anchor="middle" dominant-baseline="central">${tempStr}</text>
 
       <!-- ══ TEMP ARC GROUP ══ -->
@@ -596,13 +596,13 @@ class AhaTempGaugeCard extends HTMLElement {
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
-      <!-- icon inside gauge — poniżej wartości temperatury, wewnątrz wewnętrznego łuku -->
+      <!-- icon inside gauge — w dolnej połowie wewnętrznego łuku -->
       ${svgIcon
-        ? `<g transform="translate(${CX},108) scale(1.2)" pointer-events="none">
+        ? `<g transform="translate(${CX},120) scale(1.2)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
-             x="${CX}" y="108"
+             x="${CX}" y="120"
              text-anchor="middle" dominant-baseline="central"
              font-size="22">${emojiIcon}</text>`
       }
