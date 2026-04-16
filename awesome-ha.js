@@ -7431,14 +7431,14 @@ class AhaTempGaugeCard extends HTMLElement {
       <g class="${cls}" pointer-events="none">
         <rect x="${TT.x}" y="${TT.y}" width="${TT.w}" height="${TT.h}" rx="${TT.rx}"
           fill="rgba(12,12,16,0.94)" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
-        <text x="${CX}" y="${CY - 9}"
+        <text x="${CX}" y="${CY - 10}"
           text-anchor="middle" dominant-baseline="central"
           font-family="-apple-system,system-ui,sans-serif"
-          font-size="8.5" font-weight="500" fill="rgba(255,255,255,0.38)">${label}</text>
-        <text x="${CX}" y="${CY + 13}"
+          font-size="13" font-weight="500" fill="rgba(255,255,255,0.38)">${label}</text>
+        <text x="${CX}" y="${CY + 14}"
           text-anchor="middle" dominant-baseline="central"
           font-family="-apple-system,system-ui,sans-serif"
-          font-size="22" font-weight="700" letter-spacing="-1"
+          font-size="26" font-weight="700" letter-spacing="-1"
           fill="${valColor}">${valStr}</text>
       </g>`;
 
@@ -7647,11 +7647,17 @@ class AhaTempGaugeCard extends HTMLElement {
   /* JS-controlled transition targets */
   #g-temp, #g-hum { transition: opacity .22s ease; }
   .state-label { transition: color .5s ease, opacity .22s ease; }
-  .center-val {
-    font-family: -apple-system,system-ui,sans-serif;
-    font-size: 34px; font-weight: 700; letter-spacing: -1.5px;
-    fill: ${st.tempColor}; transition: opacity .2s ease;
-    cursor: pointer;
+
+  /* temperature value — HTML overlay, nie skaluje sie z SVG */
+  .temp-val-html {
+    position: absolute; top: 54%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 36px; font-weight: 700; letter-spacing: -1.5px;
+    color: ${st.tempColor};
+    transition: opacity .2s ease, color .5s ease;
+    pointer-events: none;
+    z-index: 3; white-space: nowrap;
   }
 
   /* tooltips — opacity controlled by JS, rendered last in SVG for proper z-order */
@@ -7659,7 +7665,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
   .range-text {
     font-family: -apple-system,system-ui,sans-serif;
-    font-size: 8px; font-weight: 500; fill: rgba(255,255,255,.18);
+    font-size: 12px; font-weight: 500; fill: rgba(255,255,255,.18);
   }
 </style>
 
@@ -7730,10 +7736,9 @@ class AhaTempGaugeCard extends HTMLElement {
       <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- temperature value — fades when arc hovered -->
-      <text id="temp-hit" class="center-val"
-        x="${CX}" y="${CY}"
-        text-anchor="middle" dominant-baseline="central">${tempStr}</text>
+      <!-- invisible click target for center (temp value is HTML overlay) -->
+      <circle id="temp-hit" cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}"
+        fill="rgba(0,0,0,0.001)" stroke="none" style="cursor:pointer;" pointer-events="all"/>
 
       <!-- ══ TEMP ARC GROUP ══ -->
       <g id="g-temp" style="cursor:pointer">
@@ -7814,6 +7819,8 @@ class AhaTempGaugeCard extends HTMLElement {
       ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
       ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
     </svg>
+    <!-- HTML overlay — temperatura nie skaluje sie z viewBox -->
+    <div id="temp-val" class="temp-val-html">${tempStr}</div>
   </div>
 
   <!-- ROOM NAME: HTML element at bottom -->
@@ -7846,7 +7853,7 @@ class AhaTempGaugeCard extends HTMLElement {
       const gH  = this.shadowRoot.getElementById('g-hum');
       const ttT = this.shadowRoot.querySelector('.tt-temp');
       const ttH = this.shadowRoot.querySelector('.tt-hum');
-      const cv  = this.shadowRoot.getElementById('temp-hit');
+      const cv  = this.shadowRoot.getElementById('temp-val');  /* HTML overlay */
       const sl  = this.shadowRoot.querySelector('.state-label');
       const rn  = this.shadowRoot.querySelector('.room-name');
 
