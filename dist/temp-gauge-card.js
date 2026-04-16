@@ -1,16 +1,15 @@
 /**
  * temp-gauge-card.js — AHA Temperature & Humidity Gauge Card
  *
- * Dual-arc SVG gauge:
- *   outer arc = temperature in configured range (temperature-reactive color)
- *   inner arc = humidity 0–100%
+ * Layout (professional UX):
+ *   top row  — icon (anchor) + state pills (context)
+ *   center   — dual-arc gauge, temperature dominant
+ *   bottom   — room name, muted (iOS icon-label pattern)
  *
- * Apple Home glassmorphism • frost / fire animations • alert pills
- * Hover over each arc: highlights arc + shows glassmorphism tooltip
- *
- * Config:
- *   name, icon, temp_entity, humidity_entity, battery_entity
- *   min_temp (default -10), max_temp (default 40)
+ * Hover focus mode:
+ *   arc hovered  → brightens, tooltip appears
+ *   opposite arc → dims to 20%
+ *   chrome       → dims to 30%
  */
 
 class AhaTempGaugeCard extends HTMLElement {
@@ -105,8 +104,8 @@ class AhaTempGaugeCard extends HTMLElement {
     const hum  = this._val(cfg.humidity_entity);
     const bat  = this._val(cfg.battery_entity);
 
-    const st       = this._tempState(temp);
-    const humCol   = this._humArcColor(hum);
+    const st      = this._tempState(temp);
+    const humCol  = this._humArcColor(hum);
     const isOffline = temp === null;
 
     const minT = parseFloat(cfg.min_temp ?? -10);
@@ -120,9 +119,9 @@ class AhaTempGaugeCard extends HTMLElement {
 
     /* ── SVG gauge geometry ── */
     const CX = 100, CY = 90;
-    const R1 = 74, SW1 = 13;   // temp ring
-    const R2 = 54, SW2 = 10;   // hum ring
-    const FRAC = 0.75;          // 270°
+    const R1 = 74, SW1 = 13;   // temp  — dominant
+    const R2 = 54, SW2 = 7;    // hum   — slender accent (was 10 → 7)
+    const FRAC = 0.75;
 
     const C1 = 2 * Math.PI * R1, ARC1 = FRAC * C1;
     const C2 = 2 * Math.PI * R2, ARC2 = FRAC * C2;
@@ -135,7 +134,7 @@ class AhaTempGaugeCard extends HTMLElement {
     const dotX = CX + R1 * Math.cos(dotRad);
     const dotY = CY + R1 * Math.sin(dotRad);
 
-    // Tick marks at 25 / 50 / 75 % of temp range
+    // Tick marks at 25 / 50 / 75 %
     const _tick = pct => {
       const a  = (135 + pct * 270) * Math.PI / 180;
       const ri = R1 - SW1 / 2 - 1.5;
@@ -146,29 +145,43 @@ class AhaTempGaugeCard extends HTMLElement {
     };
     const ticks = [0.25, 0.5, 0.75].map(_tick).join('');
 
-    // Min / max labels just outside the ring
-    const LR = R1 + SW1 / 2 + 9;
+    // Min / max range labels
+    const LR  = R1 + SW1 / 2 + 9;
     const minA = 135 * Math.PI / 180;
     const maxA = (135 + 270) * Math.PI / 180;
     const fmtT = v => v === 0 ? '0°' : v > 0 ? `+${v}°` : `${v}°`;
 
-    // Tooltip shared rect geometry (centers in the ring opening)
-    const TT = { x: 61, y: 65, w: 78, h: 50, rx: 11 };
-
-    // Extreme-state arc glow
+    // Extreme-state glow on arc
     const useGlow = st.key === 'frost' || st.key === 'fire' || st.key === 'warm';
 
-    /* ── Humidity arc color description ── */
-    const humLabel = hum === null ? '—' : hum < 35 ? 'sucho' : hum < 66 ? 'komfort' : hum < 81 ? 'wilgotno' : 'b. wilgotno';
+    // Humidity zone label
+    const humZone = hum === null ? '' : hum < 35 ? 'sucho' : hum < 66 ? 'komfort' : hum < 81 ? 'wilgotno' : 'b. wilgotno';
 
-    /* ── Pills — subtle state indicators ── */
+    /* ── SVG tooltip helper ── */
+    const TT = { x: 61, y: 63, w: 78, h: 54, rx: 11 };
+    const _tooltip = (label, valStr, valColor, extraClass) => `
+      <g class="arc-tooltip ${extraClass}" pointer-events="none">
+        <rect x="${TT.x}" y="${TT.y}" width="${TT.w}" height="${TT.h}" rx="${TT.rx}"
+          fill="rgba(12,12,16,0.94)" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
+        <text x="${CX}" y="${CY - 9}"
+          text-anchor="middle" dominant-baseline="central"
+          font-family="-apple-system,system-ui,sans-serif"
+          font-size="8.5" font-weight="500" fill="rgba(255,255,255,0.38)">${label}</text>
+        <text x="${CX}" y="${CY + 13}"
+          text-anchor="middle" dominant-baseline="central"
+          font-family="-apple-system,system-ui,sans-serif"
+          font-size="22" font-weight="700" letter-spacing="-1"
+          fill="${valColor}">${valStr}</text>
+      </g>`;
+
+    /* ── Pills (top row, next to icon) ── */
     const pillDefs = {
-      frost:   { bg: 'rgba(90,200,250,0.10)',  border: 'rgba(90,200,250,0.22)',  color: '#5AC8FA66' },
-      cold:    { bg: 'rgba(90,200,250,0.07)',  border: 'rgba(90,200,250,0.15)',  color: '#7dd4f866' },
-      comfort: { bg: 'rgba(48,209,88,0.08)',   border: 'rgba(48,209,88,0.18)',   color: '#30D15866' },
-      warm:    { bg: 'rgba(255,159,10,0.09)',  border: 'rgba(255,159,10,0.20)',  color: '#FF9F0A66' },
-      fire:    { bg: 'rgba(255,69,58,0.10)',   border: 'rgba(255,69,58,0.22)',   color: '#FF453A66' },
-      offline: { bg: 'rgba(100,100,100,0.07)', border: 'rgba(100,100,100,0.15)', color: '#63636666' },
+      frost:   { bg: 'rgba(90,200,250,0.12)',  border: 'rgba(90,200,250,0.28)',  color: '#5AC8FA' },
+      cold:    { bg: 'rgba(90,200,250,0.08)',  border: 'rgba(90,200,250,0.18)',  color: '#7dd4f8' },
+      comfort: { bg: 'rgba(48,209,88,0.10)',   border: 'rgba(48,209,88,0.22)',   color: '#30D158' },
+      warm:    { bg: 'rgba(255,159,10,0.10)',  border: 'rgba(255,159,10,0.24)',  color: '#FF9F0A' },
+      fire:    { bg: 'rgba(255,69,58,0.12)',   border: 'rgba(255,69,58,0.28)',   color: '#FF453A' },
+      offline: { bg: 'rgba(100,100,100,0.08)', border: 'rgba(100,100,100,0.18)', color: '#636366' },
     };
     const pills = [];
     if (temp !== null) {
@@ -176,8 +189,8 @@ class AhaTempGaugeCard extends HTMLElement {
       pills.push({ label: st.label, ...p });
     }
     if (hum !== null) {
-      if      (hum < 35)  pills.push({ label: '🏜️ sucho',    bg: 'rgba(255,159,10,0.08)', border: 'rgba(255,159,10,0.18)', color: '#FF9F0A66' });
-      else if (hum >= 81) pills.push({ label: '💦 wilgotno', bg: 'rgba(10,132,255,0.08)', border: 'rgba(10,132,255,0.18)', color: '#0A84FF66' });
+      if      (hum < 35)  pills.push({ label: '🏜️', bg: 'rgba(255,159,10,0.10)', border: 'rgba(255,159,10,0.24)', color: '#FF9F0A' });
+      else if (hum >= 81) pills.push({ label: '💦', bg: 'rgba(10,132,255,0.10)', border: 'rgba(10,132,255,0.22)', color: '#0A84FF' });
     }
     const pillsHTML = pills.map(p =>
       `<span class="pill" style="background:${p.bg};border-color:${p.border};color:${p.color}">${p.label}</span>`
@@ -186,34 +199,18 @@ class AhaTempGaugeCard extends HTMLElement {
     /* ── Battery ── */
     const batHTML = (() => {
       if (bat === null || bat >= 25) return '';
-      const col   = bat < 20 ? '#FF453A' : 'rgba(255,255,255,0.42)';
+      const col   = bat < 20 ? '#FF453A' : 'rgba(255,255,255,0.38)';
       const fillW = Math.round((Math.max(0, Math.min(100, bat)) / 100) * 13);
       return `
         <div class="bat">
           <span class="bat-pct">${Math.round(bat)}%</span>
-          <svg width="18" height="9" viewBox="0 0 22 11">
+          <svg width="16" height="8" viewBox="0 0 22 11">
             <rect x=".5" y=".5" width="17" height="10" rx="2.5" fill="none" stroke="${col}" stroke-width="1.1"/>
             <rect x="18" y="3.5" width="2.5" height="4" rx="1" fill="${col}" opacity=".7"/>
             ${fillW > 0 ? `<rect x="2" y="2" width="${fillW}" height="6" rx="1.5" fill="${col}"/>` : ''}
           </svg>
         </div>`;
     })();
-
-    /* ── SVG tooltip helper ── */
-    const _tooltip = (label, valStr, valColor) => `
-      <g class="arc-tooltip" pointer-events="none">
-        <rect x="${TT.x}" y="${TT.y}" width="${TT.w}" height="${TT.h}" rx="${TT.rx}"
-          fill="rgba(14,14,18,0.93)" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
-        <text x="${CX}" y="${CY - 9}"
-          text-anchor="middle" dominant-baseline="central"
-          font-family="-apple-system,system-ui,sans-serif"
-          font-size="8.5" font-weight="500" fill="rgba(255,255,255,0.40)">${label}</text>
-        <text x="${CX}" y="${CY + 11}"
-          text-anchor="middle" dominant-baseline="central"
-          font-family="-apple-system,system-ui,sans-serif"
-          font-size="22" font-weight="700" letter-spacing="-1"
-          fill="${valColor}">${valStr}</text>
-      </g>`;
 
     this.shadowRoot.innerHTML = `
 <style>
@@ -222,7 +219,7 @@ class AhaTempGaugeCard extends HTMLElement {
   .card {
     width: 100%; height: 100%;
     border-radius: 20px;
-    padding: 12px 12px 8px;
+    padding: 10px 10px 8px;
     box-sizing: border-box;
     display: flex; flex-direction: column;
     overflow: hidden; position: relative;
@@ -230,31 +227,29 @@ class AhaTempGaugeCard extends HTMLElement {
     -webkit-tap-highlight-color: transparent; user-select: none; cursor: default;
     background: ${st.cardBg};
     border: 1px solid ${st.cardBorder};
-    transition: background 0.5s ease, border-color 0.5s ease, transform 0.15s ease;
+    transition: background .5s ease, border-color .5s ease, transform .15s ease;
   }
   .card:active { transform: scale(0.97); }
 
   .bg-glow {
     position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    background: ${st.glowCss || 'none'}; transition: background 0.5s ease;
+    background: ${st.glowCss || 'none'}; transition: background .5s ease;
   }
 
   /* ── frost ── */
-  @keyframes frost-pulse  { 0%,100%{opacity:.55} 50%{opacity:1} }
-  @keyframes frost-card   { 0%,100%{box-shadow:0 0 0 0 rgba(90,200,250,0)} 50%{box-shadow:0 0 22px 3px rgba(90,200,250,.18)} }
-  @keyframes frost-arc    { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.28) saturate(1.3)} }
-  @keyframes frost-dot    { 0%,100%{opacity:.9} 50%{opacity:1;filter:brightness(1.4)} }
+  @keyframes frost-pulse  { 0%,100%{opacity:.5}  50%{opacity:.95} }
+  @keyframes frost-card   { 0%,100%{box-shadow:0 0 0 0 rgba(90,200,250,0)}   50%{box-shadow:0 0 20px 3px rgba(90,200,250,.18)} }
+  @keyframes frost-arc    { 0%,100%{filter:brightness(1)}  50%{filter:brightness(1.28) saturate(1.3)} }
 
   /* ── fire ── */
-  @keyframes fire-card    { 0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,0)} 50%{box-shadow:0 0 26px 4px rgba(255,80,20,.22)} }
-  @keyframes fire-arc     { 0%,100%{filter:brightness(1) saturate(1);opacity:.92} 33%{filter:brightness(1.3) saturate(1.4);opacity:1} 66%{filter:brightness(.88);opacity:.84} }
-  @keyframes fire-shimmer { 0%,100%{opacity:.6;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.06)} }
+  @keyframes fire-card    { 0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,0)}    50%{box-shadow:0 0 24px 4px rgba(255,80,20,.22)} }
+  @keyframes fire-arc     { 0%,50%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.3) saturate(1.4)} 75%{opacity:.82;filter:brightness(.9)} }
+  @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.06)} }
 
   .card.frost { animation: frost-card 3.5s ease-in-out infinite; }
   .card.fire  { animation: fire-card  2.5s ease-in-out infinite; }
   .card.frost .arc-temp-fill { animation: frost-arc 3.5s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.2s ease-in-out infinite; }
-  .card.frost .dot-outer     { animation: frost-dot 3.5s ease-in-out infinite; }
 
   .frost-overlay {
     display:none; position:absolute; inset:0; z-index:1;
@@ -268,87 +263,113 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .card.fire .fire-overlay { display:block; animation: fire-shimmer 2.5s ease-in-out infinite; }
 
-  /* ── header ── */
-  .header {
-    display:flex; align-items:center; gap:8px;
-    flex-shrink:0; position:relative; z-index:5;
+  /* ── top row: icon + pills ── */
+  .top-row {
+    display: flex; align-items: center; gap: 6px;
+    flex-shrink: 0; position: relative; z-index: 5;
+    transition: opacity .22s ease;
   }
   .icon-wrap {
-    width:28px; height:28px; border-radius:8px;
-    background:${st.iconBg}; display:flex; align-items:center; justify-content:center;
-    font-size:15px; flex-shrink:0; transition:background .5s ease;
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    background: ${st.iconBg};
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: background .5s ease;
   }
-  .room-name {
-    font-size:11px; font-weight:600; color:#a1a1a6;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    flex:1; min-width:0; letter-spacing:.02em;
+  .pills {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    flex: 1; min-width: 0;
   }
-  .bat { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+  .pill {
+    display: inline-flex; align-items: center;
+    padding: 2px 6px; border-radius: 99px; border: .5px solid;
+    font-size: 8px; font-weight: 500; white-space: nowrap;
+    letter-spacing: .01em;
+  }
+
+  /* ── battery (absolute top-right) ── */
+  .bat {
+    position: absolute; top: 9px; right: 10px; z-index: 10;
+    display: flex; align-items: center; gap: 4px;
+  }
   .bat-pct {
-    font-size:9px; font-weight:600; color:rgba(255,255,255,.8);
-    background:rgba(28,28,30,.92); border:.5px solid rgba(255,255,255,.14);
-    border-radius:4px; padding:1px 4px;
-    opacity:0; pointer-events:none; transition:opacity .15s; backdrop-filter:blur(8px);
+    font-size: 9px; font-weight: 600; color: rgba(255,255,255,.8);
+    background: rgba(28,28,30,.92); border: .5px solid rgba(255,255,255,.14);
+    border-radius: 4px; padding: 1px 4px;
+    opacity: 0; pointer-events: none; transition: opacity .15s; backdrop-filter: blur(8px);
   }
-  .bat:hover .bat-pct { opacity:1; }
+  .bat:hover .bat-pct { opacity: 1; }
 
   /* ── gauge ── */
   .gauge-wrap {
-    flex:1; min-height:0;
-    display:flex; align-items:center; justify-content:center;
-    position:relative; z-index:2; margin-top:4px;
+    flex: 1; min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; z-index: 2; margin-top: 2px;
   }
-  .gauge-svg { width:100%; height:100%; overflow:visible; cursor:default; }
+  .gauge-svg { width: 100%; height: 100%; overflow: visible; }
 
-  /* ── arc hover: highlight + tooltip ── */
-  .arc-tooltip {
-    opacity:0; transition:opacity .18s ease;
-    pointer-events:none;
+  /* ── room name (bottom label — iOS icon pattern) ── */
+  .room-name {
+    flex-shrink: 0; position: relative; z-index: 5;
+    font-size: 9.5px; font-weight: 500; color: rgba(255,255,255,0.28);
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: 3px; padding: 0 4px;
+    letter-spacing: .02em;
+    transition: opacity .22s ease;
   }
-  /* show tooltip + dim the center temp value */
-  .gauge-svg:has(#g-temp:hover) .arc-tooltip-temp,
-  .gauge-svg:has(#g-hum:hover)  .arc-tooltip-hum  { opacity:1; }
-  .gauge-svg:has(#g-temp:hover) .center-val,
-  .gauge-svg:has(#g-hum:hover)  .center-val        { opacity:0; }
 
-  /* arc fill brightens on hover */
-  #g-temp .arc-temp-fill, #g-hum .arc-hum-fill { transition: filter .2s ease; }
-  #g-temp:hover .arc-temp-fill { filter:brightness(1.35) saturate(1.15) !important; }
-  #g-hum:hover  .arc-hum-fill  { filter:brightness(1.35) saturate(1.15); }
+  /* ══ HOVER FOCUS MODE ══
+     When hovering an arc:
+     - the hovered arc brightens (in SVG)
+     - opposite arc dims to 20%
+     - chrome (top-row, room-name) dims to 30%
+     - center-val fades out, tooltip fades in
+  */
 
-  /* arc track subtly brightens on hover */
+  /* opposite arc dims */
+  #g-temp, #g-hum { transition: opacity .22s ease; }
+  .gauge-svg:has(#g-temp:hover) #g-hum { opacity: 0.18; }
+  .gauge-svg:has(#g-hum:hover)  #g-temp { opacity: 0.18; }
+
+  /* chrome dims */
+  .card:has(#g-temp:hover) .top-row,
+  .card:has(#g-hum:hover)  .top-row,
+  .card:has(#g-temp:hover) .room-name,
+  .card:has(#g-hum:hover)  .room-name { opacity: 0.28; }
+
+  /* arc fill brightens */
+  .arc-temp-fill, .arc-hum-fill { transition: filter .2s ease; }
+  #g-temp:hover .arc-temp-fill { filter: brightness(1.4) saturate(1.15) !important; }
+  #g-hum:hover  .arc-hum-fill  { filter: brightness(1.4) saturate(1.15); }
+
+  /* arc track brightens slightly */
   #g-temp:hover .arc-track-temp,
-  #g-hum:hover  .arc-track-hum  { filter:brightness(2.5); }
+  #g-hum:hover  .arc-track-hum  { filter: brightness(3); transition: filter .2s ease; }
 
-  /* SVG text classes */
+  /* center temp value fades out → tooltip fades in */
   .center-val {
-    font-family:-apple-system,system-ui,sans-serif;
-    font-size:30px; font-weight:700; letter-spacing:-1.5px;
-    fill:${st.tempColor}; transition:opacity .18s ease;
-    cursor:pointer;
+    font-family: -apple-system,system-ui,sans-serif;
+    font-size: 34px; font-weight: 700; letter-spacing: -1.5px;
+    fill: ${st.tempColor}; transition: opacity .2s ease;
+    cursor: pointer;
   }
-  .range-text {
-    font-family:-apple-system,system-ui,sans-serif;
-    font-size:8px; font-weight:500; fill:rgba(255,255,255,.2);
-  }
+  .gauge-svg:has(#g-temp:hover) .center-val,
+  .gauge-svg:has(#g-hum:hover)  .center-val { opacity: 0; }
 
-  /* ── pills ── */
-  .pills {
-    display:flex; align-items:center; justify-content:center;
-    gap:4px; flex-wrap:wrap; flex-shrink:0;
-    position:relative; z-index:5; margin-top:4px; min-height:16px;
-  }
-  .pill {
-    display:inline-flex; align-items:center;
-    padding:1px 6px; border-radius:99px; border:.5px solid;
-    font-size:8px; font-weight:500; letter-spacing:.01em;
-    white-space:nowrap; opacity:.75;
+  /* tooltip */
+  .arc-tooltip { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+  .gauge-svg:has(#g-temp:hover) .arc-tooltip-temp,
+  .gauge-svg:has(#g-hum:hover)  .arc-tooltip-hum  { opacity: 1; }
+
+  .range-text {
+    font-family: -apple-system,system-ui,sans-serif;
+    font-size: 8px; font-weight: 500; fill: rgba(255,255,255,.18);
   }
 </style>
 
 <div class="card ${st.key}">
   <div class="bg-glow"></div>
 
+  <!-- frost crystals overlay -->
   <div class="frost-overlay">
     <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet">
       <path d="M0,0 Q20,30 0,62"  stroke="rgba(140,210,255,.28)" stroke-width="1.3" fill="none"/>
@@ -356,25 +377,25 @@ class AhaTempGaugeCard extends HTMLElement {
       <path d="M0,0 Q28,28 48,48" stroke="rgba(140,210,255,.18)" stroke-width="1"   fill="none"/>
       <line x1="22" y1="22" x2="22" y2="42" stroke="rgba(170,230,255,.60)" stroke-width="1.3"/>
       <line x1="12" y1="32" x2="32" y2="32" stroke="rgba(170,230,255,.60)" stroke-width="1.3"/>
-      <line x1="15" y1="25" x2="29" y2="39" stroke="rgba(170,230,255,.30)" stroke-width="1"/>
-      <line x1="29" y1="25" x2="15" y2="39" stroke="rgba(170,230,255,.30)" stroke-width="1"/>
-      <line x1="48" y1="11" x2="48" y2="25" stroke="rgba(170,230,255,.38)" stroke-width="1"/>
-      <line x1="41" y1="18" x2="55" y2="18" stroke="rgba(170,230,255,.38)" stroke-width="1"/>
+      <line x1="15" y1="25" x2="29" y2="39" stroke="rgba(170,230,255,.28)" stroke-width="1"/>
+      <line x1="29" y1="25" x2="15" y2="39" stroke="rgba(170,230,255,.28)" stroke-width="1"/>
+      <line x1="48" y1="11" x2="48" y2="25" stroke="rgba(170,230,255,.35)" stroke-width="1"/>
+      <line x1="41" y1="18" x2="55" y2="18" stroke="rgba(170,230,255,.35)" stroke-width="1"/>
       <circle cx="8"  cy="8"  r="1.6" fill="rgba(210,245,255,.70)"/>
-      <circle cx="30" cy="7"  r="1.1" fill="rgba(210,245,255,.52)"/>
-      <circle cx="6"  cy="36" r="1.3" fill="rgba(210,245,255,.48)"/>
-      <circle cx="50" cy="6"  r="1.0" fill="rgba(210,245,255,.42)"/>
-      <circle cx="11" cy="55" r="1.1" fill="rgba(210,245,255,.36)"/>
-      <circle cx="70" cy="10" r="0.9" fill="rgba(210,245,255,.30)"/>
+      <circle cx="30" cy="7"  r="1.1" fill="rgba(210,245,255,.50)"/>
+      <circle cx="6"  cy="36" r="1.3" fill="rgba(210,245,255,.46)"/>
+      <circle cx="50" cy="6"  r="1.0" fill="rgba(210,245,255,.40)"/>
+      <circle cx="11" cy="55" r="1.1" fill="rgba(210,245,255,.34)"/>
     </svg>
   </div>
 
+  <!-- fire heat shimmer -->
   <div class="fire-overlay">
     <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>
         <radialGradient id="hr-${uid}" cx="50%" cy="100%" r="65%">
-          <stop offset="0%"   stop-color="rgba(255,90,0,.24)"/>
-          <stop offset="55%"  stop-color="rgba(200,40,0,.08)"/>
+          <stop offset="0%"   stop-color="rgba(255,90,0,.22)"/>
+          <stop offset="55%"  stop-color="rgba(200,40,0,.07)"/>
           <stop offset="100%" stop-color="transparent"/>
         </radialGradient>
       </defs>
@@ -384,11 +405,13 @@ class AhaTempGaugeCard extends HTMLElement {
 
   ${batHTML}
 
-  <div class="header">
+  <!-- TOP ROW: icon + pills -->
+  <div class="top-row">
     <div class="icon-wrap">${icon}</div>
-    <div class="room-name">${name}</div>
+    <div class="pills">${pillsHTML}</div>
   </div>
 
+  <!-- GAUGE -->
   <div class="gauge-wrap">
     <svg class="gauge-svg" viewBox="0 0 200 166" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -397,7 +420,7 @@ class AhaTempGaugeCard extends HTMLElement {
           <stop offset="100%" stop-color="${st.arcG0}"/>
         </linearGradient>
         <filter id="arc-glow-${uid}" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feGaussianBlur stdDeviation="3.5" result="b"/>
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <filter id="dot-glow-${uid}" x="-80%" y="-80%" width="260%" height="260%">
@@ -405,29 +428,27 @@ class AhaTempGaugeCard extends HTMLElement {
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <radialGradient id="cg-${uid}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stop-color="${isOffline ? 'transparent' : st.arcG1 + '1a'}"/>
+          <stop offset="0%"   stop-color="${isOffline ? 'transparent' : st.arcG1 + '18'}"/>
           <stop offset="100%" stop-color="transparent"/>
         </radialGradient>
       </defs>
 
-      <!-- center ambient glow -->
+      <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- ── temp VALUE — shown when no arc is hovered ── -->
+      <!-- temperature value — fades when arc hovered -->
       <text id="temp-hit" class="center-val"
         x="${CX}" y="${CY}"
         text-anchor="middle" dominant-baseline="central">${tempStr}</text>
 
-      <!-- ══ TEMP ARC GROUP — hover triggers tooltip ══ -->
-      <g id="g-temp">
+      <!-- ══ TEMP ARC GROUP ══ -->
+      <g id="g-temp" style="cursor:pointer">
 
-        <!-- track -->
         <circle class="arc-track-temp" cx="${CX}" cy="${CY}" r="${R1}"
           fill="none" stroke="rgba(255,255,255,0.055)" stroke-width="${SW1}"
           stroke-dasharray="${ARC1.toFixed(2)} ${C1.toFixed(2)}"
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"/>
 
-        <!-- fill -->
         ${tempFillLen > 0.5 ? `
         <circle class="arc-temp-fill" cx="${CX}" cy="${CY}" r="${R1}"
           fill="none" stroke="url(#tg-${uid})" stroke-width="${SW1}"
@@ -436,50 +457,47 @@ class AhaTempGaugeCard extends HTMLElement {
           ${useGlow ? `filter="url(#arc-glow-${uid})"` : ''}/>
         ` : ''}
 
-        <!-- tick marks -->
         ${ticks}
 
-        <!-- invisible hit area (full 270° arc, wider stroke) -->
+        <!-- hit area -->
         <circle cx="${CX}" cy="${CY}" r="${R1}"
-          fill="none" stroke="rgba(255,255,255,0.005)" stroke-width="24"
+          fill="none" stroke="rgba(255,255,255,0.004)" stroke-width="24"
           stroke-dasharray="${ARC1.toFixed(2)} ${C1.toFixed(2)}"
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"
-          cursor="pointer" pointer-events="stroke"/>
+          pointer-events="stroke"/>
 
-        <!-- tooltip: Temperatura -->
-        ${_tooltip('Temperatura', tempStr, st.tempColor).replace('class="arc-tooltip"', 'class="arc-tooltip arc-tooltip-temp"')}
+        <!-- tooltip -->
+        ${_tooltip('Temperatura', tempStr, st.tempColor, 'arc-tooltip-temp')}
       </g>
 
-      <!-- ══ HUM ARC GROUP — hover triggers tooltip ══ -->
-      <g id="g-hum">
+      <!-- ══ HUM ARC GROUP ══ -->
+      <g id="g-hum" style="cursor:pointer">
 
-        <!-- track -->
         <circle class="arc-track-hum" cx="${CX}" cy="${CY}" r="${R2}"
-          fill="none" stroke="rgba(255,255,255,0.040)" stroke-width="${SW2}"
+          fill="none" stroke="rgba(255,255,255,0.038)" stroke-width="${SW2}"
           stroke-dasharray="${ARC2.toFixed(2)} ${C2.toFixed(2)}"
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"/>
 
-        <!-- fill -->
         ${humFillLen > 0.5 ? `
         <circle class="arc-hum-fill" cx="${CX}" cy="${CY}" r="${R2}"
           fill="none" stroke="${humCol}" stroke-width="${SW2}"
           stroke-dasharray="${humFillLen.toFixed(2)} ${C2.toFixed(2)}"
-          stroke-linecap="round" stroke-opacity="0.88"
+          stroke-linecap="round" stroke-opacity="0.85"
           transform="rotate(135,${CX},${CY})"/>
         ` : ''}
 
-        <!-- invisible hit area -->
+        <!-- hit area -->
         <circle cx="${CX}" cy="${CY}" r="${R2}"
-          fill="none" stroke="rgba(255,255,255,0.005)" stroke-width="20"
+          fill="none" stroke="rgba(255,255,255,0.004)" stroke-width="18"
           stroke-dasharray="${ARC2.toFixed(2)} ${C2.toFixed(2)}"
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"
-          cursor="pointer" pointer-events="stroke"/>
+          pointer-events="stroke"/>
 
-        <!-- tooltip: Wilgotność -->
-        ${_tooltip('Wilgotność ' + humLabel, humStr, humCol).replace('class="arc-tooltip"', 'class="arc-tooltip arc-tooltip-hum"')}
+        <!-- tooltip -->
+        ${_tooltip('Wilgotność' + (humZone ? ' · ' + humZone : ''), humStr, humCol, 'arc-tooltip-hum')}
       </g>
 
-      <!-- ── indicator dot ── -->
+      <!-- indicator dot -->
       ${!isOffline && tempFillLen > 3 ? `
       <circle class="dot-outer" cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="5"
         fill="${st.arcG0}" opacity="0.85" filter="url(#dot-glow-${uid})"/>
@@ -487,38 +505,35 @@ class AhaTempGaugeCard extends HTMLElement {
         fill="rgba(255,255,255,0.95)"/>
       ` : ''}
 
-      <!-- ── range labels ── -->
+      <!-- range labels -->
       <text x="${(CX + LR * Math.cos(minA)).toFixed(1)}" y="${(CY + LR * Math.sin(minA) + 3).toFixed(1)}"
-        text-anchor="end" class="range-text">${fmtT(minT)}</text>
+        text-anchor="end"   class="range-text">${fmtT(minT)}</text>
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
     </svg>
   </div>
 
-  <div class="pills">${pillsHTML}</div>
+  <!-- ROOM NAME — bottom label (iOS icon-label pattern) -->
+  <div class="room-name">${name}</div>
 </div>`;
 
     /* click → more-info */
     this.shadowRoot.getElementById('g-temp')?.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true, composed: true,
-        detail: { entityId: cfg.temp_entity },
+        bubbles: true, composed: true, detail: { entityId: cfg.temp_entity },
       }));
     });
     if (cfg.humidity_entity) {
       this.shadowRoot.getElementById('g-hum')?.addEventListener('click', e => {
         e.stopPropagation();
         this.dispatchEvent(new CustomEvent('hass-more-info', {
-          bubbles: true, composed: true,
-          detail: { entityId: cfg.humidity_entity },
+          bubbles: true, composed: true, detail: { entityId: cfg.humidity_entity },
         }));
       });
     }
-    /* temp text click (fallback when center visible) */
     this.shadowRoot.getElementById('temp-hit')?.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('hass-more-info', {
-        bubbles: true, composed: true,
-        detail: { entityId: cfg.temp_entity },
+        bubbles: true, composed: true, detail: { entityId: cfg.temp_entity },
       }));
     });
   }
@@ -535,5 +550,5 @@ window.customCards.push({
   type:        'aha-temp-gauge-card',
   name:        'AHA Temp Gauge Card',
   preview:     false,
-  description: 'Podwójny gauge (łuk): temperatura na zewnątrz, wilgotność wewnątrz. Hover = tooltip z wartością. Apple Home dark glassmorphism.',
+  description: 'Gauge temp+wilgotność. Hover = focus mode (dimuje resztę, tooltip). Apple Home glassmorphism.',
 });
