@@ -8377,6 +8377,7 @@ class KosiarkaCard extends HTMLElement {
       rain_entity:            config.rain_entity            || null,
       next_schedule_entity:   config.next_schedule_entity   || null,
       lawn_size_entity:       config.lawn_size_entity       || null,
+      edge_entity:            config.edge_entity            || null,
     };
   }
 
@@ -8485,6 +8486,17 @@ class KosiarkaCard extends HTMLElement {
       }
     }
 
+    // Edge cut: dedicated entity OR activity attribute
+    let isEdge = false;
+    if (cfg.edge_entity) {
+      const ee = hass.states[cfg.edge_entity];
+      if (ee) isEdge = ee.state === 'on';
+    }
+    if (!isEdge) {
+      const act = (a.activity ?? a.status_description ?? '').toLowerCase();
+      isEdge = act.includes('edge') || act.includes('border');
+    }
+
     return {
       state:    e.state || 'unknown',
       battery,
@@ -8496,6 +8508,7 @@ class KosiarkaCard extends HTMLElement {
       isRaining,
       nextSchedule,
       lawnSize,
+      isEdge,
     };
   }
 
@@ -8559,6 +8572,17 @@ class KosiarkaCard extends HTMLElement {
     </svg>`;
   }
 
+  _svgEdge(col) {
+    return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none"
+        style="animation:kos-mow 1.8s ease-in-out infinite;">
+      <rect x="3" y="9" width="20" height="11" rx="4" stroke="${col}" stroke-width="1.4"/>
+      <circle cx="8" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="2.5" fill="none" stroke="${col}" stroke-width="1.2"/>
+      <rect x="1.5" y="1.5" width="23" height="23" rx="3.5" stroke="${col}" stroke-width="1"
+            stroke-dasharray="3 2.5" fill="none"/>
+    </svg>`;
+  }
+
   _svgParty() {
     return `<svg width="26" height="26" viewBox="0 0 26 26" fill="none">
       <rect x="3" y="9" width="20" height="11" rx="4" stroke="#FF9F0A" stroke-width="1.4"/>
@@ -8579,26 +8603,6 @@ class KosiarkaCard extends HTMLElement {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :host { display: block; font-family: -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 
-  .glow {
-    border-radius: 18px;
-    transition: box-shadow .5s ease;
-  }
-  .glow.mowing {
-    box-shadow: 0 0 0 1px rgba(151,196,89,.25),
-                0 0 20px 2px rgba(151,196,89,.14),
-                0 0 44px 8px rgba(151,196,89,.07);
-  }
-  .glow.returning, .glow.docking {
-    box-shadow: 0 0 0 1px rgba(133,183,235,.22),
-                0 0 18px 2px rgba(133,183,235,.12),
-                0 0 38px 6px rgba(133,183,235,.06);
-  }
-  .glow.party {
-    box-shadow: 0 0 0 1px rgba(255,159,10,.30),
-                0 0 22px 4px rgba(255,159,10,.16),
-                0 0 50px 10px rgba(255,159,10,.08);
-  }
-
   .card {
     background: #1c1c1e;
     border-radius: 18px;
@@ -8608,15 +8612,35 @@ class KosiarkaCard extends HTMLElement {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    transition: background .4s ease;
+    border: .5px solid rgba(255,255,255,.08);
+    transition: background .4s ease, border-color .4s ease;
   }
   .card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
     pointer-events: none;
   }
+  .card.mowing   { border-color: rgba(151,196,89,.35);  animation: kos-pulse-mow 2.4s ease-in-out infinite; }
+  .card.returning,
+  .card.docking  { border-color: rgba(133,183,235,.35); animation: kos-pulse-ret 2.4s ease-in-out infinite; }
+  .card.error,
+  .card.edge     { border-color: rgba(226,75,74,.35);   animation: kos-pulse-err 2.0s ease-in-out infinite; }
+  .card.party    { border-color: rgba(255,159,10,.30); }
   .card.party-bg { background: #1c1600; }
-  .card:active { transform: scale(0.97); transition: transform .12s ease; }
+  .card:active   { transform: scale(0.97); transition: transform .12s ease; }
+
+  @keyframes kos-pulse-mow {
+    0%,100% { box-shadow: 0 0 0 0   rgba(151,196,89,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(151,196,89,.18); }
+  }
+  @keyframes kos-pulse-ret {
+    0%,100% { box-shadow: 0 0 0 0   rgba(133,183,235,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(133,183,235,.18); }
+  }
+  @keyframes kos-pulse-err {
+    0%,100% { box-shadow: 0 0 0 0   rgba(226,75,74,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(226,75,74,.18); }
+  }
 
   /* ── main row ── */
   .main { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -8719,8 +8743,7 @@ class KosiarkaCard extends HTMLElement {
   }
 </style>
 
-<div class="glow" id="glow">
-  <div class="card" id="card">
+<div class="card" id="card">
 
     <div class="main">
       <div class="iconbox" id="iconbox"><div id="icon"></div></div>
@@ -8770,8 +8793,7 @@ class KosiarkaCard extends HTMLElement {
         Baza
       </button>
     </div>
-  </div>
-</div>`;
+  </div>`;
 
     this.shadowRoot.getElementById('card').addEventListener('click', e => {
       if (!e.target.closest('button')) this._moreInfo();
@@ -8825,21 +8847,24 @@ class KosiarkaCard extends HTMLElement {
                    : batPct > 20    ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
                    :                  'linear-gradient(90deg,#8F2320,#E24B4A)';
 
-    // glow class
-    const glowEl = r.getElementById('glow');
-    glowEl.className = 'glow' + (d.partyMode ? ' party' : isMowing ? ' mowing' : isReturning ? ' returning docking' : '');
-
-    // card bg
-    r.getElementById('card').className = 'card' + (d.partyMode ? ' party-bg' : '');
+    // card classes: state animation + party
+    const isEdge = d.isEdge;
+    let cardClass = 'card';
+    if      (isError)      cardClass += ' error';
+    else if (isEdge)       cardClass += ' edge';
+    else if (isMowing)     cardClass += ' mowing';
+    else if (isReturning)  cardClass += ' returning';
+    if (d.partyMode) cardClass += ' party party-bg';
+    r.getElementById('card').className = cardClass;
 
     // name + status
     r.getElementById('name').textContent   = cfg.name;
     const statusEl = r.getElementById('status');
-    let statusText = label;
+    let statusText = d.isEdge ? 'Kosi krawędź' : label;
     if (d.zone !== null && (isMowing || isReturning)) statusText += ` · strefa ${d.zone}`;
     if (d.partyMode) statusText += ' · party';
-    if (d.isRaining && !isMowing) statusText += ' · deszcz';
-    if (!isMowing && !isReturning && d.nextSchedule) statusText += ` · ${d.nextSchedule}`;
+    if (d.isRaining && !isMowing && !d.isEdge) statusText += ' · deszcz';
+    if (!isMowing && !isReturning && !d.isEdge && d.nextSchedule) statusText += ` · ${d.nextSchedule}`;
     statusEl.textContent = statusText;
     statusEl.style.color = (isMowing || isReturning || isCharging) ? color + 'cc' : '#636366';
 
@@ -8855,7 +8880,9 @@ class KosiarkaCard extends HTMLElement {
 
     // SVG icon
     const iconEl = r.getElementById('icon');
+    const edgeColor = '#E24B4A';
     iconEl.innerHTML = d.partyMode && isDocked ? this._svgParty()
+                     : d.isEdge               ? this._svgEdge(edgeColor)
                      : isMowing               ? this._svgMowing(color)
                      : isReturning            ? this._svgReturning(color)
                      : isCharging             ? this._svgCharging(color)
@@ -8931,6 +8958,7 @@ class KosiarkaCard extends HTMLElement {
       rain_entity:            'binary_sensor.s_rain_sensor',
       next_schedule_entity:   'sensor.s_next_schedule',
       lawn_size_entity:       'number.s_lawn_size',
+      edge_entity:            '',
     };
   }
 }
@@ -8977,6 +9005,7 @@ class KosiarkaSlimCard extends HTMLElement {
       daily_progress_entity:  config.daily_progress_entity  || null,
       rain_entity:            config.rain_entity            || null,
       next_schedule_entity:   config.next_schedule_entity   || null,
+      edge_entity:            config.edge_entity            || null,
     };
   }
 
@@ -9063,6 +9092,17 @@ class KosiarkaSlimCard extends HTMLElement {
       if (ps) partyMode = ps.state === 'on';
     }
 
+    // Edge cut
+    let isEdge = false;
+    if (cfg.edge_entity) {
+      const ee = hass.states[cfg.edge_entity];
+      if (ee) isEdge = ee.state === 'on';
+    }
+    if (!isEdge) {
+      const act = (attrs.activity ?? attrs.status_description ?? '').toLowerCase();
+      isEdge = act.includes('edge') || act.includes('border');
+    }
+
     // Daily progress
     let dailyProgress = null;
     if (cfg.daily_progress_entity) {
@@ -9122,7 +9162,7 @@ class KosiarkaSlimCard extends HTMLElement {
 
     // SVG ikona kosiarki — animowana gdy kosi, kierunkowa gdy wraca
     const svgMowing = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-        style="flex-shrink:0;animation:slim-mow 1.8s ease-in-out infinite;">
+        style="flex-shrink:0;animation:kos-mow 1.8s ease-in-out infinite;">
       <rect x="3" y="7" width="14" height="8" rx="3" stroke="#97C459" stroke-width="1.3"/>
       <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#97C459" stroke-width="1.2"/>
       <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#97C459" stroke-width="1.2"/>
@@ -9131,7 +9171,7 @@ class KosiarkaSlimCard extends HTMLElement {
     </svg>`;
 
     const svgReturning = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-        style="flex-shrink:0;animation:slim-return 1.3s ease-in-out infinite alternate;">
+        style="flex-shrink:0;animation:kos-ret 1.3s ease-in-out infinite alternate;">
       <rect x="3" y="7" width="14" height="8" rx="3" stroke="#85B7EB" stroke-width="1.3"/>
       <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#85B7EB" stroke-width="1.2"/>
       <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#85B7EB" stroke-width="1.2"/>
@@ -9146,7 +9186,7 @@ class KosiarkaSlimCard extends HTMLElement {
     </svg>`;
 
     const svgCharging = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-        style="flex-shrink:0;animation:slim-charge 1.6s ease-in-out infinite;">
+        style="flex-shrink:0;animation:kos-charge 1.6s ease-in-out infinite;">
       <rect x="3" y="7" width="14" height="8" rx="3" stroke="#EF9F27" stroke-width="1.3"/>
       <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
       <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
@@ -9167,7 +9207,17 @@ class KosiarkaSlimCard extends HTMLElement {
       <circle cx="10" cy="13.5" r="0.8" fill="#E24B4A"/>
     </svg>`;
 
-    const svgIcon = isMowing    ? svgMowing
+    const svgEdge = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+        style="flex-shrink:0;animation:kos-mow 1.8s ease-in-out infinite;">
+      <rect x="3" y="7" width="14" height="8" rx="3" stroke="#E24B4A" stroke-width="1.3"/>
+      <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#E24B4A" stroke-width="1.2"/>
+      <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#E24B4A" stroke-width="1.2"/>
+      <rect x="1" y="1" width="18" height="18" rx="2.5" stroke="#E24B4A" stroke-width="0.9"
+            stroke-dasharray="3 2" fill="none"/>
+    </svg>`;
+
+    const svgIcon = isEdge      ? svgEdge
+                  : isMowing    ? svgMowing
                   : isReturning ? svgReturning
                   : isCharging  ? svgCharging
                   : state === 'paused' ? svgPaused
@@ -9175,16 +9225,19 @@ class KosiarkaSlimCard extends HTMLElement {
                   :               svgDocked;
 
     // Badge — dot animowany gdy aktywny
-    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${color};`;
-    const dotAnim = isActive ? `animation:slim-dot 1.8s ease-in-out infinite;` : '';
-    const badgeBg = isActive    ? `rgba(${pulseColor},0.14)`
+    const badgeLabel = isEdge ? 'krawędź' : label;
+    const badgeColor = isEdge ? '#E24B4A' : color;
+    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${badgeColor};`;
+    const dotAnim = (isActive || isEdge || isError) ? `animation:kos-dot 1.8s ease-in-out infinite;` : '';
+    const badgeBg = isEdge      ? 'rgba(226,75,74,0.14)'
+                  : isActive    ? `rgba(${pulseColor},0.14)`
                   : isError     ? 'rgba(226,75,74,0.14)'
                   : isCharging  ? 'rgba(239,159,39,0.14)'
                   :               'rgba(95,94,90,0.12)';
     const badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
                                 border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap;
-                                background:${badgeBg};color:${color};">
-      <span style="${dotBase}${dotAnim}"></span>${label}</span>`;
+                                background:${badgeBg};color:${badgeColor};">
+      <span style="${dotBase}${dotAnim}"></span>${badgeLabel}</span>`;
 
     // Chipsy — strefa, party mode, deszcz i błąd
     const chips = [];
@@ -9217,33 +9270,39 @@ class KosiarkaSlimCard extends HTMLElement {
     user-select: none;
     transition: border-color 0.4s ease;
   }
-  .card.mowing   { border-color: rgba(151,196,89,0.35); animation: slim-pulse-mow 2.4s ease-in-out infinite; }
+  .card.mowing   { border-color: rgba(151,196,89,0.35);  animation: kos-pulse-mow 2.4s ease-in-out infinite; }
   .card.returning,
-  .card.docking  { border-color: rgba(133,183,235,0.35); animation: slim-pulse-ret 2.4s ease-in-out infinite; }
+  .card.docking  { border-color: rgba(133,183,235,0.35); animation: kos-pulse-ret 2.4s ease-in-out infinite; }
+  .card.error,
+  .card.edge     { border-color: rgba(226,75,74,0.35);   animation: kos-pulse-err 2.0s ease-in-out infinite; }
   .card.charging { border-color: rgba(239,159,39,0.25); }
-  .card.error    { border-color: rgba(226,75,74,0.35); }
+  .card.party    { border-color: rgba(255,159,10,0.30); }
 
-  @keyframes slim-pulse-mow {
-    0%,100% { box-shadow: 0 0 0 0 rgba(151,196,89,0); }
+  @keyframes kos-pulse-mow {
+    0%,100% { box-shadow: 0 0 0 0   rgba(151,196,89,0); }
     50%     { box-shadow: 0 0 0 5px rgba(151,196,89,0.18); }
   }
-  @keyframes slim-pulse-ret {
-    0%,100% { box-shadow: 0 0 0 0 rgba(133,183,235,0); }
+  @keyframes kos-pulse-ret {
+    0%,100% { box-shadow: 0 0 0 0   rgba(133,183,235,0); }
     50%     { box-shadow: 0 0 0 5px rgba(133,183,235,0.18); }
   }
-  @keyframes slim-mow {
+  @keyframes kos-pulse-err {
+    0%,100% { box-shadow: 0 0 0 0   rgba(226,75,74,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(226,75,74,0.18); }
+  }
+  @keyframes kos-mow {
     0%,100% { transform: translateX(0) rotate(-1deg); }
     50%     { transform: translateX(2px) rotate(1deg); }
   }
-  @keyframes slim-return {
+  @keyframes kos-ret {
     0%   { transform: translateX(0); }
     100% { transform: translateX(-3px); }
   }
-  @keyframes slim-charge {
+  @keyframes kos-charge {
     0%,100% { opacity: 1; }
     50%     { opacity: 0.6; }
   }
-  @keyframes slim-dot {
+  @keyframes kos-dot {
     0%,100% { opacity: 1; }
     50%     { opacity: 0.2; }
   }
@@ -9295,7 +9354,7 @@ class KosiarkaSlimCard extends HTMLElement {
   .bat-meta span { font-size: 10px; color: rgba(255,255,255,0.28); }
 </style>
 
-<div class="card ${state}" id="card">
+<div class="card ${isEdge ? 'edge' : state}${partyMode ? ' party' : ''}" id="card">
   <div class="inner">
     <div class="bar" style="background:${color};"></div>
 

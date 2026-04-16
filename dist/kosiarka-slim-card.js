@@ -29,6 +29,7 @@ class KosiarkaSlimCard extends HTMLElement {
       daily_progress_entity:  config.daily_progress_entity  || null,
       rain_entity:            config.rain_entity            || null,
       next_schedule_entity:   config.next_schedule_entity   || null,
+      edge_entity:            config.edge_entity            || null,
     };
   }
 
@@ -115,6 +116,17 @@ class KosiarkaSlimCard extends HTMLElement {
       if (ps) partyMode = ps.state === 'on';
     }
 
+    // Edge cut
+    let isEdge = false;
+    if (cfg.edge_entity) {
+      const ee = hass.states[cfg.edge_entity];
+      if (ee) isEdge = ee.state === 'on';
+    }
+    if (!isEdge) {
+      const act = (attrs.activity ?? attrs.status_description ?? '').toLowerCase();
+      isEdge = act.includes('edge') || act.includes('border');
+    }
+
     // Daily progress
     let dailyProgress = null;
     if (cfg.daily_progress_entity) {
@@ -174,7 +186,7 @@ class KosiarkaSlimCard extends HTMLElement {
 
     // SVG ikona kosiarki — animowana gdy kosi, kierunkowa gdy wraca
     const svgMowing = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-        style="flex-shrink:0;animation:slim-mow 1.8s ease-in-out infinite;">
+        style="flex-shrink:0;animation:kos-mow 1.8s ease-in-out infinite;">
       <rect x="3" y="7" width="14" height="8" rx="3" stroke="#97C459" stroke-width="1.3"/>
       <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#97C459" stroke-width="1.2"/>
       <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#97C459" stroke-width="1.2"/>
@@ -183,7 +195,7 @@ class KosiarkaSlimCard extends HTMLElement {
     </svg>`;
 
     const svgReturning = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-        style="flex-shrink:0;animation:slim-return 1.3s ease-in-out infinite alternate;">
+        style="flex-shrink:0;animation:kos-ret 1.3s ease-in-out infinite alternate;">
       <rect x="3" y="7" width="14" height="8" rx="3" stroke="#85B7EB" stroke-width="1.3"/>
       <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#85B7EB" stroke-width="1.2"/>
       <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#85B7EB" stroke-width="1.2"/>
@@ -198,7 +210,7 @@ class KosiarkaSlimCard extends HTMLElement {
     </svg>`;
 
     const svgCharging = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-        style="flex-shrink:0;animation:slim-charge 1.6s ease-in-out infinite;">
+        style="flex-shrink:0;animation:kos-charge 1.6s ease-in-out infinite;">
       <rect x="3" y="7" width="14" height="8" rx="3" stroke="#EF9F27" stroke-width="1.3"/>
       <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
       <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#EF9F27" stroke-width="1.2"/>
@@ -219,7 +231,17 @@ class KosiarkaSlimCard extends HTMLElement {
       <circle cx="10" cy="13.5" r="0.8" fill="#E24B4A"/>
     </svg>`;
 
-    const svgIcon = isMowing    ? svgMowing
+    const svgEdge = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+        style="flex-shrink:0;animation:kos-mow 1.8s ease-in-out infinite;">
+      <rect x="3" y="7" width="14" height="8" rx="3" stroke="#E24B4A" stroke-width="1.3"/>
+      <circle cx="6.5" cy="15.5" r="1.8" fill="none" stroke="#E24B4A" stroke-width="1.2"/>
+      <circle cx="13.5" cy="15.5" r="1.8" fill="none" stroke="#E24B4A" stroke-width="1.2"/>
+      <rect x="1" y="1" width="18" height="18" rx="2.5" stroke="#E24B4A" stroke-width="0.9"
+            stroke-dasharray="3 2" fill="none"/>
+    </svg>`;
+
+    const svgIcon = isEdge      ? svgEdge
+                  : isMowing    ? svgMowing
                   : isReturning ? svgReturning
                   : isCharging  ? svgCharging
                   : state === 'paused' ? svgPaused
@@ -227,16 +249,19 @@ class KosiarkaSlimCard extends HTMLElement {
                   :               svgDocked;
 
     // Badge — dot animowany gdy aktywny
-    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${color};`;
-    const dotAnim = isActive ? `animation:slim-dot 1.8s ease-in-out infinite;` : '';
-    const badgeBg = isActive    ? `rgba(${pulseColor},0.14)`
+    const badgeLabel = isEdge ? 'krawędź' : label;
+    const badgeColor = isEdge ? '#E24B4A' : color;
+    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${badgeColor};`;
+    const dotAnim = (isActive || isEdge || isError) ? `animation:kos-dot 1.8s ease-in-out infinite;` : '';
+    const badgeBg = isEdge      ? 'rgba(226,75,74,0.14)'
+                  : isActive    ? `rgba(${pulseColor},0.14)`
                   : isError     ? 'rgba(226,75,74,0.14)'
                   : isCharging  ? 'rgba(239,159,39,0.14)'
                   :               'rgba(95,94,90,0.12)';
     const badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
                                 border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap;
-                                background:${badgeBg};color:${color};">
-      <span style="${dotBase}${dotAnim}"></span>${label}</span>`;
+                                background:${badgeBg};color:${badgeColor};">
+      <span style="${dotBase}${dotAnim}"></span>${badgeLabel}</span>`;
 
     // Chipsy — strefa, party mode, deszcz i błąd
     const chips = [];
@@ -269,33 +294,39 @@ class KosiarkaSlimCard extends HTMLElement {
     user-select: none;
     transition: border-color 0.4s ease;
   }
-  .card.mowing   { border-color: rgba(151,196,89,0.35); animation: slim-pulse-mow 2.4s ease-in-out infinite; }
+  .card.mowing   { border-color: rgba(151,196,89,0.35);  animation: kos-pulse-mow 2.4s ease-in-out infinite; }
   .card.returning,
-  .card.docking  { border-color: rgba(133,183,235,0.35); animation: slim-pulse-ret 2.4s ease-in-out infinite; }
+  .card.docking  { border-color: rgba(133,183,235,0.35); animation: kos-pulse-ret 2.4s ease-in-out infinite; }
+  .card.error,
+  .card.edge     { border-color: rgba(226,75,74,0.35);   animation: kos-pulse-err 2.0s ease-in-out infinite; }
   .card.charging { border-color: rgba(239,159,39,0.25); }
-  .card.error    { border-color: rgba(226,75,74,0.35); }
+  .card.party    { border-color: rgba(255,159,10,0.30); }
 
-  @keyframes slim-pulse-mow {
-    0%,100% { box-shadow: 0 0 0 0 rgba(151,196,89,0); }
+  @keyframes kos-pulse-mow {
+    0%,100% { box-shadow: 0 0 0 0   rgba(151,196,89,0); }
     50%     { box-shadow: 0 0 0 5px rgba(151,196,89,0.18); }
   }
-  @keyframes slim-pulse-ret {
-    0%,100% { box-shadow: 0 0 0 0 rgba(133,183,235,0); }
+  @keyframes kos-pulse-ret {
+    0%,100% { box-shadow: 0 0 0 0   rgba(133,183,235,0); }
     50%     { box-shadow: 0 0 0 5px rgba(133,183,235,0.18); }
   }
-  @keyframes slim-mow {
+  @keyframes kos-pulse-err {
+    0%,100% { box-shadow: 0 0 0 0   rgba(226,75,74,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(226,75,74,0.18); }
+  }
+  @keyframes kos-mow {
     0%,100% { transform: translateX(0) rotate(-1deg); }
     50%     { transform: translateX(2px) rotate(1deg); }
   }
-  @keyframes slim-return {
+  @keyframes kos-ret {
     0%   { transform: translateX(0); }
     100% { transform: translateX(-3px); }
   }
-  @keyframes slim-charge {
+  @keyframes kos-charge {
     0%,100% { opacity: 1; }
     50%     { opacity: 0.6; }
   }
-  @keyframes slim-dot {
+  @keyframes kos-dot {
     0%,100% { opacity: 1; }
     50%     { opacity: 0.2; }
   }
@@ -347,7 +378,7 @@ class KosiarkaSlimCard extends HTMLElement {
   .bat-meta span { font-size: 10px; color: rgba(255,255,255,0.28); }
 </style>
 
-<div class="card ${state}" id="card">
+<div class="card ${isEdge ? 'edge' : state}${partyMode ? ' party' : ''}" id="card">
   <div class="inner">
     <div class="bar" style="background:${color};"></div>
 
