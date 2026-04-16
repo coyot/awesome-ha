@@ -33,6 +33,8 @@ class KosiarkaCard extends HTMLElement {
       next_schedule_entity:   config.next_schedule_entity   || null,
       lawn_size_entity:       config.lawn_size_entity       || null,
       edge_entity:            config.edge_entity            || null,
+      blade_runtime_entity:   config.blade_runtime_entity   || null,
+      blade_warn_days:        config.blade_warn_days        || 90,
     };
   }
 
@@ -152,6 +154,23 @@ class KosiarkaCard extends HTMLElement {
       isEdge = act.includes('edge') || act.includes('border');
     }
 
+    // Blade runtime
+    const _fmtBlade = d => d < 14 ? `${d}d` : d < 60 ? `${Math.round(d/7)}tyg.` : `${Math.round(d/30)}mies.`;
+    let bladeDays = null;
+    if (cfg.blade_runtime_entity) {
+      const br = hass.states[cfg.blade_runtime_entity];
+      if (br && br.state !== 'unavailable' && br.state !== 'unknown') {
+        try {
+          const d = Math.floor((Date.now() - new Date(br.state).getTime()) / 86400000);
+          if (!isNaN(d) && d >= 0) bladeDays = d;
+        } catch(e) {}
+      }
+    }
+    const bladeWarnDays = cfg.blade_warn_days || 90;
+    const bladeLabel  = bladeDays !== null ? _fmtBlade(bladeDays) : null;
+    const bladeWarn   = bladeDays !== null && bladeDays >= bladeWarnDays;
+    const bladePre    = bladeDays !== null && bladeDays >= bladeWarnDays * 0.75 && !bladeWarn;
+
     return {
       state:    e.state || 'unknown',
       battery,
@@ -164,6 +183,10 @@ class KosiarkaCard extends HTMLElement {
       nextSchedule,
       lawnSize,
       isEdge,
+      bladeDays,
+      bladeLabel,
+      bladeWarn,
+      bladePre,
     };
   }
 
@@ -384,6 +407,10 @@ class KosiarkaCard extends HTMLElement {
   .btn.btn-home  { background: rgba(255,255,255,.05); color: rgba(255,255,255,.40); }
   .btn.btn-disabled { opacity: .30; pointer-events: none; }
 
+  @keyframes kos-dot {
+    0%,100% { opacity: 1; }
+    50%     { opacity: 0.2; }
+  }
   @keyframes kos-mow {
     0%,100% { transform: translateX(0) rotate(-1deg); }
     50%     { transform: translateX(2px) rotate(1deg); }
@@ -493,11 +520,14 @@ class KosiarkaCard extends HTMLElement {
     const isError     = state === 'error';
 
     const batPct   = battery !== null ? Math.round(battery) : null;
+    // Muted colors when docked (like vacuum.yaml)
     const batColor = batPct === null ? '#636366'
+                   : isDocked ? (batPct > 90 ? '#7A8A75' : batPct > 60 ? '#6B7A68' : batPct > 30 ? '#8A7A60' : '#8A6A60')
                    : batPct > 50    ? '#97C459'
                    : batPct > 20    ? '#FF9F0A'
                    :                  '#FF453A';
     const barGrad  = batPct === null ? 'rgba(255,255,255,0.08)'
+                   : isDocked ? (batPct > 60 ? 'linear-gradient(90deg,#5A6356,#7A8A75)' : batPct > 30 ? 'linear-gradient(90deg,#6A5A40,#8A7A60)' : 'linear-gradient(90deg,#6A4A40,#8A6A60)')
                    : batPct > 50    ? 'linear-gradient(90deg,#5F8932,#97C459)'
                    : batPct > 20    ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
                    :                  'linear-gradient(90deg,#8F2320,#E24B4A)';
@@ -567,13 +597,17 @@ class KosiarkaCard extends HTMLElement {
       errBar.className  = 'error-bar';
     }
 
-    // chips row: zone + rain
+    // chips row: zone + rain + blade warning
     const zoneRow = r.getElementById('zone-row');
     const zoneChips = [];
     if (d.zone !== null && (isMowing || isReturning))
       zoneChips.push(`<span class="zone-chip" style="background:${color}1a;color:${color};">strefa ${d.zone}</span>`);
     if (d.isRaining)
       zoneChips.push(`<span class="zone-chip" style="background:rgba(133,183,235,0.12);color:#85B7EB;">deszcz</span>`);
+    if (d.bladeWarn)
+      zoneChips.push(`<span class="zone-chip" style="background:rgba(226,75,74,0.12);color:#E24B4A;display:inline-flex;align-items:center;gap:4px;"><span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;animation:kos-dot 1.8s ease-in-out infinite;"></span>noże: ${d.bladeLabel}</span>`);
+    else if (d.bladePre)
+      zoneChips.push(`<span class="zone-chip" style="background:rgba(255,159,10,0.12);color:#FF9F0A;">noże: ${d.bladeLabel}</span>`);
     if (zoneChips.length) {
       zoneRow.style.display = 'flex';
       zoneRow.innerHTML = zoneChips.join('');
@@ -614,6 +648,8 @@ class KosiarkaCard extends HTMLElement {
       next_schedule_entity:   'sensor.s_next_schedule',
       lawn_size_entity:       'number.s_lawn_size',
       edge_entity:            '',
+      blade_runtime_entity:   'sensor.s_blade_runtime_reset_time',
+      blade_warn_days:        90,
     };
   }
 }
