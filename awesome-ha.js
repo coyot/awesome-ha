@@ -7825,11 +7825,11 @@ class AhaTempGaugeCard extends HTMLElement {
 
       <!-- icon inside gauge — centered in the arc gap at the bottom -->
       ${svgIcon
-        ? `<g transform="translate(${CX},148) scale(1.5)" pointer-events="none">
+        ? `<g transform="translate(${CX},138) scale(1.5)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
-             x="${CX}" y="148"
+             x="${CX}" y="138"
              text-anchor="middle" dominant-baseline="central"
              font-size="26">${emojiIcon}</text>`
       }
@@ -9322,24 +9322,22 @@ class KosiarkaSlimCard extends HTMLElement {
     // Badge — dot animowany gdy aktywny
     const badgeLabel = isEdge ? 'krawędź' : label;
     const badgeColor = isEdge ? '#E24B4A' : color;
-    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${badgeColor};`;
+    const dotBase = `width:5px;height:5px;border-radius:50%;flex-shrink:0;`;
     const dotAnim = (isActive || isEdge || isError) ? `animation:kos-dot 1.8s ease-in-out infinite;` : '';
     const badgeBg = isEdge      ? 'rgba(226,75,74,0.14)'
                   : isActive    ? `rgba(${pulseColor},0.14)`
                   : isError     ? 'rgba(226,75,74,0.14)'
                   : isCharging  ? 'rgba(239,159,39,0.14)'
                   :               'rgba(95,94,90,0.12)';
-    const badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
-                                border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap;
-                                background:${badgeBg};color:${badgeColor};">
-      <span style="${dotBase}${dotAnim}"></span>${badgeLabel}</span>`;
+    const badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap;background:${badgeBg};color:${badgeColor};">
+      <span style="${dotBase}background:${badgeColor};${dotAnim}"></span>${badgeLabel}</span>`;
 
-    // Chipsy — strefa, party mode, deszcz, noże i błąd
+    // Chipsy — strefa, party mode, deszcz, noże (przy ostrzeżeniu) i błąd
     const chips = [];
     if (zone !== null && (isMowing || isReturning))
       chips.push({ label: `strefa ${zone}`, col: color, bg: `rgba(${pulseColor ?? '95,94,90'},0.10)` });
     if (partyMode)
-      chips.push({ label: 'party', col: '#FF9F0A', bg: 'rgba(255,159,10,0.12)' });
+      chips.push({ label: 'party 🎉', col: '#FF9F0A', bg: 'rgba(255,159,10,0.12)' });
     if (isRaining)
       chips.push({ label: 'deszcz', col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' });
     if (bladeDays !== null && bladeDays >= bladeWarnDays * 0.75) {
@@ -9360,6 +9358,30 @@ class KosiarkaSlimCard extends HTMLElement {
         : '';
       return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;background:${c.bg};color:${c.col};white-space:nowrap;">${dot}${c.label}</span>`;
     }).join('');
+
+    // Stats row — drobne statystyki zawsze widoczne
+    const stats = [];
+    if (bladeDays !== null && bladeDays < bladeWarnDays * 0.75) {
+      // nie pokazuje się jako chip-ostrzeżenie → pokaż jako zwykły stat
+      stats.push({ label: 'noże', val: _fmtBlade(bladeDays), col: 'rgba(255,255,255,0.38)' });
+    }
+    if (nextSchedule) {
+      stats.push({ label: 'plan', val: nextSchedule, col: '#85B7EB' });
+    }
+    // gdy bar pokazuje daily progress — dorzuć baterię w stats
+    const barShowsDaily = dailyProgress !== null && (isMowing || isReturning || (isDocked && dailyProgress < 100));
+    if (barShowsDaily && batPct !== null) {
+      stats.push({ label: 'bat', val: `${batPct}%`, col: batColor });
+    }
+    // gdy zacumowana — pokaż dzienny postęp jako stat (jeśli coś zrobiła)
+    if (isDocked && dailyProgress !== null && dailyProgress > 0 && !barShowsDaily) {
+      stats.push({ label: 'dziś', val: `${dailyProgress}%`, col: '#97C459' });
+    }
+    const statsHTML = stats.length > 0
+      ? `<div style="display:flex;gap:10px;flex-wrap:wrap;">
+           ${stats.map(s => `<span style="font-size:10px;color:rgba(255,255,255,0.28);">${s.label}:&nbsp;<span style="color:${s.col};font-weight:500;">${s.val}</span></span>`).join('')}
+         </div>`
+      : '';
 
     this.shadowRoot.innerHTML = `
 <style>
@@ -9382,7 +9404,6 @@ class KosiarkaSlimCard extends HTMLElement {
   .card.error,
   .card.edge     { border-color: rgba(226,75,74,0.35);   animation: kos-pulse-err 2.0s ease-in-out infinite; }
   .card.charging { border-color: rgba(239,159,39,0.25); }
-  .card.party    { border-color: rgba(255,159,10,0.30); }
 
   @keyframes kos-pulse-mow {
     0%,100% { box-shadow: 0 0 0 0   rgba(151,196,89,0); }
@@ -9474,13 +9495,11 @@ class KosiarkaSlimCard extends HTMLElement {
       ${chips.length > 0 ? `<div class="chips">${chipsHTML}</div>` : ''}
 
       ${(() => {
-        // Pasek: daily progress gdy kosi/dostępny, bateria jako fallback
-        const showDaily = dailyProgress !== null && (isMowing || isReturning || (state === 'docked' && dailyProgress < 100));
-        const barPct   = showDaily ? dailyProgress : batPct;
-        const barLabel = showDaily ? (isMowing ? 'postęp dzienny' : isReturning ? 'wraca · ' + dailyProgress + '%' : 'plan dnia')
-                                   : (isCharging ? 'ładuje się' : isMowing ? 'kosi' : isReturning ? 'wraca do bazy' : 'bateria');
-        const barRight = showDaily ? `${dailyProgress}%` : (batPct !== null ? `${batPct}%` : '');
-        const grad     = showDaily ? `linear-gradient(90deg,${color}88,${color})` : barGrad;
+        const barPct   = barShowsDaily ? dailyProgress : batPct;
+        const barLabel = barShowsDaily ? (isMowing ? 'postęp dzienny' : isReturning ? 'wraca · ' + dailyProgress + '%' : 'plan dnia')
+                                       : (isCharging ? 'ładuje się' : isMowing ? 'kosi' : isReturning ? 'wraca do bazy' : 'bateria');
+        const barRight = barShowsDaily ? `${dailyProgress}%` : (batPct !== null ? `${batPct}%` : '');
+        const grad     = barShowsDaily ? `linear-gradient(90deg,${color}88,${color})` : barGrad;
         if (barPct === null) return '';
         return `
         <div class="bat-bar-wrap">
@@ -9491,11 +9510,10 @@ class KosiarkaSlimCard extends HTMLElement {
             <span>${barLabel}</span>
             <span>${barRight}</span>
           </div>
-        </div>
-        ${nextSchedule && !isMowing && !isReturning ? `<div class="bat-meta" style="margin-top:-4px;">
-          <span>następny plan</span><span>${nextSchedule}</span>
-        </div>` : ''}`;
+        </div>`;
       })()}
+
+      ${statsHTML}
     </div>
 
     <div class="bat-wrap">
