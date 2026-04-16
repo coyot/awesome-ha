@@ -8723,6 +8723,14 @@ class KosiarkaCard extends HTMLElement {
   }
   .error-bar.visible { display: flex; }
 
+  /* ── warning icons row ── */
+  .warn-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .warn-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 600; padding: 4px 9px;
+    border-radius: 8px; white-space: nowrap;
+  }
+
   /* ── zone chip ── */
   .zone-row { display: flex; gap: 6px; margin-bottom: 10px; }
   .zone-chip {
@@ -8801,6 +8809,8 @@ class KosiarkaCard extends HTMLElement {
       </svg>
       <span id="error-text"></span>
     </div>
+
+    <div class="warn-row" id="warn-row" style="display:none;"></div>
 
     <div class="zone-row" id="zone-row" style="display:none;"></div>
 
@@ -8942,17 +8952,44 @@ class KosiarkaCard extends HTMLElement {
       errBar.className  = 'error-bar';
     }
 
-    // chips row: zone + rain + blade warning
+    // warning icons row: blade + rain
+    const svgBlade = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M7 1 L7 4.5 M7 9.5 L7 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M1 7 L4.5 7 M9.5 7 L13 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M3 3 L5.2 5.2 M8.8 8.8 L11 11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+      <path d="M11 3 L8.8 5.2 M5.2 8.8 L3 11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+    </svg>`;
+    const svgRain = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+      <path d="M2.5 9 Q2.5 5 7 5 Q11.5 5 11.5 9" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <path d="M5 11 L4 13 M7 11 L7 13 M9 11 L10 13" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+    </svg>`;
+
+    const warnRow = r.getElementById('warn-row');
+    const warnBadges = [];
+    if (d.bladeWarn) {
+      warnBadges.push(`<span class="warn-badge" style="background:rgba(226,75,74,0.12);color:#E24B4A;border:.5px solid rgba(226,75,74,0.25);">
+        <span style="display:inline-flex;align-items:center;gap:5px;">${svgBlade}
+        <span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;animation:kos-dot 1.8s ease-in-out infinite;flex-shrink:0;"></span>
+        noże: ${d.bladeLabel}</span></span>`);
+    } else if (d.bladePre) {
+      warnBadges.push(`<span class="warn-badge" style="background:rgba(255,159,10,0.12);color:#FF9F0A;border:.5px solid rgba(255,159,10,0.22);">${svgBlade} noże: ${d.bladeLabel}</span>`);
+    }
+    if (d.isRaining) {
+      warnBadges.push(`<span class="warn-badge" style="background:rgba(133,183,235,0.12);color:#85B7EB;border:.5px solid rgba(133,183,235,0.22);">${svgRain} deszcz</span>`);
+    }
+    if (warnBadges.length) {
+      warnRow.style.display = 'flex';
+      warnRow.innerHTML = warnBadges.join('');
+    } else {
+      warnRow.style.display = 'none';
+    }
+
+    // chips row: zone only
     const zoneRow = r.getElementById('zone-row');
     const zoneChips = [];
     if (d.zone !== null && (isMowing || isReturning))
       zoneChips.push(`<span class="zone-chip" style="background:${color}1a;color:${color};">strefa ${d.zone}</span>`);
-    if (d.isRaining)
-      zoneChips.push(`<span class="zone-chip" style="background:rgba(133,183,235,0.12);color:#85B7EB;">deszcz</span>`);
-    if (d.bladeWarn)
-      zoneChips.push(`<span class="zone-chip" style="background:rgba(226,75,74,0.12);color:#E24B4A;display:inline-flex;align-items:center;gap:4px;"><span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;animation:kos-dot 1.8s ease-in-out infinite;"></span>noże: ${d.bladeLabel}</span>`);
-    else if (d.bladePre)
-      zoneChips.push(`<span class="zone-chip" style="background:rgba(255,159,10,0.12);color:#FF9F0A;">noże: ${d.bladeLabel}</span>`);
     if (zoneChips.length) {
       zoneRow.style.display = 'flex';
       zoneRow.innerHTML = zoneChips.join('');
