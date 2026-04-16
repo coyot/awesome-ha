@@ -21,7 +21,12 @@ class KosiarkaSlimCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) throw new Error('kosiarka-slim-card: brak pola "entity"');
-    this._config = config;
+    this._config = {
+      ...config,
+      battery_entity:    config.battery_entity    || null,
+      party_mode_entity: config.party_mode_entity || null,
+      error_entity:      config.error_entity      || null,
+    };
   }
 
   set hass(hass) {
@@ -80,9 +85,33 @@ class KosiarkaSlimCard extends HTMLElement {
 
     const state   = stateObj.state || 'unknown';
     const attrs   = stateObj.attributes || {};
-    const battery = attrs.battery_level ?? attrs.battery ?? null;
     const zone    = attrs.zone ?? attrs.current_zone ?? null;
-    const error   = attrs.error ?? attrs.error_description ?? null;
+
+    // Battery: dedicated sensor → attribute fallback
+    let battery = attrs.battery_level ?? attrs.battery ?? null;
+    if (cfg.battery_entity) {
+      const bs = hass.states[cfg.battery_entity];
+      if (bs && bs.state !== 'unavailable' && bs.state !== 'unknown') {
+        const v = parseFloat(bs.state);
+        if (!isNaN(v)) battery = v;
+      }
+    }
+
+    // Error: dedicated sensor → attribute fallback
+    let error = attrs.error ?? attrs.error_description ?? null;
+    if (cfg.error_entity) {
+      const es = hass.states[cfg.error_entity];
+      if (es && es.state !== 'unavailable' && es.state !== 'unknown' && es.state !== '0' && es.state !== 'none') {
+        error = es.state;
+      }
+    }
+
+    // Party mode
+    let partyMode = false;
+    if (cfg.party_mode_entity) {
+      const ps = hass.states[cfg.party_mode_entity];
+      if (ps) partyMode = ps.state === 'on';
+    }
 
     const color   = this._stateColor(state);
     const label   = this._stateLabel(state);
@@ -172,10 +201,12 @@ class KosiarkaSlimCard extends HTMLElement {
                                 background:${badgeBg};color:${color};">
       <span style="${dotBase}${dotAnim}"></span>${label}</span>`;
 
-    // Chipsy — strefa i błąd
+    // Chipsy — strefa, party mode i błąd
     const chips = [];
     if (zone !== null && (isMowing || isReturning))
       chips.push({ label: `strefa ${zone}`, col: color, bg: `rgba(${pulseColor ?? '95,94,90'},0.10)` });
+    if (partyMode)
+      chips.push({ label: 'party', col: '#FF9F0A', bg: 'rgba(255,159,10,0.12)' });
     if (isError && error)
       chips.push({ label: error, col: '#E24B4A', bg: 'rgba(226,75,74,0.10)' });
 
@@ -321,7 +352,13 @@ class KosiarkaSlimCard extends HTMLElement {
   static getConfigElement() { return document.createElement('div'); }
 
   static getStubConfig() {
-    return { entity: 'lawn_mower.kosiarka', name: 'Kosiarka' };
+    return {
+      entity:            'lawn_mower.kosiarka',
+      name:              'Kosiarka',
+      battery_entity:    'sensor.kosiarka_battery',
+      party_mode_entity: 'switch.s_party_mode',
+      error_entity:      'sensor.kosiarka_errory',
+    };
   }
 }
 

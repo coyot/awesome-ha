@@ -13,6 +13,9 @@ class KosiarkaCard extends HTMLElement {
       entity: config.entity,
       name: config.name || 'Kosiarka',
       capacity_m2: config.capacity_m2 || 400,
+      battery_entity:    config.battery_entity    || null,
+      party_mode_entity: config.party_mode_entity || null,
+      error_entity:      config.error_entity      || null,
     };
     this._render();
   }
@@ -27,14 +30,45 @@ class KosiarkaCard extends HTMLElement {
     const e = this._hass.states[this._config.entity];
     if (!e) return null;
     const a = e.attributes || {};
+    const cfg = this._config;
+
+    // Battery: dedicated sensor → attribute fallback
+    let battery = a.battery_level ?? a.battery ?? null;
+    if (cfg.battery_entity) {
+      const bs = this._hass.states[cfg.battery_entity];
+      if (bs && bs.state !== 'unavailable' && bs.state !== 'unknown') {
+        const v = parseFloat(bs.state);
+        if (!isNaN(v)) battery = v;
+      }
+    }
+
+    // Error: dedicated sensor → attribute fallback
+    let error = a.error ?? a.error_description ?? null;
+    if (cfg.error_entity) {
+      const es = this._hass.states[cfg.error_entity];
+      if (es && es.state !== 'unavailable' && es.state !== 'unknown' && es.state !== '0' && es.state !== 'none') {
+        error = es.attributes?.friendly_name
+              ? `${es.attributes.friendly_name}: ${es.state}`
+              : es.state;
+      }
+    }
+
+    // Party mode: dedicated switch entity
+    let partyMode = false;
+    if (cfg.party_mode_entity) {
+      const ps = this._hass.states[cfg.party_mode_entity];
+      if (ps) partyMode = ps.state === 'on';
+    }
+
     return {
       state: e.state,
-      battery: a.battery_level ?? a.battery ?? null,
+      battery,
       activity: a.activity ?? a.status_description ?? null,
       zone: a.zone ?? a.current_zone ?? null,
       area_today: a.work_time_today ?? null,
       distance_today: a.distance ?? null,
-      error: a.error ?? a.error_description ?? null,
+      error,
+      partyMode,
       next_schedule: a.next_schedule ?? null,
       pitch: a.pitch ?? null,
       rssi: a.rssi ?? null,
@@ -428,7 +462,7 @@ class KosiarkaCard extends HTMLElement {
           </div>
           <div>
             <div class="name">${cfg.name}</div>
-            <div class="status-pill" style="background:${color}1a; color:${color};">${label}${s.zone !== null ? ` · strefa ${s.zone}` : ''}</div>
+            <div class="status-pill" style="background:${color}1a; color:${color};">${label}${s.zone !== null ? ` · strefa ${s.zone}` : ''}${s.partyMode ? ' · party' : ''}</div>
           </div>
         </div>
         <div class="battery">
@@ -536,7 +570,14 @@ class KosiarkaCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { entity: 'lawn_mower.kosiarka', name: 'Kosiarka', capacity_m2: 400 };
+    return {
+      entity:            'lawn_mower.kosiarka',
+      name:              'Kosiarka',
+      capacity_m2:       400,
+      battery_entity:    'sensor.kosiarka_battery',
+      party_mode_entity: 'switch.s_party_mode',
+      error_entity:      'sensor.kosiarka_errory',
+    };
   }
 
   getCardSize() { return 5; }
