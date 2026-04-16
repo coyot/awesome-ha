@@ -351,7 +351,7 @@ class AhaTempGaugeCard extends HTMLElement {
   /* ── room name (bottom label — iOS icon pattern) ── */
   .room-name {
     flex-shrink: 0; position: relative; z-index: 5;
-    font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.62);
+    font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.72);
     text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     margin-top: 2px; padding: 0 4px;
     letter-spacing: .01em;
