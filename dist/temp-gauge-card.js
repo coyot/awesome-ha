@@ -286,11 +286,38 @@ class AhaTempGaugeCard extends HTMLElement {
   .card.frost .arc-temp-fill { animation: frost-arc 3.5s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.2s ease-in-out infinite; }
 
-  /* icon animations */
-  .card.frost .icon-wrap { animation: icon-frost 2.8s ease-in-out infinite; transform-origin: center; }
-  .card.fire  .icon-wrap { animation: icon-fire  1.6s ease-in-out infinite; transform-origin: center bottom; }
-  .card.warm  .icon-wrap { animation: icon-warm  2.4s ease-in-out infinite; }
-  .card.cold  .icon-wrap { animation: icon-cold  3.5s ease-in-out infinite; }
+  /* icon animations — SVG text element, use drop-shadow + transform */
+  .icon-svg { transform-box: fill-box; transform-origin: center; transition: opacity .2s ease; }
+  .card.frost .icon-svg { animation: icon-frost-svg 2.8s ease-in-out infinite; }
+  .card.fire  .icon-svg { animation: icon-fire-svg  1.6s ease-in-out infinite; }
+  .card.warm  .icon-svg { animation: icon-warm-svg  2.4s ease-in-out infinite; }
+  .card.cold  .icon-svg { animation: icon-cold-svg  3.5s ease-in-out infinite; }
+
+  @keyframes icon-frost-svg {
+    0%   { transform: scale(1)    translateX(0px);    filter: drop-shadow(0 0 2px rgba(90,200,250,0.40)); }
+    18%  { transform: scale(1.08) translateX(-1.5px); filter: drop-shadow(0 0 7px rgba(90,200,250,0.85)); }
+    36%  { transform: scale(0.95) translateX(1.5px);  filter: drop-shadow(0 0 3px rgba(90,200,250,0.50)); }
+    54%  { transform: scale(1.06) translateX(-1px);   filter: drop-shadow(0 0 11px rgba(90,200,250,1.0)); }
+    72%  { transform: scale(0.97) translateX(1px);    filter: drop-shadow(0 0 5px rgba(90,200,250,0.60)); }
+    100% { transform: scale(1)    translateX(0px);    filter: drop-shadow(0 0 2px rgba(90,200,250,0.40)); }
+  }
+  @keyframes icon-fire-svg {
+    0%   { transform: scale(1)    translateY(0px)  scaleX(1);    filter: drop-shadow(0 -2px 4px rgba(255,80,0,0.55)); }
+    12%  { transform: scale(1.10) translateY(-2px) scaleX(0.91); filter: drop-shadow(0 -4px 10px rgba(255,110,0,0.85)); }
+    28%  { transform: scale(0.95) translateY(0px)  scaleX(1);    filter: drop-shadow(0 -1px 2px rgba(255,60,0,0.40)); }
+    45%  { transform: scale(1.13) translateY(-3px) scaleX(0.89); filter: drop-shadow(0 -5px 14px rgba(255,140,0,1.0)); }
+    62%  { transform: scale(0.97) translateY(-1px) scaleX(1.02); filter: drop-shadow(0 -2px 6px rgba(255,80,0,0.60)); }
+    78%  { transform: scale(1.08) translateY(-2px) scaleX(0.93); filter: drop-shadow(0 -4px 9px rgba(255,100,0,0.75)); }
+    100% { transform: scale(1)    translateY(0px)  scaleX(1);    filter: drop-shadow(0 -2px 4px rgba(255,80,0,0.55)); }
+  }
+  @keyframes icon-warm-svg {
+    0%,100% { filter: drop-shadow(0 0 2px rgba(255,159,10,0.35)); }
+    50%     { transform: scale(1.05); filter: drop-shadow(0 0 7px rgba(255,159,10,0.70)); }
+  }
+  @keyframes icon-cold-svg {
+    0%,100% { filter: drop-shadow(0 0 2px rgba(90,200,250,0.22)); }
+    50%     { filter: drop-shadow(0 0 6px rgba(90,200,250,0.50)); }
+  }
 
   .frost-overlay {
     display:none; position:absolute; inset:0; z-index:1;
@@ -304,19 +331,9 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .card.fire .fire-overlay { display:block; animation: fire-shimmer 2.5s ease-in-out infinite; }
 
-  /* ── top row: icon left, pills right ── */
-  .top-row {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-shrink: 0; position: relative; z-index: 5;
-    transition: opacity .22s ease;
-  }
-  .icon-wrap {
-    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
-    background: ${st.iconBg};
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; transition: background .5s ease;
-  }
-  .pills {
+  /* ── pills — absolute overlay top-right ── */
+  .pills-wrap {
+    position: absolute; top: 8px; right: 8px; z-index: 5;
     display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
     justify-content: flex-end;
   }
@@ -325,6 +342,14 @@ class AhaTempGaugeCard extends HTMLElement {
     padding: 2px 7px; border-radius: 99px; border: .5px solid;
     font-size: 8px; font-weight: 600; white-space: nowrap;
     letter-spacing: .01em;
+  }
+
+  /* ── room name HTML at bottom ── */
+  .room-name {
+    text-align: center; font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,0.65); flex-shrink: 0;
+    padding-bottom: 4px; position: relative; z-index: 2;
+    transition: opacity .22s ease;
   }
 
   /* ── battery (absolute top-right) ── */
@@ -344,11 +369,9 @@ class AhaTempGaugeCard extends HTMLElement {
   .gauge-wrap {
     flex: 1; min-height: 0;
     display: flex; align-items: center; justify-content: center;
-    position: relative; z-index: 2; margin-top: 2px;
+    position: relative; z-index: 2;
   }
   .gauge-svg { width: 100%; height: 100%; overflow: visible; }
-
-  /* room-name lives inside SVG now — no separate row */
 
   /* ══ HOVER FOCUS MODE ══
      When hovering an arc:
@@ -364,10 +387,11 @@ class AhaTempGaugeCard extends HTMLElement {
   .gauge-svg:has(#g-hum:hover)  #g-temp { opacity: 0.18; }
 
   /* chrome dims */
-  .card:has(#g-temp:hover) .top-row,
-  .card:has(#g-hum:hover)  .top-row { opacity: 0.28; }
-  .card:has(#g-temp:hover) .room-name-svg,
-  .card:has(#g-hum:hover)  .room-name-svg { opacity: 0.28; transition: opacity .22s ease; }
+  .pills-wrap { transition: opacity .22s ease; }
+  .card:has(#g-temp:hover) .pills-wrap,
+  .card:has(#g-hum:hover)  .pills-wrap,
+  .card:has(#g-temp:hover) .room-name,
+  .card:has(#g-hum:hover)  .room-name { opacity: 0.28; }
 
   /* arc fill brightens */
   .arc-temp-fill, .arc-hum-fill { transition: filter .2s ease; }
@@ -438,11 +462,8 @@ class AhaTempGaugeCard extends HTMLElement {
 
   ${batHTML}
 
-  <!-- TOP ROW: icon + pills -->
-  <div class="top-row">
-    <div class="icon-wrap">${icon}</div>
-    <div class="pills">${pillsHTML}</div>
-  </div>
+  <!-- PILLS: absolute overlay top-right -->
+  <div class="pills-wrap">${pillsHTML}</div>
 
   <!-- GAUGE -->
   <div class="gauge-wrap">
@@ -500,7 +521,7 @@ class AhaTempGaugeCard extends HTMLElement {
           pointer-events="stroke"/>
 
         <!-- tooltip -->
-        ${_tooltip('Temperatura', tempStr, st.tempColor, 'arc-tooltip-temp')}
+        ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'arc-tooltip-temp')}
       </g>
 
       <!-- ══ HUM ARC GROUP ══ -->
@@ -527,7 +548,7 @@ class AhaTempGaugeCard extends HTMLElement {
           pointer-events="stroke"/>
 
         <!-- tooltip -->
-        ${_tooltip('Wilgotność' + (humZone ? ' · ' + humZone : ''), humStr, humCol, 'arc-tooltip-hum')}
+        ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'arc-tooltip-hum')}
       </g>
 
       <!-- indicator dot -->
@@ -544,15 +565,16 @@ class AhaTempGaugeCard extends HTMLElement {
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
-      <!-- room name — embedded in gauge gap (no extra HTML row needed) -->
-      <text class="room-name-svg"
-        x="${CX}" y="152"
+      <!-- icon inside gauge, below temp value -->
+      <text class="icon-svg"
+        x="${CX}" y="113"
         text-anchor="middle" dominant-baseline="central"
-        font-family="-apple-system,system-ui,sans-serif"
-        font-size="12" font-weight="600"
-        fill="rgba(255,255,255,0.68)">${name}</text>
+        font-size="18">${icon}</text>
     </svg>
   </div>
+
+  <!-- ROOM NAME: HTML element at bottom -->
+  <div class="room-name">${name}</div>
 </div>`;
 
     /* click → more-info */
