@@ -74,6 +74,13 @@ const ROOM_ICONS = {
     <line ${S} x1="0" y1="0" x2="0" y2="-8" stroke-opacity="0.35"/>
     <line ${S} x1="0" y1="-2.5" x2="-3.5" y2="-5" stroke-opacity="0.35"/>
     <line ${S} x1="0" y1="-5" x2="3.5" y2="-7" stroke-opacity="0.35"/>`,
+
+  garaz: `
+    <path ${S} d="M-9,-3.5 L0,-8.5 L9,-3.5"/>
+    <rect ${S} x="-7.5" y="-3.5" width="15" height="11.5" rx="1"/>
+    <line ${S} x1="-7.5" y1="0.2" x2="7.5" y2="0.2" stroke-opacity="0.55"/>
+    <line ${S} x1="-7.5" y1="3.8" x2="7.5" y2="3.8" stroke-opacity="0.55"/>
+    <circle ${S} cx="0" cy="6.5" r="1.1" stroke-opacity="0.72"/>`,
 };
 
 class AhaTempGaugeCard extends HTMLElement {
@@ -632,15 +639,15 @@ class AhaTempGaugeCard extends HTMLElement {
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
-      <!-- icon inside gauge, below temp value -->
+      <!-- icon inside gauge — centered in the arc gap at the bottom -->
       ${svgIcon
-        ? `<g transform="translate(${CX},116)" pointer-events="none">
+        ? `<g transform="translate(${CX},148) scale(1.5)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
-             x="${CX}" y="116"
+             x="${CX}" y="148"
              text-anchor="middle" dominant-baseline="central"
-             font-size="22">${emojiIcon}</text>`
+             font-size="26">${emojiIcon}</text>`
       }
     </svg>
   </div>
