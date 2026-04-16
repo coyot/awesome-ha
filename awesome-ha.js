@@ -9162,6 +9162,7 @@ class KosiarkaSlimCard extends HTMLElement {
   .name {
     font-size: 13px; font-weight: 500; color: #F1EFE8;
     flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: center;
   }
 
   .chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -9169,7 +9170,7 @@ class KosiarkaSlimCard extends HTMLElement {
   .bat-wrap {
     display: flex; flex-direction: column;
     align-items: flex-end; justify-content: center;
-    gap: 3px; min-width: 44px;
+    gap: 2px; min-width: 52px;
   }
   .bat-val {
     font-size: 20px; font-weight: 600; letter-spacing: -0.5px;
@@ -9218,7 +9219,7 @@ class KosiarkaSlimCard extends HTMLElement {
 
     <div class="bat-wrap">
       <span class="bat-val" style="color:${batColor};">${batPct !== null ? batPct + '%' : '—'}</span>
-      <span class="bat-label">bateria</span>
+      <span class="bat-label">${isCharging ? 'ładuje się' : isMowing ? 'kosi' : isReturning ? 'wraca' : 'bateria'}</span>
     </div>
   </div>
 </div>`;
