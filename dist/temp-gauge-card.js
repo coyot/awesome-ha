@@ -2,7 +2,7 @@
  * temp-gauge-card.js — AHA Temperature & Humidity Gauge Card
  *
  * Layout:
- *   gauge    — dual-arc (temp outer, hum inner); room icon embedded inside
+ *   gauge    — dual-arc (temp outer, hum inner)
  *   pills    — absolute overlay top-right, only non-normal states
  *   bottom   — room name HTML, muted
  *
@@ -10,78 +10,7 @@
  *   arc hovered  → brightens, tooltip appears
  *   opposite arc → dims to 20%
  *   chrome       → dims to 30%
- *
- * Room icons (room_type config key):
- *   salon | sypialnia | biuro | lazienka | pokoj_dzieciecy | pergola | ogrod
- *   Falls back to cfg.icon emoji if room_type not set.
  */
-
-/* ─── macOS-style white room icons (SVG paths, coordinate origin = icon center) ─── */
-const S = `fill="none" stroke="rgba(255,255,255,0.82)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"`;
-const ROOM_ICONS = {
-
-  salon: `
-    <rect ${S} x="-6" y="-8.5" width="12" height="7.5" rx="1.5"/>
-    <rect ${S} x="-8.5" y="-1" width="17" height="5" rx="1.5"/>
-    <rect ${S} x="-11" y="-3" width="2.5" height="7.5" rx="1.5"/>
-    <rect ${S} x="8.5" y="-3" width="2.5" height="7.5" rx="1.5"/>
-    <line ${S} x1="-7" y1="4" x2="-7" y2="7"/>
-    <line ${S} x1="7" y1="4" x2="7" y2="7"/>`,
-
-  sypialnia: `
-    <rect ${S} x="-8.5" y="-8.5" width="17" height="4" rx="1.5"/>
-    <rect ${S} x="-8.5" y="-4.5" width="17" height="10" rx="1.5"/>
-    <rect ${S} x="-7" y="-3.5" width="5" height="3.5" rx="1" stroke-opacity="0.55"/>
-    <rect ${S} x="2" y="-3.5" width="5" height="3.5" rx="1" stroke-opacity="0.55"/>
-    <line ${S} x1="-8.5" y1="0.5" x2="8.5" y2="0.5" stroke-opacity="0.30"/>
-    <line ${S} x1="-6.5" y1="5.5" x2="-6.5" y2="8.5"/>
-    <line ${S} x1="6.5" y1="5.5" x2="6.5" y2="8.5"/>`,
-
-  biuro: `
-    <rect ${S} x="-6.5" y="-9" width="13" height="9.5" rx="1.5"/>
-    <line ${S} x1="-4.5" y1="-6.5" x2="4.5" y2="-6.5" stroke-opacity="0.42"/>
-    <line ${S} x1="-4.5" y1="-4.5" x2="1.5" y2="-4.5" stroke-opacity="0.42"/>
-    <line ${S} x1="0" y1="0.5" x2="0" y2="3.5"/>
-    <line ${S} x1="-4" y1="3.5" x2="4" y2="3.5"/>
-    <rect ${S} x="-7" y="5.5" width="14" height="2.5" rx="1"/>`,
-
-  lazienka: `
-    <path ${S} d="M-9,8 L-9,-0.5 Q-9,-5 -5.5,-5 L-4.5,-5 Q-3,-5 -3,-3 L-3,1 L9,1 L9,8 Z"/>
-    <line ${S} x1="-5.5" y1="-5" x2="-5.5" y2="-8"/>
-    <line ${S} x1="-7.5" y1="-8" x2="-3.5" y2="-8"/>
-    <circle ${S} cx="1" cy="5.5" r="1.3" stroke-opacity="0.58"/>`,
-
-  pokoj_dzieciecy: `
-    <path fill="rgba(255,255,255,0.78)" stroke="rgba(255,255,255,0.92)" stroke-width="0.8" stroke-linejoin="round"
-      d="M0,-8.5 L2.2,-3 L8,-2.7 L3.5,1.2 L5,7 L0,3.8 L-5,7 L-3.5,1.2 L-8,-2.7 L-2.2,-3 Z"/>`,
-
-  pergola: `
-    <line ${S} x1="-8" y1="8" x2="-8" y2="-4"/>
-    <line ${S} x1="8" y1="8" x2="8" y2="-4"/>
-    <line ${S} x1="-9.5" y1="-4" x2="9.5" y2="-4"/>
-    <line ${S} x1="-6.5" y1="-4" x2="-6.5" y2="-8.5"/>
-    <line ${S} x1="-2.5" y1="-4" x2="-2.5" y2="-8.5"/>
-    <line ${S} x1="2.5" y1="-4" x2="2.5" y2="-8.5"/>
-    <line ${S} x1="6.5" y1="-4" x2="6.5" y2="-8.5"/>
-    <line ${S} x1="-10" y1="8" x2="10" y2="8"/>`,
-
-  ogrod: `
-    <path ${S} d="M-3.5,8.5 L-5,4.5 L5,4.5 L3.5,8.5 Z"/>
-    <line ${S} x1="-7" y1="4.5" x2="7" y2="4.5"/>
-    <line ${S} x1="0" y1="4.5" x2="0" y2="0"/>
-    <path ${S} d="M0,0 Q-8,0.5 -6.5,-6.5 Q-1,-9.5 0,-8 Q1,-9.5 6.5,-6.5 Q8,0.5 0,0 Z"
-      fill="rgba(255,255,255,0.08)"/>
-    <line ${S} x1="0" y1="0" x2="0" y2="-8" stroke-opacity="0.35"/>
-    <line ${S} x1="0" y1="-2.5" x2="-3.5" y2="-5" stroke-opacity="0.35"/>
-    <line ${S} x1="0" y1="-5" x2="3.5" y2="-7" stroke-opacity="0.35"/>`,
-
-  garaz: `
-    <path ${S} d="M-9,-3.5 L0,-8.5 L9,-3.5"/>
-    <rect ${S} x="-7.5" y="-3.5" width="15" height="11.5" rx="1"/>
-    <line ${S} x1="-7.5" y1="0.2" x2="7.5" y2="0.2" stroke-opacity="0.55"/>
-    <line ${S} x1="-7.5" y1="3.8" x2="7.5" y2="3.8" stroke-opacity="0.55"/>
-    <circle ${S} cx="0" cy="6.5" r="1.1" stroke-opacity="0.72"/>`,
-};
 
 class AhaTempGaugeCard extends HTMLElement {
   constructor() {
@@ -96,8 +25,6 @@ class AhaTempGaugeCard extends HTMLElement {
       temp_entity: 'sensor.salon_temperature',
       humidity_entity: 'sensor.salon_humidity',
       battery_entity: '',
-      room_type: 'salon',   // salon|sypialnia|biuro|lazienka|pokoj_dzieciecy|pergola|ogrod
-      icon: '🛋️',           // emoji fallback when room_type not set
       min_temp: -10,
       max_temp: 40,
     };
@@ -169,9 +96,6 @@ class AhaTempGaugeCard extends HTMLElement {
   _render() {
     const cfg      = this._config;
     const name     = cfg.name || 'Pokój';
-    const emojiIcon = cfg.icon || '🏠';
-    const roomType  = cfg.room_type || null;
-    const svgIcon   = roomType && ROOM_ICONS[roomType] ? ROOM_ICONS[roomType] : null;
     const uid  = this._uid;
 
     const temp = this._val(cfg.temp_entity);
@@ -339,39 +263,6 @@ class AhaTempGaugeCard extends HTMLElement {
   .card.fire  { animation: fire-card  2.0s ease-in-out infinite; }
   .card.frost .arc-temp-fill { animation: frost-arc 3.0s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.0s ease-in-out infinite; }
-
-  /* icon animations — SVG text element, use drop-shadow + transform */
-  .icon-svg { transform-box: fill-box; transform-origin: center; transition: opacity .2s ease; }
-  .card.frost .icon-svg { animation: icon-frost-svg 2.8s ease-in-out infinite; }
-  .card.fire  .icon-svg { animation: icon-fire-svg  1.6s ease-in-out infinite; }
-  .card.warm  .icon-svg { animation: icon-warm-svg  2.4s ease-in-out infinite; }
-  .card.cold  .icon-svg { animation: icon-cold-svg  3.5s ease-in-out infinite; }
-
-  @keyframes icon-frost-svg {
-    0%   { transform: scale(1)    translateX(0px);    filter: drop-shadow(0 0 2px rgba(90,200,250,0.40)); }
-    18%  { transform: scale(1.08) translateX(-1.5px); filter: drop-shadow(0 0 7px rgba(90,200,250,0.85)); }
-    36%  { transform: scale(0.95) translateX(1.5px);  filter: drop-shadow(0 0 3px rgba(90,200,250,0.50)); }
-    54%  { transform: scale(1.06) translateX(-1px);   filter: drop-shadow(0 0 11px rgba(90,200,250,1.0)); }
-    72%  { transform: scale(0.97) translateX(1px);    filter: drop-shadow(0 0 5px rgba(90,200,250,0.60)); }
-    100% { transform: scale(1)    translateX(0px);    filter: drop-shadow(0 0 2px rgba(90,200,250,0.40)); }
-  }
-  @keyframes icon-fire-svg {
-    0%   { transform: scale(1)    translateY(0px)  scaleX(1);    filter: drop-shadow(0 -2px 4px rgba(255,80,0,0.55)); }
-    12%  { transform: scale(1.10) translateY(-2px) scaleX(0.91); filter: drop-shadow(0 -4px 10px rgba(255,110,0,0.85)); }
-    28%  { transform: scale(0.95) translateY(0px)  scaleX(1);    filter: drop-shadow(0 -1px 2px rgba(255,60,0,0.40)); }
-    45%  { transform: scale(1.13) translateY(-3px) scaleX(0.89); filter: drop-shadow(0 -5px 14px rgba(255,140,0,1.0)); }
-    62%  { transform: scale(0.97) translateY(-1px) scaleX(1.02); filter: drop-shadow(0 -2px 6px rgba(255,80,0,0.60)); }
-    78%  { transform: scale(1.08) translateY(-2px) scaleX(0.93); filter: drop-shadow(0 -4px 9px rgba(255,100,0,0.75)); }
-    100% { transform: scale(1)    translateY(0px)  scaleX(1);    filter: drop-shadow(0 -2px 4px rgba(255,80,0,0.55)); }
-  }
-  @keyframes icon-warm-svg {
-    0%,100% { filter: drop-shadow(0 0 2px rgba(255,159,10,0.35)); }
-    50%     { transform: scale(1.05); filter: drop-shadow(0 0 7px rgba(255,159,10,0.70)); }
-  }
-  @keyframes icon-cold-svg {
-    0%,100% { filter: drop-shadow(0 0 2px rgba(90,200,250,0.22)); }
-    50%     { filter: drop-shadow(0 0 6px rgba(90,200,250,0.50)); }
-  }
 
   .frost-overlay {
     display:none; position:absolute; inset:0; z-index:1;
@@ -596,18 +487,7 @@ class AhaTempGaugeCard extends HTMLElement {
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
-      <!-- icon inside gauge — w dolnej połowie wewnętrznego łuku -->
-      ${svgIcon
-        ? `<g transform="translate(${CX},157) scale(0.82)" pointer-events="none">
-             <g class="icon-svg">${svgIcon}</g>
-           </g>`
-        : `<text class="icon-svg"
-             x="${CX}" y="157"
-             text-anchor="middle" dominant-baseline="central"
-             font-size="22">${emojiIcon}</text>`
-      }
-
-      <!-- tooltips — LAST in SVG for correct z-order (render above icon/labels) -->
+      <!-- tooltips — LAST in SVG for correct z-order -->
       ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
       ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
     </svg>
