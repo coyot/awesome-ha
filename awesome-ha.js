@@ -7803,7 +7803,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
       <!-- icon inside gauge — w dolnej połowie wewnętrznego łuku -->
       ${svgIcon
-        ? `<g transform="translate(${CX},120) scale(1.2)" pointer-events="none">
+        ? `<g transform="translate(${CX},130) scale(1.0)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
@@ -9598,11 +9598,6 @@ const SW_STYLES = `
     0%,100% { box-shadow: 0 0 0 0   rgba(255,214,10,0); }
     50%     { box-shadow: 0 0 0 6px rgba(255,214,10,0.12); }
   }
-  @keyframes sw-dot {
-    0%,100% { opacity: 1; }
-    50%     { opacity: 0.25; }
-  }
-
   .card {
     width: 100%; aspect-ratio: 1 / 1;
     border-radius: 20px;
@@ -9636,25 +9631,14 @@ const SW_STYLES = `
     pointer-events: none; transition: background .4s ease;
   }
 
-  /* ── State pill — top-right, tylko ON ── */
-  .pill-wrap { position: absolute; top: 8px; right: 8px; z-index: 5; }
-  .state-pill {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 2px 7px; border-radius: 99px; border: .5px solid;
-    font-size: 8px; font-weight: 600; white-space: nowrap; letter-spacing: .01em;
+  /* ── State text — under icon ── */
+  .state-text {
+    text-align: center; font-size: 10px; font-weight: 600;
+    padding-bottom: 2px; position: relative; z-index: 2; flex-shrink: 0;
+    transition: color .4s ease;
   }
-  .off .state-pill { display: none; }
-  .on  .state-pill {
-    background: rgba(255,214,10,0.12);
-    border-color: rgba(255,214,10,0.30);
-    color: #FFD60A;
-  }
-  .pill-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: #FFD60A; flex-shrink: 0;
-    animation: sw-dot 2s ease-in-out infinite;
-    box-shadow: 0 0 4px rgba(255,214,10,0.6);
-  }
+  .off .state-text { color: rgba(255,255,255,0.28); }
+  .on  .state-text { color: #FFD60A; }
 
   /* ── Icon area — jak kontaktron ── */
   .icon-area {
@@ -9742,16 +9726,12 @@ class AhaSwitchSocketCard extends HTMLElement {
     this._card.className = 'card off';
     this._card.innerHTML = `
       <div class="glow"></div>
-      <div class="pill-wrap">
-        <span class="state-pill">
-          <span class="pill-dot"></span>włączone
-        </span>
-      </div>
       <div class="icon-area">
         <div class="icon-bg">
           <div class="icon-inner"></div>
         </div>
       </div>
+      <div class="state-text">wyłączone</div>
       <div class="name">—</div>
     `;
 
@@ -9768,8 +9748,9 @@ class AhaSwitchSocketCard extends HTMLElement {
 
     shadow.appendChild(this._card);
 
-    this._iconEl = shadow.querySelector('.icon-inner');
-    this._nameEl = shadow.querySelector('.name');
+    this._iconEl  = shadow.querySelector('.icon-inner');
+    this._stateEl = shadow.querySelector('.state-text');
+    this._nameEl  = shadow.querySelector('.name');
 
     /* ha-icon — tworzymy raz jeśli config.icon ustawiony */
     if (this._config?.icon) {
@@ -9789,8 +9770,9 @@ class AhaSwitchSocketCard extends HTMLElement {
                || stateObj.attributes.friendly_name
                || this._config.entity;
 
-    this._card.className   = `card ${on ? 'on' : 'off'}`;
-    this._nameEl.textContent = name;
+    this._card.className      = `card ${on ? 'on' : 'off'}`;
+    this._stateEl.textContent = on ? 'włączone' : 'wyłączone';
+    this._nameEl.textContent  = name;
 
     if (this._config.icon) {
       if (this._haIcon) this._haIcon.setAttribute('icon', this._config.icon);

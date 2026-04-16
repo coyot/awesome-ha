@@ -598,7 +598,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
       <!-- icon inside gauge — w dolnej połowie wewnętrznego łuku -->
       ${svgIcon
-        ? `<g transform="translate(${CX},120) scale(1.2)" pointer-events="none">
+        ? `<g transform="translate(${CX},130) scale(1.0)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
