@@ -208,17 +208,6 @@ class AhaTempGaugeCard extends HTMLElement {
     const dotX = CX + R1 * Math.cos(dotRad);
     const dotY = CY + R1 * Math.sin(dotRad);
 
-    // Tick marks at 25 / 50 / 75 %
-    const _tick = pct => {
-      const a  = (135 + pct * 270) * Math.PI / 180;
-      const ri = R1 - SW1 / 2 - 1.5;
-      const ro = R1 + SW1 / 2 + 2.5;
-      return `<line x1="${(CX+ri*Math.cos(a)).toFixed(1)}" y1="${(CY+ri*Math.sin(a)).toFixed(1)}"
-               x2="${(CX+ro*Math.cos(a)).toFixed(1)}" y2="${(CY+ro*Math.sin(a)).toFixed(1)}"
-               stroke="rgba(255,255,255,0.14)" stroke-width="1" stroke-linecap="round"/>`;
-    };
-    const ticks = [0.25, 0.5, 0.75].map(_tick).join('');
-
     // Min / max range labels
     const LR  = R1 + SW1 / 2 + 9;
     const minA = 135 * Math.PI / 180;
@@ -584,8 +573,6 @@ class AhaTempGaugeCard extends HTMLElement {
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"
           ${useGlow ? `filter="url(#arc-glow-${uid})"` : ''}/>
         ` : ''}
-
-        ${ticks}
 
         <!-- hit area -->
         <circle cx="${CX}" cy="${CY}" r="${R1}"
