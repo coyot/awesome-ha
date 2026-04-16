@@ -598,11 +598,11 @@ class AhaTempGaugeCard extends HTMLElement {
 
       <!-- icon inside gauge — w dolnej połowie wewnętrznego łuku -->
       ${svgIcon
-        ? `<g transform="translate(${CX},130) scale(1.0)" pointer-events="none">
+        ? `<g transform="translate(${CX},157) scale(0.82)" pointer-events="none">
              <g class="icon-svg">${svgIcon}</g>
            </g>`
         : `<text class="icon-svg"
-             x="${CX}" y="120"
+             x="${CX}" y="157"
              text-anchor="middle" dominant-baseline="central"
              font-size="22">${emojiIcon}</text>`
       }
