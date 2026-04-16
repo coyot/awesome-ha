@@ -66,8 +66,8 @@ const STYLES = `
   .card {
     border-radius: 20px;
     padding: 10px 10px 8px;
-    display: grid;
-    grid-template-rows: auto 1fr auto auto auto;
+    display: flex;
+    flex-direction: column;
     aspect-ratio: 1 / 1;
     position: relative;
     overflow: hidden;
@@ -75,6 +75,7 @@ const STYLES = `
     transition: transform 0.15s ease, border-color 0.4s ease;
     border: 1px solid rgba(255,255,255,0.06);
     box-sizing: border-box;
+    font-family: -apple-system, system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
@@ -117,31 +118,61 @@ const STYLES = `
     transition: background 0.4s ease;
   }
 
-  /* Top row: icon only (name moved to bottom) */
-  .top-bar {
+  /* State pill — absolute top-right (jak pills w temp-gauge) */
+  .pill-wrap {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+  }
+
+  .state-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 99px;
+    border: .5px solid;
+    font-size: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: .01em;
+  }
+
+  .closed .state-pill { display: none; }
+  .open   .state-pill {
+    background: rgba(255,214,10,0.12);
+    border-color: rgba(255,214,10,0.30);
+    color: #ffd60a;
+  }
+  .alarm  .state-pill {
+    background: rgba(255,69,58,0.14);
+    border-color: rgba(255,69,58,0.35);
+    color: #ff453a;
+  }
+
+  /* Icon area — wypełnia dostępną przestrzeń, centruje ikonę jak gauge w temp-gauge */
+  .icon-area {
+    flex: 1;
     display: flex;
     align-items: center;
+    justify-content: center;
     position: relative;
     z-index: 2;
   }
 
-  .spacer { /* fills 1fr grid row */ }
-
-  /* Icon area */
   .icon-wrap {
     position: relative;
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .icon-bg {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -155,9 +186,9 @@ const STYLES = `
 
   .ring {
     position: absolute;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     border: 2px solid rgba(255,69,58,0.75);
     z-index: 1;
     pointer-events: none;
@@ -169,7 +200,7 @@ const STYLES = `
   }
 
   ha-icon {
-    --mdc-icon-size: 20px;
+    --mdc-icon-size: 28px;
     transition: color 0.4s ease;
   }
   .closed  ha-icon { color: #8e8e93; }
@@ -180,7 +211,22 @@ const STYLES = `
     transform-origin: top center;
   }
 
-  /* Text */
+  /* Duration — czas otwarcia, muted, centered */
+  .duration {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: #636366;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    padding-bottom: 4px;
+    transition: color 0.4s ease, font-weight 0.3s ease;
+  }
+  .alarm .duration { color: #ff6b60; font-weight: 600; }
+  .closed .duration { display: none; }
+
+  /* Name — identyczny z .room-name w temp-gauge */
   .name {
     text-align: center;
     font-size: 12px;
@@ -192,42 +238,7 @@ const STYLES = `
     padding-bottom: 4px;
     position: relative;
     z-index: 2;
-  }
-
-  .state-label {
-    font-size: 10px;
-    font-weight: 500;
-    margin-top: 2px;
-    position: relative;
-    z-index: 2;
-    transition: color 0.4s ease;
-  }
-  .closed  .state-label { color: #8e8e93; }
-  .open    .state-label { color: #ffd60a; }
-  .alarm   .state-label { color: #ff453a; }
-
-  .duration {
-    font-size: 11px;
-    font-weight: 400;
-    margin-top: 5px;
-    position: relative;
-    z-index: 2;
-    transition: color 0.4s ease, font-weight 0.3s ease;
-  }
-  .closed  .duration { color: #636366; }
-  .open    .duration { color: #636366; }
-  .alarm   .duration { color: #ff6b60; font-weight: 600; }
-
-  /* ── mobile: icon + name only ── */
-  @media (max-width: 600px) {
-    .bat-wrap    { display: none !important; }
-    .state-label { display: none; }
-    .duration    { display: none; }
-    .card        { grid-template-rows: 1fr auto; padding: 10px; }
-    .top-bar     { display: contents; }
-    .icon-wrap   { grid-row: 1; align-self: center; justify-self: start; }
-    .spacer      { display: none; }
-    .name        { grid-row: 2; margin-top: 0; }
+    flex-shrink: 0;
   }
 
   /* ── battery ── */
@@ -300,7 +311,10 @@ class KontaktronCard extends HTMLElement {
 
     this._card.innerHTML = `
       <div class="glow"></div>
-      <div class="top-bar">
+      <div class="pill-wrap">
+        <span class="state-pill"></span>
+      </div>
+      <div class="icon-area">
         <div class="icon-wrap">
           <div class="ring"></div>
           <div class="icon-bg">
@@ -308,9 +322,7 @@ class KontaktronCard extends HTMLElement {
           </div>
         </div>
       </div>
-      <div class="spacer"></div>
-      <div class="state-label">zamknięte</div>
-      <div class="duration">—</div>
+      <div class="duration"></div>
       <div class="name">—</div>
     `;
 
@@ -320,7 +332,7 @@ class KontaktronCard extends HTMLElement {
 
     this._haIcon      = shadow.querySelector('ha-icon');
     this._nameEl      = shadow.querySelector('.name');
-    this._stateEl     = shadow.querySelector('.state-label');
+    this._stateEl     = shadow.querySelector('.state-pill');
     this._durationEl  = shadow.querySelector('.duration');
 
     /* battery widget — created once, shown only if battery_entity configured */
@@ -340,25 +352,23 @@ class KontaktronCard extends HTMLElement {
 
     const stateObj = this._hass.states[this._config.entity];
     if (!stateObj) {
-      this._nameEl.textContent = this._config.entity;
-      this._stateEl.textContent = 'nieznany';
-      this._durationEl.textContent = '';
+      this._nameEl.textContent  = this._config.entity;
+      this._stateEl.textContent = '';
       return;
     }
 
-    const isOpen      = stateObj.state === 'on';
-    const name        = this._config.name || stateObj.attributes.friendly_name || this._config.entity;
-    const changed     = new Date(stateObj.last_changed);
-    const diffMin     = Math.floor((Date.now() - changed.getTime()) / 60000);
-    const isAlarm     = isOpen && diffMin >= this._config.alarm_minutes;
+    const isOpen  = stateObj.state === 'on';
+    const name    = this._config.name || stateObj.attributes.friendly_name || this._config.entity;
+    const changed = new Date(stateObj.last_changed);
+    const diffMin = Math.floor((Date.now() - changed.getTime()) / 60000);
+    const isAlarm = isOpen && diffMin >= this._config.alarm_minutes;
 
-    /* Determine visual state class */
     let stateClass, icon, stateText, durationText;
 
     if (!isOpen) {
       stateClass   = 'closed';
       icon         = this._config.icon_closed;
-      stateText    = 'zamknięte';
+      stateText    = '';
       durationText = '';
     } else if (!isAlarm) {
       stateClass   = 'open';
@@ -372,12 +382,11 @@ class KontaktronCard extends HTMLElement {
       durationText = this._formatDuration(diffMin);
     }
 
-    /* Apply */
-    this._card.className       = `card ${stateClass}`;
+    this._card.className          = `card ${stateClass}`;
     this._haIcon.setAttribute('icon', icon);
-    this._nameEl.textContent   = name;
-    this._stateEl.textContent  = stateText;
-    this._durationEl.textContent = durationText;
+    this._nameEl.textContent      = name;
+    this._stateEl.textContent     = stateText;
+    this._durationEl.textContent  = durationText;
     this._updateBattery();
   }
 
