@@ -23,9 +23,12 @@ class KosiarkaSlimCard extends HTMLElement {
     if (!config.entity) throw new Error('kosiarka-slim-card: brak pola "entity"');
     this._config = {
       ...config,
-      battery_entity:    config.battery_entity    || null,
-      party_mode_entity: config.party_mode_entity || null,
-      error_entity:      config.error_entity      || null,
+      battery_entity:         config.battery_entity         || null,
+      party_mode_entity:      config.party_mode_entity      || null,
+      error_entity:           config.error_entity           || null,
+      daily_progress_entity:  config.daily_progress_entity  || null,
+      rain_entity:            config.rain_entity            || null,
+      next_schedule_entity:   config.next_schedule_entity   || null,
     };
   }
 
@@ -98,12 +101,11 @@ class KosiarkaSlimCard extends HTMLElement {
     }
 
     // Error: dedicated sensor → attribute fallback
+    const _noError = new Set(['unavailable','unknown','0','none','no_error','ok','']);
     let error = attrs.error ?? attrs.error_description ?? null;
     if (cfg.error_entity) {
       const es = hass.states[cfg.error_entity];
-      if (es && es.state !== 'unavailable' && es.state !== 'unknown' && es.state !== '0' && es.state !== 'none') {
-        error = es.state;
-      }
+      if (es && !_noError.has(es.state)) error = es.state;
     }
 
     // Party mode
@@ -111,6 +113,41 @@ class KosiarkaSlimCard extends HTMLElement {
     if (cfg.party_mode_entity) {
       const ps = hass.states[cfg.party_mode_entity];
       if (ps) partyMode = ps.state === 'on';
+    }
+
+    // Daily progress
+    let dailyProgress = null;
+    if (cfg.daily_progress_entity) {
+      const dp = hass.states[cfg.daily_progress_entity];
+      if (dp && dp.state !== 'unavailable' && dp.state !== 'unknown') {
+        const v = parseFloat(dp.state);
+        if (!isNaN(v)) dailyProgress = Math.min(100, Math.round(v));
+      }
+    }
+
+    // Rain sensor
+    let isRaining = false;
+    if (cfg.rain_entity) {
+      const rs = hass.states[cfg.rain_entity];
+      if (rs) isRaining = rs.state === 'on';
+    }
+
+    // Next schedule
+    let nextSchedule = null;
+    if (cfg.next_schedule_entity) {
+      const ns = hass.states[cfg.next_schedule_entity];
+      if (ns && ns.state !== 'unavailable' && ns.state !== 'unknown') {
+        try {
+          const d = new Date(ns.state);
+          const now = new Date();
+          const diffH = Math.round((d - now) / 36e5);
+          if (diffH >= 0 && diffH < 48) {
+            nextSchedule = diffH < 1 ? 'za chwilę'
+                         : diffH < 24 ? `za ${diffH}h`
+                         : `jutro ${d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})}`;
+          }
+        } catch(e) {}
+      }
     }
 
     const color   = this._stateColor(state);
@@ -201,12 +238,14 @@ class KosiarkaSlimCard extends HTMLElement {
                                 background:${badgeBg};color:${color};">
       <span style="${dotBase}${dotAnim}"></span>${label}</span>`;
 
-    // Chipsy — strefa, party mode i błąd
+    // Chipsy — strefa, party mode, deszcz i błąd
     const chips = [];
     if (zone !== null && (isMowing || isReturning))
       chips.push({ label: `strefa ${zone}`, col: color, bg: `rgba(${pulseColor ?? '95,94,90'},0.10)` });
     if (partyMode)
       chips.push({ label: 'party', col: '#FF9F0A', bg: 'rgba(255,159,10,0.12)' });
+    if (isRaining)
+      chips.push({ label: 'deszcz', col: '#85B7EB', bg: 'rgba(133,183,235,0.12)' });
     if (isError && error)
       chips.push({ label: error, col: '#E24B4A', bg: 'rgba(226,75,74,0.10)' });
 
@@ -321,16 +360,29 @@ class KosiarkaSlimCard extends HTMLElement {
 
       ${chips.length > 0 ? `<div class="chips">${chipsHTML}</div>` : ''}
 
-      ${batPct !== null ? `
-      <div class="bat-bar-wrap">
-        <div class="bat-track">
-          <div class="bat-fill" style="width:${batPct}%;background:${barGrad};"></div>
+      ${(() => {
+        // Pasek: daily progress gdy kosi/dostępny, bateria jako fallback
+        const showDaily = dailyProgress !== null && (isMowing || isReturning || (state === 'docked' && dailyProgress < 100));
+        const barPct   = showDaily ? dailyProgress : batPct;
+        const barLabel = showDaily ? (isMowing ? 'postęp dzienny' : isReturning ? 'wraca · ' + dailyProgress + '%' : 'plan dnia')
+                                   : (isCharging ? 'ładuje się' : isMowing ? 'kosi' : isReturning ? 'wraca do bazy' : 'bateria');
+        const barRight = showDaily ? `${dailyProgress}%` : (batPct !== null ? `${batPct}%` : '');
+        const grad     = showDaily ? `linear-gradient(90deg,${color}88,${color})` : barGrad;
+        if (barPct === null) return '';
+        return `
+        <div class="bat-bar-wrap">
+          <div class="bat-track">
+            <div class="bat-fill" style="width:${barPct}%;background:${grad};"></div>
+          </div>
+          <div class="bat-meta">
+            <span>${barLabel}</span>
+            <span>${barRight}</span>
+          </div>
         </div>
-        <div class="bat-meta">
-          <span>${isCharging ? 'ładuje się' : isMowing ? 'kosi' : isReturning ? 'wraca do bazy' : 'bateria'}</span>
-          <span>${batPct}%</span>
-        </div>
-      </div>` : ''}
+        ${nextSchedule && !isMowing && !isReturning ? `<div class="bat-meta" style="margin-top:-4px;">
+          <span>następny plan</span><span>${nextSchedule}</span>
+        </div>` : ''}`;
+      })()}
     </div>
 
     <div class="bat-wrap">
@@ -354,11 +406,14 @@ class KosiarkaSlimCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      entity:            'lawn_mower.kosiarka',
-      name:              'Kosiarka',
-      battery_entity:    'sensor.kosiarka_battery',
-      party_mode_entity: 'switch.s_party_mode',
-      error_entity:      'sensor.kosiarka_error',
+      entity:                 'lawn_mower.kosiarka',
+      name:                   'Kosiarka',
+      battery_entity:         'sensor.kosiarka_battery',
+      party_mode_entity:      'switch.s_party_mode',
+      error_entity:           'sensor.kosiarka_error',
+      daily_progress_entity:  'sensor.s_daily_progress',
+      rain_entity:            'binary_sensor.s_rain_sensor',
+      next_schedule_entity:   'sensor.s_next_schedule',
     };
   }
 }

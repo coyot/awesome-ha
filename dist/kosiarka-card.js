@@ -22,12 +22,16 @@ class KosiarkaCard extends HTMLElement {
   setConfig(config) {
     if (!config.entity) throw new Error('Podaj entity kosiarski');
     this._config = {
-      entity:            config.entity,
-      name:              config.name              || 'Kosiarka',
-      capacity_m2:       config.capacity_m2       || 400,
-      battery_entity:    config.battery_entity    || null,
-      party_mode_entity: config.party_mode_entity || null,
-      error_entity:      config.error_entity      || null,
+      entity:                 config.entity,
+      name:                   config.name                   || 'Kosiarka',
+      capacity_m2:            config.capacity_m2            || 400,
+      battery_entity:         config.battery_entity         || null,
+      party_mode_entity:      config.party_mode_entity      || null,
+      error_entity:           config.error_entity           || null,
+      daily_progress_entity:  config.daily_progress_entity  || null,
+      rain_entity:            config.rain_entity            || null,
+      next_schedule_entity:   config.next_schedule_entity   || null,
+      lawn_size_entity:       config.lawn_size_entity       || null,
     };
   }
 
@@ -83,19 +87,57 @@ class KosiarkaCard extends HTMLElement {
       }
     }
 
+    const _noError = new Set(['unavailable','unknown','0','none','no_error','ok','']);
     let error = a.error ?? a.error_description ?? null;
     if (cfg.error_entity) {
       const es = hass.states[cfg.error_entity];
-      if (es && es.state !== 'unavailable' && es.state !== 'unknown'
-             && es.state !== '0' && es.state !== 'none') {
-        error = es.state;
-      }
+      if (es && !_noError.has(es.state)) error = es.state;
     }
 
     let partyMode = false;
     if (cfg.party_mode_entity) {
       const ps = hass.states[cfg.party_mode_entity];
       if (ps) partyMode = ps.state === 'on';
+    }
+
+    let dailyProgress = null;
+    if (cfg.daily_progress_entity) {
+      const dp = hass.states[cfg.daily_progress_entity];
+      if (dp && dp.state !== 'unavailable' && dp.state !== 'unknown') {
+        const v = parseFloat(dp.state);
+        if (!isNaN(v)) dailyProgress = Math.min(100, Math.round(v));
+      }
+    }
+
+    let isRaining = false;
+    if (cfg.rain_entity) {
+      const rs = hass.states[cfg.rain_entity];
+      if (rs) isRaining = rs.state === 'on';
+    }
+
+    let nextSchedule = null;
+    if (cfg.next_schedule_entity) {
+      const ns = hass.states[cfg.next_schedule_entity];
+      if (ns && ns.state !== 'unavailable' && ns.state !== 'unknown') {
+        try {
+          const d = new Date(ns.state);
+          const diffH = Math.round((d - new Date()) / 36e5);
+          if (diffH >= 0 && diffH < 48) {
+            nextSchedule = diffH < 1 ? 'za chwilę'
+                         : diffH < 24 ? `za ${diffH}h`
+                         : `jutro ${d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})}`;
+          }
+        } catch(e) {}
+      }
+    }
+
+    let lawnSize = cfg.capacity_m2 || 400;
+    if (cfg.lawn_size_entity) {
+      const ls = hass.states[cfg.lawn_size_entity];
+      if (ls && ls.state !== 'unavailable') {
+        const v = parseFloat(ls.state);
+        if (!isNaN(v) && v > 0) lawnSize = Math.round(v);
+      }
     }
 
     return {
@@ -105,6 +147,10 @@ class KosiarkaCard extends HTMLElement {
       workTime: a.work_time_today ?? null,
       error,
       partyMode,
+      dailyProgress,
+      isRaining,
+      nextSchedule,
+      lawnSize,
     };
   }
 
@@ -444,7 +490,12 @@ class KosiarkaCard extends HTMLElement {
     // name + status
     r.getElementById('name').textContent   = cfg.name;
     const statusEl = r.getElementById('status');
-    statusEl.textContent = label + (d.zone !== null && (isMowing || isReturning) ? ` · strefa ${d.zone}` : '');
+    let statusText = label;
+    if (d.zone !== null && (isMowing || isReturning)) statusText += ` · strefa ${d.zone}`;
+    if (d.partyMode) statusText += ' · party';
+    if (d.isRaining && !isMowing) statusText += ' · deszcz';
+    if (!isMowing && !isReturning && d.nextSchedule) statusText += ` · ${d.nextSchedule}`;
+    statusEl.textContent = statusText;
     statusEl.style.color = (isMowing || isReturning || isCharging) ? color + 'cc' : '#636366';
 
     // battery
@@ -467,9 +518,14 @@ class KosiarkaCard extends HTMLElement {
                      : isError                ? this._svgError()
                      :                          this._svgDocked(color);
 
-    // fill bar
-    r.getElementById('fill').style.width      = (batPct !== null ? batPct : 0) + '%';
-    r.getElementById('fill').style.background = barGrad;
+    // fill bar: daily progress when available, battery as fallback
+    const showDaily = d.dailyProgress !== null;
+    const fillPct   = showDaily ? d.dailyProgress : (batPct ?? 0);
+    const fillGrad  = showDaily
+      ? `linear-gradient(90deg,${color}88,${color})`
+      : barGrad;
+    r.getElementById('fill').style.width      = fillPct + '%';
+    r.getElementById('fill').style.background = fillGrad;
 
     // party banner
     r.getElementById('party-bar').className = 'party-bar' + (d.partyMode ? ' visible' : '');
@@ -484,11 +540,16 @@ class KosiarkaCard extends HTMLElement {
       errBar.className  = 'error-bar';
     }
 
-    // zone chip (only when mowing/returning)
+    // chips row: zone + rain
     const zoneRow = r.getElementById('zone-row');
-    if (d.zone !== null && (isMowing || isReturning)) {
+    const zoneChips = [];
+    if (d.zone !== null && (isMowing || isReturning))
+      zoneChips.push(`<span class="zone-chip" style="background:${color}1a;color:${color};">strefa ${d.zone}</span>`);
+    if (d.isRaining)
+      zoneChips.push(`<span class="zone-chip" style="background:rgba(133,183,235,0.12);color:#85B7EB;">deszcz</span>`);
+    if (zoneChips.length) {
       zoneRow.style.display = 'flex';
-      zoneRow.innerHTML = `<span class="zone-chip" style="background:${color}1a;color:${color};">strefa ${d.zone}</span>`;
+      zoneRow.innerHTML = zoneChips.join('');
     } else {
       zoneRow.style.display = 'none';
     }
@@ -516,12 +577,15 @@ class KosiarkaCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      entity:            'lawn_mower.kosiarka',
-      name:              'Kosiarka',
-      capacity_m2:       400,
-      battery_entity:    'sensor.kosiarka_battery',
-      party_mode_entity: 'switch.s_party_mode',
-      error_entity:      'sensor.kosiarka_error',
+      entity:                 'lawn_mower.kosiarka',
+      name:                   'Kosiarka',
+      battery_entity:         'sensor.kosiarka_battery',
+      party_mode_entity:      'switch.s_party_mode',
+      error_entity:           'sensor.kosiarka_error',
+      daily_progress_entity:  'sensor.s_daily_progress',
+      rain_entity:            'binary_sensor.s_rain_sensor',
+      next_schedule_entity:   'sensor.s_next_schedule',
+      lawn_size_entity:       'number.s_lawn_size',
     };
   }
 }
