@@ -7387,16 +7387,17 @@ const STYLES = `
 
   /* Text */
   .name {
+    text-align: center;
     font-size: 12px;
     font-weight: 600;
     color: rgba(255,255,255,0.65);
-    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
+    padding-bottom: 4px;
     position: relative;
     z-index: 2;
-    margin-top: 2px;
   }
 
   .state-label {
