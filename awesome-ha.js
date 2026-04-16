@@ -7668,6 +7668,7 @@ window.customCards.push({
  *   inner arc = humidity 0–100%
  *
  * Apple Home glassmorphism • frost / fire animations • alert pills
+ * Hover over each arc: highlights arc + shows glassmorphism tooltip
  *
  * Config:
  *   name, icon, temp_entity, humidity_entity, battery_entity
@@ -7678,7 +7679,6 @@ class AhaTempGaugeCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    // uid prevents SVG gradient/filter id collisions across card instances
     this._uid = Math.random().toString(36).slice(2, 7);
   }
 
@@ -7704,7 +7704,6 @@ class AhaTempGaugeCard extends HTMLElement {
     this._render();
   }
 
-  /* ── value helper ── */
   _val(entity) {
     if (!this._hass || !entity) return null;
     const s = this._hass.states[entity];
@@ -7712,7 +7711,6 @@ class AhaTempGaugeCard extends HTMLElement {
     return parseFloat(s.state);
   }
 
-  /* ── temperature design tokens ── */
   _tempState(t) {
     if (t === null) return {
       key: 'offline', cardBg: '#1c1c1e', cardBorder: 'rgba(255,255,255,0.07)',
@@ -7751,7 +7749,6 @@ class AhaTempGaugeCard extends HTMLElement {
     };
   }
 
-  /* ── humidity arc color ── */
   _humArcColor(h) {
     if (h === null) return 'rgba(255,255,255,0.15)';
     if (h < 35)  return '#FF9F0A';
@@ -7760,7 +7757,6 @@ class AhaTempGaugeCard extends HTMLElement {
     return '#FF453A';
   }
 
-  /* ── render ── */
   _render() {
     const cfg  = this._config;
     const name = cfg.name || 'Pokój';
@@ -7779,69 +7775,72 @@ class AhaTempGaugeCard extends HTMLElement {
     const maxT = parseFloat(cfg.max_temp ?? 40);
 
     const tempStr = isOffline ? '—' : temp.toFixed(1) + '°';
-    const humStr  = hum !== null ? hum.toFixed(0) + '%' : '';
+    const humStr  = hum !== null ? hum.toFixed(0) + '%' : '—';
 
     const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / (maxT - minT) * 100));
     const humPct  = hum !== null ? Math.max(0, Math.min(100, hum)) : 0;
 
-    /* ── SVG gauge math ── */
+    /* ── SVG gauge geometry ── */
     const CX = 100, CY = 90;
-    const R1 = 74,  SW1 = 13;  // temp ring
-    const R2 = 54,  SW2 = 10;  // hum ring
-    const FRAC = 0.75;          // 270° / 360°
+    const R1 = 74, SW1 = 13;   // temp ring
+    const R2 = 54, SW2 = 10;   // hum ring
+    const FRAC = 0.75;          // 270°
 
-    const C1 = 2 * Math.PI * R1,  ARC1 = FRAC * C1;
-    const C2 = 2 * Math.PI * R2,  ARC2 = FRAC * C2;
+    const C1 = 2 * Math.PI * R1, ARC1 = FRAC * C1;
+    const C2 = 2 * Math.PI * R2, ARC2 = FRAC * C2;
 
     const tempFillLen = isOffline ? 0 : (fillPct / 100) * ARC1;
     const humFillLen  = hum !== null ? (humPct / 100) * ARC2 : 0;
 
-    // Indicator dot — sits at the fill arc endpoint
-    const dotAngleRad = (135 + (isOffline ? 0 : (fillPct / 100) * 270)) * Math.PI / 180;
-    const dotX = CX + R1 * Math.cos(dotAngleRad);
-    const dotY = CY + R1 * Math.sin(dotAngleRad);
+    // Indicator dot — end of temp fill arc
+    const dotRad = (135 + (isOffline ? 0 : (fillPct / 100) * 270)) * Math.PI / 180;
+    const dotX = CX + R1 * Math.cos(dotRad);
+    const dotY = CY + R1 * Math.sin(dotRad);
 
-    // Tick marks at 25 / 50 / 75 % of range
+    // Tick marks at 25 / 50 / 75 % of temp range
     const _tick = pct => {
       const a  = (135 + pct * 270) * Math.PI / 180;
       const ri = R1 - SW1 / 2 - 1.5;
       const ro = R1 + SW1 / 2 + 2.5;
-      return `<line x1="${(CX + ri * Math.cos(a)).toFixed(1)}" y1="${(CY + ri * Math.sin(a)).toFixed(1)}"
-               x2="${(CX + ro * Math.cos(a)).toFixed(1)}" y2="${(CY + ro * Math.sin(a)).toFixed(1)}"
+      return `<line x1="${(CX+ri*Math.cos(a)).toFixed(1)}" y1="${(CY+ri*Math.sin(a)).toFixed(1)}"
+               x2="${(CX+ro*Math.cos(a)).toFixed(1)}" y2="${(CY+ro*Math.sin(a)).toFixed(1)}"
                stroke="rgba(255,255,255,0.14)" stroke-width="1" stroke-linecap="round"/>`;
     };
     const ticks = [0.25, 0.5, 0.75].map(_tick).join('');
 
-    // Min / max temp range labels — just outside ring at gauge endpoints
+    // Min / max labels just outside the ring
     const LR = R1 + SW1 / 2 + 9;
     const minA = 135 * Math.PI / 180;
-    const maxA = (135 + 270) * Math.PI / 180;  // = 45°
-    const minLX = (CX + LR * Math.cos(minA)).toFixed(1);
-    const minLY = (CY + LR * Math.sin(minA) + 3).toFixed(1);
-    const maxLX = (CX + LR * Math.cos(maxA)).toFixed(1);
-    const maxLY = (CY + LR * Math.sin(maxA) + 3).toFixed(1);
+    const maxA = (135 + 270) * Math.PI / 180;
     const fmtT = v => v === 0 ? '0°' : v > 0 ? `+${v}°` : `${v}°`;
 
-    /* ── Pills ── */
-    const pillDefs = {
-      frost:   { bg: 'rgba(90,200,250,0.14)', border: 'rgba(90,200,250,0.40)', color: '#5AC8FA' },
-      cold:    { bg: 'rgba(90,200,250,0.08)', border: 'rgba(90,200,250,0.22)', color: '#7dd4f8' },
-      comfort: { bg: 'rgba(48,209,88,0.12)',  border: 'rgba(48,209,88,0.30)',  color: '#30D158' },
-      warm:    { bg: 'rgba(255,159,10,0.12)', border: 'rgba(255,159,10,0.32)', color: '#FF9F0A' },
-      fire:    { bg: 'rgba(255,69,58,0.14)',  border: 'rgba(255,69,58,0.40)',  color: '#FF453A' },
-      offline: { bg: 'rgba(100,100,100,0.10)',border: 'rgba(100,100,100,0.22)',color: '#636366' },
-    };
+    // Tooltip shared rect geometry (centers in the ring opening)
+    const TT = { x: 61, y: 65, w: 78, h: 50, rx: 11 };
 
+    // Extreme-state arc glow
+    const useGlow = st.key === 'frost' || st.key === 'fire' || st.key === 'warm';
+
+    /* ── Humidity arc color description ── */
+    const humLabel = hum === null ? '—' : hum < 35 ? 'sucho' : hum < 66 ? 'komfort' : hum < 81 ? 'wilgotno' : 'b. wilgotno';
+
+    /* ── Pills — subtle state indicators ── */
+    const pillDefs = {
+      frost:   { bg: 'rgba(90,200,250,0.10)',  border: 'rgba(90,200,250,0.22)',  color: '#5AC8FA66' },
+      cold:    { bg: 'rgba(90,200,250,0.07)',  border: 'rgba(90,200,250,0.15)',  color: '#7dd4f866' },
+      comfort: { bg: 'rgba(48,209,88,0.08)',   border: 'rgba(48,209,88,0.18)',   color: '#30D15866' },
+      warm:    { bg: 'rgba(255,159,10,0.09)',  border: 'rgba(255,159,10,0.20)',  color: '#FF9F0A66' },
+      fire:    { bg: 'rgba(255,69,58,0.10)',   border: 'rgba(255,69,58,0.22)',   color: '#FF453A66' },
+      offline: { bg: 'rgba(100,100,100,0.07)', border: 'rgba(100,100,100,0.15)', color: '#63636666' },
+    };
     const pills = [];
     if (temp !== null) {
       const p = pillDefs[st.key] || pillDefs.offline;
       pills.push({ label: st.label, ...p });
     }
     if (hum !== null) {
-      if      (hum < 35) pills.push({ label: '🏜️ sucho',    bg: 'rgba(255,159,10,0.12)', border: 'rgba(255,159,10,0.35)', color: '#FF9F0A' });
-      else if (hum >= 81) pills.push({ label: '💦 wilgotno', bg: 'rgba(10,132,255,0.12)', border: 'rgba(10,132,255,0.30)', color: '#0A84FF' });
+      if      (hum < 35)  pills.push({ label: '🏜️ sucho',    bg: 'rgba(255,159,10,0.08)', border: 'rgba(255,159,10,0.18)', color: '#FF9F0A66' });
+      else if (hum >= 81) pills.push({ label: '💦 wilgotno', bg: 'rgba(10,132,255,0.08)', border: 'rgba(10,132,255,0.18)', color: '#0A84FF66' });
     }
-
     const pillsHTML = pills.map(p =>
       `<span class="pill" style="background:${p.bg};border-color:${p.border};color:${p.color}">${p.label}</span>`
     ).join('');
@@ -7862,8 +7861,21 @@ class AhaTempGaugeCard extends HTMLElement {
         </div>`;
     })();
 
-    /* ── Arc glow filter (only for extreme states) ── */
-    const useGlow = st.key === 'frost' || st.key === 'fire' || st.key === 'warm';
+    /* ── SVG tooltip helper ── */
+    const _tooltip = (label, valStr, valColor) => `
+      <g class="arc-tooltip" pointer-events="none">
+        <rect x="${TT.x}" y="${TT.y}" width="${TT.w}" height="${TT.h}" rx="${TT.rx}"
+          fill="rgba(14,14,18,0.93)" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
+        <text x="${CX}" y="${CY - 9}"
+          text-anchor="middle" dominant-baseline="central"
+          font-family="-apple-system,system-ui,sans-serif"
+          font-size="8.5" font-weight="500" fill="rgba(255,255,255,0.40)">${label}</text>
+        <text x="${CX}" y="${CY + 11}"
+          text-anchor="middle" dominant-baseline="central"
+          font-family="-apple-system,system-ui,sans-serif"
+          font-size="22" font-weight="700" letter-spacing="-1"
+          fill="${valColor}">${valStr}</text>
+      </g>`;
 
     this.shadowRoot.innerHTML = `
 <style>
@@ -7872,16 +7884,12 @@ class AhaTempGaugeCard extends HTMLElement {
   .card {
     width: 100%; height: 100%;
     border-radius: 20px;
-    padding: 12px 12px 10px;
+    padding: 12px 12px 8px;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
+    display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
     font-family: -apple-system, system-ui, sans-serif;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    cursor: default;
+    -webkit-tap-highlight-color: transparent; user-select: none; cursor: default;
     background: ${st.cardBg};
     border: 1px solid ${st.cardBorder};
     transition: background 0.5s ease, border-color 0.5s ease, transform 0.15s ease;
@@ -7890,317 +7898,291 @@ class AhaTempGaugeCard extends HTMLElement {
 
   .bg-glow {
     position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    background: ${st.glowCss || 'none'};
-    transition: background 0.5s ease;
+    background: ${st.glowCss || 'none'}; transition: background 0.5s ease;
   }
 
-  /* ── frost animation ── */
-  @keyframes frost-pulse {
-    0%, 100% { opacity: 0.55; }
-    50%       { opacity: 1; }
-  }
-  @keyframes frost-arc {
-    0%, 100% { filter: url(#arc-glow-${uid}) brightness(1); }
-    50%       { filter: url(#arc-glow-${uid}) brightness(1.25) saturate(1.3); }
-  }
-  @keyframes frost-dot {
-    0%, 100% { r: 5; opacity: 0.9; }
-    50%       { r: 6.5; opacity: 1; }
-  }
-  @keyframes frost-card {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(90,200,250,0); }
-    50%       { box-shadow: 0 0 22px 3px rgba(90,200,250,0.18); }
-  }
+  /* ── frost ── */
+  @keyframes frost-pulse  { 0%,100%{opacity:.55} 50%{opacity:1} }
+  @keyframes frost-card   { 0%,100%{box-shadow:0 0 0 0 rgba(90,200,250,0)} 50%{box-shadow:0 0 22px 3px rgba(90,200,250,.18)} }
+  @keyframes frost-arc    { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.28) saturate(1.3)} }
+  @keyframes frost-dot    { 0%,100%{opacity:.9} 50%{opacity:1;filter:brightness(1.4)} }
 
-  /* ── fire animation ── */
-  @keyframes fire-arc {
-    0%,100% { filter: url(#arc-glow-${uid}) brightness(1)   saturate(1);   opacity: 0.92; }
-    33%      { filter: url(#arc-glow-${uid}) brightness(1.3) saturate(1.4); opacity: 1;    }
-    66%      { filter: url(#arc-glow-${uid}) brightness(0.9) saturate(0.9); opacity: 0.85; }
-  }
-  @keyframes fire-card {
-    0%, 100% { box-shadow: 0 0  0px 0px rgba(255,69,58,0);    }
-    50%       { box-shadow: 0 0 28px 4px rgba(255,80,20,0.22); }
-  }
-  @keyframes fire-shimmer {
-    0%, 100% { opacity: 0.6; transform: scaleY(1);    }
-    50%       { opacity: 1;   transform: scaleY(1.06); }
-  }
+  /* ── fire ── */
+  @keyframes fire-card    { 0%,100%{box-shadow:0 0 0 0 rgba(255,69,58,0)} 50%{box-shadow:0 0 26px 4px rgba(255,80,20,.22)} }
+  @keyframes fire-arc     { 0%,100%{filter:brightness(1) saturate(1);opacity:.92} 33%{filter:brightness(1.3) saturate(1.4);opacity:1} 66%{filter:brightness(.88);opacity:.84} }
+  @keyframes fire-shimmer { 0%,100%{opacity:.6;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(1.06)} }
 
   .card.frost { animation: frost-card 3.5s ease-in-out infinite; }
   .card.fire  { animation: fire-card  2.5s ease-in-out infinite; }
-
   .card.frost .arc-temp-fill { animation: frost-arc 3.5s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.2s ease-in-out infinite; }
   .card.frost .dot-outer     { animation: frost-dot 3.5s ease-in-out infinite; }
 
-  /* ── frost overlay: ice crystals ── */
   .frost-overlay {
-    display: none; position: absolute; inset: 0; z-index: 1;
-    pointer-events: none; border-radius: 19px; overflow: hidden;
+    display:none; position:absolute; inset:0; z-index:1;
+    pointer-events:none; border-radius:19px; overflow:hidden;
   }
-  .card.frost .frost-overlay { display: block; animation: frost-pulse 3.5s ease-in-out infinite; }
+  .card.frost .frost-overlay { display:block; animation: frost-pulse 3.5s ease-in-out infinite; }
 
-  /* ── fire overlay: heat shimmer ── */
   .fire-overlay {
-    display: none; position: absolute; inset: 0; z-index: 1;
-    pointer-events: none; border-radius: 19px; overflow: hidden;
+    display:none; position:absolute; inset:0; z-index:1;
+    pointer-events:none; border-radius:19px; overflow:hidden;
   }
-  .card.fire .fire-overlay { display: block; animation: fire-shimmer 2.5s ease-in-out infinite; }
+  .card.fire .fire-overlay { display:block; animation: fire-shimmer 2.5s ease-in-out infinite; }
 
   /* ── header ── */
   .header {
-    display: flex; align-items: center; gap: 8px;
-    flex-shrink: 0; position: relative; z-index: 5;
+    display:flex; align-items:center; gap:8px;
+    flex-shrink:0; position:relative; z-index:5;
   }
   .icon-wrap {
-    width: 28px; height: 28px; border-radius: 8px;
-    background: ${st.iconBg};
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px; flex-shrink: 0;
-    transition: background 0.5s ease;
+    width:28px; height:28px; border-radius:8px;
+    background:${st.iconBg}; display:flex; align-items:center; justify-content:center;
+    font-size:15px; flex-shrink:0; transition:background .5s ease;
   }
   .room-name {
-    font-size: 11px; font-weight: 600; color: #a1a1a6;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    flex: 1; min-width: 0; letter-spacing: 0.02em;
+    font-size:11px; font-weight:600; color:#a1a1a6;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    flex:1; min-width:0; letter-spacing:.02em;
   }
-
-  /* ── battery ── */
-  .bat { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .bat { display:flex; align-items:center; gap:4px; flex-shrink:0; }
   .bat-pct {
-    font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.8);
-    background: rgba(28,28,30,0.92);
-    border: 0.5px solid rgba(255,255,255,0.14);
-    border-radius: 4px; padding: 1px 4px;
-    opacity: 0; pointer-events: none; transition: opacity 0.15s; backdrop-filter: blur(8px);
+    font-size:9px; font-weight:600; color:rgba(255,255,255,.8);
+    background:rgba(28,28,30,.92); border:.5px solid rgba(255,255,255,.14);
+    border-radius:4px; padding:1px 4px;
+    opacity:0; pointer-events:none; transition:opacity .15s; backdrop-filter:blur(8px);
   }
-  .bat:hover .bat-pct { opacity: 1; }
+  .bat:hover .bat-pct { opacity:1; }
 
-  /* ── gauge area ── */
+  /* ── gauge ── */
   .gauge-wrap {
-    flex: 1; min-height: 0;
-    display: flex; align-items: center; justify-content: center;
-    position: relative; z-index: 2;
-    margin-top: 4px;
+    flex:1; min-height:0;
+    display:flex; align-items:center; justify-content:center;
+    position:relative; z-index:2; margin-top:4px;
   }
-  .gauge-svg { width: 100%; height: 100%; overflow: visible; }
+  .gauge-svg { width:100%; height:100%; overflow:visible; cursor:default; }
 
-  /* SVG text (referenced as class in SVG, styled here) */
-  .temp-text {
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 26px; font-weight: 700; letter-spacing: -1px;
-    fill: ${st.tempColor}; transition: fill 0.5s ease;
-    cursor: pointer;
+  /* ── arc hover: highlight + tooltip ── */
+  .arc-tooltip {
+    opacity:0; transition:opacity .18s ease;
+    pointer-events:none;
   }
-  .hum-text {
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 12px; font-weight: 500;
-    fill: ${humCol}; transition: fill 0.4s ease;
-    cursor: ${cfg.humidity_entity ? 'pointer' : 'default'};
+  /* show tooltip + dim the center temp value */
+  .gauge-svg:has(#g-temp:hover) .arc-tooltip-temp,
+  .gauge-svg:has(#g-hum:hover)  .arc-tooltip-hum  { opacity:1; }
+  .gauge-svg:has(#g-temp:hover) .center-val,
+  .gauge-svg:has(#g-hum:hover)  .center-val        { opacity:0; }
+
+  /* arc fill brightens on hover */
+  #g-temp .arc-temp-fill, #g-hum .arc-hum-fill { transition: filter .2s ease; }
+  #g-temp:hover .arc-temp-fill { filter:brightness(1.35) saturate(1.15) !important; }
+  #g-hum:hover  .arc-hum-fill  { filter:brightness(1.35) saturate(1.15); }
+
+  /* arc track subtly brightens on hover */
+  #g-temp:hover .arc-track-temp,
+  #g-hum:hover  .arc-track-hum  { filter:brightness(2.5); }
+
+  /* SVG text classes */
+  .center-val {
+    font-family:-apple-system,system-ui,sans-serif;
+    font-size:30px; font-weight:700; letter-spacing:-1.5px;
+    fill:${st.tempColor}; transition:opacity .18s ease;
+    cursor:pointer;
   }
   .range-text {
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 8px; font-weight: 500; fill: rgba(255,255,255,0.2);
+    font-family:-apple-system,system-ui,sans-serif;
+    font-size:8px; font-weight:500; fill:rgba(255,255,255,.2);
   }
 
   /* ── pills ── */
   .pills {
-    display: flex; align-items: center; justify-content: center;
-    gap: 5px; flex-wrap: wrap; flex-shrink: 0;
-    position: relative; z-index: 5;
-    margin-top: 6px;
-    min-height: 20px;
+    display:flex; align-items:center; justify-content:center;
+    gap:4px; flex-wrap:wrap; flex-shrink:0;
+    position:relative; z-index:5; margin-top:4px; min-height:16px;
   }
   .pill {
-    display: inline-flex; align-items: center;
-    padding: 3px 8px; border-radius: 99px;
-    border: 1px solid;
-    font-size: 9.5px; font-weight: 600; letter-spacing: 0.01em;
-    white-space: nowrap; backdrop-filter: blur(8px);
+    display:inline-flex; align-items:center;
+    padding:1px 6px; border-radius:99px; border:.5px solid;
+    font-size:8px; font-weight:500; letter-spacing:.01em;
+    white-space:nowrap; opacity:.75;
   }
 </style>
 
 <div class="card ${st.key}">
   <div class="bg-glow"></div>
 
-  <!-- frost crystal overlay -->
   <div class="frost-overlay">
     <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet">
-      <path d="M0,0 Q20,30 0,62" stroke="rgba(140,210,255,0.28)" stroke-width="1.3" fill="none"/>
-      <path d="M0,0 Q34,14 68,0" stroke="rgba(140,210,255,0.28)" stroke-width="1.3" fill="none"/>
-      <path d="M0,0 Q28,28 48,48" stroke="rgba(140,210,255,0.18)" stroke-width="1" fill="none"/>
-      <line x1="22" y1="22" x2="22" y2="42" stroke="rgba(170,230,255,0.60)" stroke-width="1.3"/>
-      <line x1="12" y1="32" x2="32" y2="32" stroke="rgba(170,230,255,0.60)" stroke-width="1.3"/>
-      <line x1="15" y1="25" x2="29" y2="39" stroke="rgba(170,230,255,0.30)" stroke-width="1"/>
-      <line x1="29" y1="25" x2="15" y2="39" stroke="rgba(170,230,255,0.30)" stroke-width="1"/>
-      <line x1="48" y1="11" x2="48" y2="25" stroke="rgba(170,230,255,0.38)" stroke-width="1"/>
-      <line x1="41" y1="18" x2="55" y2="18" stroke="rgba(170,230,255,0.38)" stroke-width="1"/>
-      <circle cx="8"   cy="8"  r="1.6" fill="rgba(210,245,255,0.70)"/>
-      <circle cx="30"  cy="7"  r="1.1" fill="rgba(210,245,255,0.52)"/>
-      <circle cx="6"   cy="36" r="1.3" fill="rgba(210,245,255,0.48)"/>
-      <circle cx="50"  cy="6"  r="1.0" fill="rgba(210,245,255,0.42)"/>
-      <circle cx="11"  cy="55" r="1.1" fill="rgba(210,245,255,0.36)"/>
-      <circle cx="70"  cy="10" r="0.9" fill="rgba(210,245,255,0.30)"/>
+      <path d="M0,0 Q20,30 0,62"  stroke="rgba(140,210,255,.28)" stroke-width="1.3" fill="none"/>
+      <path d="M0,0 Q34,14 68,0"  stroke="rgba(140,210,255,.28)" stroke-width="1.3" fill="none"/>
+      <path d="M0,0 Q28,28 48,48" stroke="rgba(140,210,255,.18)" stroke-width="1"   fill="none"/>
+      <line x1="22" y1="22" x2="22" y2="42" stroke="rgba(170,230,255,.60)" stroke-width="1.3"/>
+      <line x1="12" y1="32" x2="32" y2="32" stroke="rgba(170,230,255,.60)" stroke-width="1.3"/>
+      <line x1="15" y1="25" x2="29" y2="39" stroke="rgba(170,230,255,.30)" stroke-width="1"/>
+      <line x1="29" y1="25" x2="15" y2="39" stroke="rgba(170,230,255,.30)" stroke-width="1"/>
+      <line x1="48" y1="11" x2="48" y2="25" stroke="rgba(170,230,255,.38)" stroke-width="1"/>
+      <line x1="41" y1="18" x2="55" y2="18" stroke="rgba(170,230,255,.38)" stroke-width="1"/>
+      <circle cx="8"  cy="8"  r="1.6" fill="rgba(210,245,255,.70)"/>
+      <circle cx="30" cy="7"  r="1.1" fill="rgba(210,245,255,.52)"/>
+      <circle cx="6"  cy="36" r="1.3" fill="rgba(210,245,255,.48)"/>
+      <circle cx="50" cy="6"  r="1.0" fill="rgba(210,245,255,.42)"/>
+      <circle cx="11" cy="55" r="1.1" fill="rgba(210,245,255,.36)"/>
+      <circle cx="70" cy="10" r="0.9" fill="rgba(210,245,255,.30)"/>
     </svg>
   </div>
 
-  <!-- fire heat-shimmer overlay -->
   <div class="fire-overlay">
     <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>
-        <radialGradient id="heat-rg-${uid}" cx="50%" cy="100%" r="65%">
-          <stop offset="0%"   stop-color="rgba(255,90,0,0.24)"/>
-          <stop offset="55%"  stop-color="rgba(200,40,0,0.08)"/>
+        <radialGradient id="hr-${uid}" cx="50%" cy="100%" r="65%">
+          <stop offset="0%"   stop-color="rgba(255,90,0,.24)"/>
+          <stop offset="55%"  stop-color="rgba(200,40,0,.08)"/>
           <stop offset="100%" stop-color="transparent"/>
         </radialGradient>
       </defs>
-      <rect width="200" height="200" fill="url(#heat-rg-${uid})"/>
+      <rect width="200" height="200" fill="url(#hr-${uid})"/>
     </svg>
   </div>
 
   ${batHTML}
 
-  <!-- header: icon + name -->
   <div class="header">
     <div class="icon-wrap">${icon}</div>
     <div class="room-name">${name}</div>
   </div>
 
-  <!-- gauge SVG -->
   <div class="gauge-wrap">
     <svg class="gauge-svg" viewBox="0 0 200 166" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <!-- Temperature arc gradient (bottom→top of arc direction) -->
-        <linearGradient id="tg-${uid}" x1="0" y1="1" x2="1" y2="0" gradientUnits="objectBoundingBox">
+        <linearGradient id="tg-${uid}" x1="0" y1="1" x2="1" y2="0">
           <stop offset="0%"   stop-color="${st.arcG1}"/>
           <stop offset="100%" stop-color="${st.arcG0}"/>
         </linearGradient>
-
-        <!-- Arc glow filter for extreme states -->
         <filter id="arc-glow-${uid}" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="4" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
-
-        <!-- Dot glow filter -->
         <filter id="dot-glow-${uid}" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="3" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
+          <feGaussianBlur stdDeviation="3" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
-
-        <!-- Subtle inner center glow -->
-        <radialGradient id="center-rg-${uid}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stop-color="${isOffline ? 'transparent' : st.arcG1 + '22'}"/>
+        <radialGradient id="cg-${uid}" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="${isOffline ? 'transparent' : st.arcG1 + '1a'}"/>
           <stop offset="100%" stop-color="transparent"/>
         </radialGradient>
       </defs>
 
-      <!-- ── Center ambient glow ── -->
-      <circle cx="${CX}" cy="${CY}" r="${R2 - SW2 / 2 - 4}"
-        fill="url(#center-rg-${uid})"/>
+      <!-- center ambient glow -->
+      <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- ── Outer temp track ── -->
-      <circle cx="${CX}" cy="${CY}" r="${R1}"
-        fill="none"
-        stroke="rgba(255,255,255,0.055)"
-        stroke-width="${SW1}"
-        stroke-dasharray="${ARC1.toFixed(2)} ${C1.toFixed(2)}"
-        stroke-linecap="round"
-        transform="rotate(135, ${CX}, ${CY})"/>
+      <!-- ── temp VALUE — shown when no arc is hovered ── -->
+      <text id="temp-hit" class="center-val"
+        x="${CX}" y="${CY}"
+        text-anchor="middle" dominant-baseline="central">${tempStr}</text>
 
-      <!-- ── Outer temp fill ── -->
-      ${tempFillLen > 0.5 ? `
-      <circle class="arc-temp-fill" cx="${CX}" cy="${CY}" r="${R1}"
-        fill="none"
-        stroke="url(#tg-${uid})"
-        stroke-width="${SW1}"
-        stroke-dasharray="${tempFillLen.toFixed(2)} ${C1.toFixed(2)}"
-        stroke-linecap="round"
-        transform="rotate(135, ${CX}, ${CY})"
-        ${useGlow ? `filter="url(#arc-glow-${uid})"` : ''}/>
-      ` : ''}
+      <!-- ══ TEMP ARC GROUP — hover triggers tooltip ══ -->
+      <g id="g-temp">
 
-      <!-- ── Tick marks at 25 / 50 / 75 % ── -->
-      ${ticks}
+        <!-- track -->
+        <circle class="arc-track-temp" cx="${CX}" cy="${CY}" r="${R1}"
+          fill="none" stroke="rgba(255,255,255,0.055)" stroke-width="${SW1}"
+          stroke-dasharray="${ARC1.toFixed(2)} ${C1.toFixed(2)}"
+          stroke-linecap="round" transform="rotate(135,${CX},${CY})"/>
 
-      <!-- ── Inner hum track ── -->
-      <circle cx="${CX}" cy="${CY}" r="${R2}"
-        fill="none"
-        stroke="rgba(255,255,255,0.040)"
-        stroke-width="${SW2}"
-        stroke-dasharray="${ARC2.toFixed(2)} ${C2.toFixed(2)}"
-        stroke-linecap="round"
-        transform="rotate(135, ${CX}, ${CY})"/>
+        <!-- fill -->
+        ${tempFillLen > 0.5 ? `
+        <circle class="arc-temp-fill" cx="${CX}" cy="${CY}" r="${R1}"
+          fill="none" stroke="url(#tg-${uid})" stroke-width="${SW1}"
+          stroke-dasharray="${tempFillLen.toFixed(2)} ${C1.toFixed(2)}"
+          stroke-linecap="round" transform="rotate(135,${CX},${CY})"
+          ${useGlow ? `filter="url(#arc-glow-${uid})"` : ''}/>
+        ` : ''}
 
-      <!-- ── Inner hum fill ── -->
-      ${humFillLen > 0.5 ? `
-      <circle cx="${CX}" cy="${CY}" r="${R2}"
-        fill="none"
-        stroke="${humCol}"
-        stroke-width="${SW2}"
-        stroke-dasharray="${humFillLen.toFixed(2)} ${C2.toFixed(2)}"
-        stroke-linecap="round"
-        stroke-opacity="0.88"
-        transform="rotate(135, ${CX}, ${CY})"/>
-      ` : ''}
+        <!-- tick marks -->
+        ${ticks}
 
-      <!-- ── Indicator dot at end of temp fill arc ── -->
+        <!-- invisible hit area (full 270° arc, wider stroke) -->
+        <circle cx="${CX}" cy="${CY}" r="${R1}"
+          fill="none" stroke="rgba(255,255,255,0.005)" stroke-width="24"
+          stroke-dasharray="${ARC1.toFixed(2)} ${C1.toFixed(2)}"
+          stroke-linecap="round" transform="rotate(135,${CX},${CY})"
+          cursor="pointer" pointer-events="stroke"/>
+
+        <!-- tooltip: Temperatura -->
+        ${_tooltip('Temperatura', tempStr, st.tempColor).replace('class="arc-tooltip"', 'class="arc-tooltip arc-tooltip-temp"')}
+      </g>
+
+      <!-- ══ HUM ARC GROUP — hover triggers tooltip ══ -->
+      <g id="g-hum">
+
+        <!-- track -->
+        <circle class="arc-track-hum" cx="${CX}" cy="${CY}" r="${R2}"
+          fill="none" stroke="rgba(255,255,255,0.040)" stroke-width="${SW2}"
+          stroke-dasharray="${ARC2.toFixed(2)} ${C2.toFixed(2)}"
+          stroke-linecap="round" transform="rotate(135,${CX},${CY})"/>
+
+        <!-- fill -->
+        ${humFillLen > 0.5 ? `
+        <circle class="arc-hum-fill" cx="${CX}" cy="${CY}" r="${R2}"
+          fill="none" stroke="${humCol}" stroke-width="${SW2}"
+          stroke-dasharray="${humFillLen.toFixed(2)} ${C2.toFixed(2)}"
+          stroke-linecap="round" stroke-opacity="0.88"
+          transform="rotate(135,${CX},${CY})"/>
+        ` : ''}
+
+        <!-- invisible hit area -->
+        <circle cx="${CX}" cy="${CY}" r="${R2}"
+          fill="none" stroke="rgba(255,255,255,0.005)" stroke-width="20"
+          stroke-dasharray="${ARC2.toFixed(2)} ${C2.toFixed(2)}"
+          stroke-linecap="round" transform="rotate(135,${CX},${CY})"
+          cursor="pointer" pointer-events="stroke"/>
+
+        <!-- tooltip: Wilgotność -->
+        ${_tooltip('Wilgotność ' + humLabel, humStr, humCol).replace('class="arc-tooltip"', 'class="arc-tooltip arc-tooltip-hum"')}
+      </g>
+
+      <!-- ── indicator dot ── -->
       ${!isOffline && tempFillLen > 3 ? `
       <circle class="dot-outer" cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="5"
-        fill="${st.arcG0}" opacity="0.85"
-        filter="url(#dot-glow-${uid})"/>
+        fill="${st.arcG0}" opacity="0.85" filter="url(#dot-glow-${uid})"/>
       <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="2.8"
         fill="rgba(255,255,255,0.95)"/>
       ` : ''}
 
-      <!-- ── Min / max range labels ── -->
-      <text x="${minLX}" y="${minLY}" text-anchor="end"   class="range-text">${fmtT(minT)}</text>
-      <text x="${maxLX}" y="${maxLY}" text-anchor="start" class="range-text">${fmtT(maxT)}</text>
-
-      <!-- ── Temperature value (center, large) ── -->
-      <text id="temp-hit"
-        x="${CX}" y="${hum !== null ? CY - 4 : CY + 6}"
-        text-anchor="middle" dominant-baseline="central"
-        class="temp-text">${tempStr}</text>
-
-      <!-- ── Humidity value (center, below temp) ── -->
-      ${hum !== null ? `
-      <text id="hum-hit"
-        x="${CX}" y="${CY + 16}"
-        text-anchor="middle" dominant-baseline="central"
-        class="hum-text">💧 ${humStr}</text>
-      ` : ''}
+      <!-- ── range labels ── -->
+      <text x="${(CX + LR * Math.cos(minA)).toFixed(1)}" y="${(CY + LR * Math.sin(minA) + 3).toFixed(1)}"
+        text-anchor="end" class="range-text">${fmtT(minT)}</text>
+      <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
+        text-anchor="start" class="range-text">${fmtT(maxT)}</text>
     </svg>
   </div>
 
-  <!-- alert pills -->
   <div class="pills">${pillsHTML}</div>
 </div>`;
 
     /* click → more-info */
-    this.shadowRoot.getElementById('temp-hit')?.addEventListener('click', () => {
+    this.shadowRoot.getElementById('g-temp')?.addEventListener('click', () => {
       this.dispatchEvent(new CustomEvent('hass-more-info', {
         bubbles: true, composed: true,
-        detail: { entityId: this._config.temp_entity },
+        detail: { entityId: cfg.temp_entity },
       }));
     });
-
     if (cfg.humidity_entity) {
-      this.shadowRoot.getElementById('hum-hit')?.addEventListener('click', e => {
+      this.shadowRoot.getElementById('g-hum')?.addEventListener('click', e => {
         e.stopPropagation();
         this.dispatchEvent(new CustomEvent('hass-more-info', {
           bubbles: true, composed: true,
-          detail: { entityId: this._config.humidity_entity },
+          detail: { entityId: cfg.humidity_entity },
         }));
       });
     }
+    /* temp text click (fallback when center visible) */
+    this.shadowRoot.getElementById('temp-hit')?.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true, composed: true,
+        detail: { entityId: cfg.temp_entity },
+      }));
+    });
   }
 
   getCardSize() { return 3; }
@@ -8215,5 +8197,5 @@ window.customCards.push({
   type:        'aha-temp-gauge-card',
   name:        'AHA Temp Gauge Card',
   preview:     false,
-  description: 'Podwójny gauge (łuk): temperatura na zewnątrz, wilgotność wewnątrz. Apple Home dark glassmorphism, animacje mróz/upał, alerty jako pill.',
+  description: 'Podwójny gauge (łuk): temperatura na zewnątrz, wilgotność wewnątrz. Hover = tooltip z wartością. Apple Home dark glassmorphism.',
 });
