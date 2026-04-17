@@ -11,7 +11,6 @@ styles:
     - padding: "0"
     - background: "#1C1C1E"
     - border-radius: 16px
-    - overflow: hidden
     - border: |
         [[[
           const s = entity.state;
