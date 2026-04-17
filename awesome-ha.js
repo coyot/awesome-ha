@@ -7374,7 +7374,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
 <style>
-  :host { display: block; width: 100%; height: 100%; }
+  :host { display: block; width: 100%; height: 100%; position: relative; }
 
   .card {
     width: 100%; height: 100%;
@@ -7705,11 +7705,11 @@ class AhaTempGaugeCard extends HTMLElement {
 
   <!-- ROOM NAME: HTML element at bottom -->
   <div class="room-name">${name}</div>
+</div>
 
-  <!-- tooltips: bezpośrednio w card div, z-index 100 — ponad wszystkim -->
-  ${_ttHtml('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
-  ${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
-</div>`;
+<!-- tooltips poza .card — nie są obcięte przez overflow:hidden, pozycjonowane względem :host -->
+${_ttHtml('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
+${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}`;
 
     /* click → more-info */
     this.shadowRoot.getElementById('g-temp')?.addEventListener('click', () => {
