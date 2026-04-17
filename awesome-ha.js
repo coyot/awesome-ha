@@ -7349,22 +7349,12 @@ class AhaTempGaugeCard extends HTMLElement {
     // Humidity zone label
     const humZone = hum === null ? '' : hum < 35 ? 'sucho' : hum < 66 ? 'komfort' : hum < 81 ? 'wilgotno' : 'b. wilgotno';
 
-    /* ── SVG tooltip helper ── */
-    const TT = { x: 61, y: 63, w: 78, h: 54, rx: 11 };
-    const _tooltip = (label, valStr, valColor, cls) => `
-      <g class="${cls}" pointer-events="none">
-        <rect x="${TT.x}" y="${TT.y}" width="${TT.w}" height="${TT.h}" rx="${TT.rx}"
-          fill="rgba(12,12,16,0.94)" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
-        <text x="${CX}" y="${CY - 10}"
-          text-anchor="middle" dominant-baseline="central"
-          font-family="-apple-system,system-ui,sans-serif"
-          font-size="13" font-weight="500" fill="rgba(255,255,255,0.38)">${label}</text>
-        <text x="${CX}" y="${CY + 14}"
-          text-anchor="middle" dominant-baseline="central"
-          font-family="-apple-system,system-ui,sans-serif"
-          font-size="26" font-weight="700" letter-spacing="-1"
-          fill="${valColor}">${valStr}</text>
-      </g>`;
+    /* ── HTML tooltip helper (nie SVG — CSS px nie skalują się z viewBox) ── */
+    const _ttHtml = (label, valStr, valColor, cls) => `
+      <div class="tt-box ${cls}">
+        <div class="tt-label">${label}</div>
+        <div class="tt-val" style="color:${valColor}">${valStr}</div>
+      </div>`;
 
     /* ── Battery ── */
     const batHTML = (() => {
@@ -7547,8 +7537,27 @@ class AhaTempGaugeCard extends HTMLElement {
     cursor: pointer;
   }
 
-  /* tooltips — opacity controlled by JS, rendered last in SVG for proper z-order */
-  .tt-temp, .tt-hum { opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+  /* ── HTML tooltips — absolutne nad gauge, nie skalują się z SVG viewBox ── */
+  .tt-box {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10,10,14,0.93);
+    border: 0.5px solid rgba(255,255,255,0.13);
+    border-radius: 16px; padding: 10px 18px;
+    text-align: center; pointer-events: none;
+    opacity: 0; transition: opacity .18s ease;
+    backdrop-filter: blur(10px); z-index: 10;
+    white-space: nowrap;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+  .tt-label {
+    font-size: 11px; font-weight: 500;
+    color: rgba(255,255,255,0.45); margin-bottom: 6px;
+  }
+  .tt-val {
+    font-size: 32px; font-weight: 700;
+    letter-spacing: -1px; line-height: 1;
+  }
 
   .range-text {
     font-family: -apple-system,system-ui,sans-serif;
@@ -7692,10 +7701,9 @@ class AhaTempGaugeCard extends HTMLElement {
       <text x="${(CX + LR * Math.cos(maxA)).toFixed(1)}" y="${(CY + LR * Math.sin(maxA) + 3).toFixed(1)}"
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
-      <!-- tooltips — LAST in SVG for correct z-order -->
-      ${_tooltip('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
-      ${_tooltip('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
     </svg>
+    ${_ttHtml('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
+    ${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
   </div>
 
   <!-- ROOM NAME: HTML element at bottom -->
