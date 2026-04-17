@@ -7537,26 +7537,25 @@ class AhaTempGaugeCard extends HTMLElement {
     cursor: pointer;
   }
 
-  /* ── HTML tooltips — absolutne nad gauge, nie skalują się z SVG viewBox ── */
+  /* ── HTML tooltips — absolutne w card div (nie w gauge-wrap), z-index 100 ── */
   .tt-box {
     position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(10,10,14,0.93);
+    transform: translate(-50%, -60%);
+    background: rgba(10,10,14,0.96);
     border: 0.5px solid rgba(255,255,255,0.13);
-    border-radius: 16px; padding: 10px 18px;
+    border-radius: 14px; padding: 8px 14px;
     text-align: center; pointer-events: none;
     opacity: 0; transition: opacity .18s ease;
-    backdrop-filter: blur(10px); z-index: 10;
-    white-space: nowrap;
+    z-index: 100; white-space: nowrap;
     font-family: -apple-system, system-ui, sans-serif;
   }
   .tt-label {
-    font-size: 11px; font-weight: 500;
-    color: rgba(255,255,255,0.45); margin-bottom: 6px;
+    font-size: 10px; font-weight: 500;
+    color: rgba(255,255,255,0.42); margin-bottom: 4px;
   }
   .tt-val {
-    font-size: 32px; font-weight: 700;
-    letter-spacing: -1px; line-height: 1;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.5px; line-height: 1;
   }
 
   .range-text {
@@ -7702,12 +7701,14 @@ class AhaTempGaugeCard extends HTMLElement {
         text-anchor="start" class="range-text">${fmtT(maxT)}</text>
 
     </svg>
-    ${_ttHtml('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
-    ${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
   </div>
 
   <!-- ROOM NAME: HTML element at bottom -->
   <div class="room-name">${name}</div>
+
+  <!-- tooltips: bezpośrednio w card div, z-index 100 — ponad wszystkim -->
+  ${_ttHtml('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
+  ${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}
 </div>`;
 
     /* click → more-info */
