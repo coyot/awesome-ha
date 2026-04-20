@@ -2054,8 +2054,9 @@ class SzamboAppleCard extends HTMLElement {
       ? '<path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>'
       : '<path d="M12 2L1 21h22L12 2zm0 3l8.5 14.5h-17L12 5zm-1 6v4h2v-4h-2zm0 6v2h2v-2h-2z"/>';
 
-    const d2pct   = pct(d2);
-    const d1pct   = pct(d1);
+    // Zbiornik wizualizuje tylko zużycie szamba (nie ogrodu — ogród nie wpada do zbiornika)
+    const d2pct   = pct(d2sz);
+    const d1pct   = pct(d1sz);
     const emptPct = Math.max(0, 100 - d1pct - d2pct);
 
     this.shadowRoot.innerHTML = `
