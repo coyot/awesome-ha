@@ -9473,7 +9473,7 @@ window.customCards.push({
  * OFF → identyczny styl z kontaktron-card (closed): ciemny, wyciszony, brak animacji
  * ON  → żółty glow, pulsowanie, ikona z drop-shadow — jak dotychczasowy switch_socket.yaml
  *
- * Tap: toggle | Hold (500ms): more-info
+ * Tap: action sheet (Włącz / Wyłącz) | Hold (500ms): more-info
  *
  * Config:
  *   entity:  (required) switch.* | input_boolean.*
@@ -9482,7 +9482,7 @@ window.customCards.push({
  */
 
 const SW_STYLES = `
-  :host { display: block; width: 100%; height: 100%; }
+  :host { display: block; width: 100%; height: 100%; position: relative; }
 
   @keyframes sw-pulse {
     0%,100% { box-shadow: 0 0 0 0   rgba(255,214,10,0); }
@@ -9560,6 +9560,32 @@ const SW_STYLES = `
     transition: color .4s ease;
   }
   .on .name { color: rgba(255,255,255,0.90); }
+
+  /* ── Action sheet overlay ── */
+  .action-sheet {
+    position: absolute; inset: 0; border-radius: 20px;
+    background: rgba(0,0,0,0.68);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s ease;
+    z-index: 10;
+  }
+  .action-sheet.open { opacity: 1; pointer-events: all; }
+
+  .act-btn {
+    width: 78%; padding: 9px 0;
+    border-radius: 11px; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    font-family: -apple-system, system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .1s ease;
+  }
+  .act-btn:active { transform: scale(0.96); }
+  .act-on  { background: rgba(255,214,10,0.18); color: #FFD60A;
+              border: 1px solid rgba(255,214,10,0.30); }
+  .act-off { background: rgba(142,142,147,0.14); color: rgba(255,255,255,0.60);
+              border: 1px solid rgba(142,142,147,0.20); }
 `;
 
 /* ── Inline SVG icons ── */
@@ -9625,7 +9651,7 @@ class AhaSwitchSocketCard extends HTMLElement {
       <div class="name">—</div>
     `;
 
-    /* hold detection: 500ms → more-info, short tap → toggle */
+    /* hold detection: 500ms → more-info, short tap → action sheet */
     let holdTimer = null;
     let didHold = false;
     this._card.addEventListener('pointerdown', () => {
@@ -9634,9 +9660,23 @@ class AhaSwitchSocketCard extends HTMLElement {
     });
     this._card.addEventListener('pointerup',     () => clearTimeout(holdTimer));
     this._card.addEventListener('pointercancel', () => clearTimeout(holdTimer));
-    this._card.addEventListener('click', () => { if (!didHold) this._toggle(); });
+    this._card.addEventListener('click', () => { if (!didHold) this._showSheet(); });
 
     shadow.appendChild(this._card);
+
+    /* action sheet — sibling of card, poza overflow:hidden */
+    this._sheet = document.createElement('div');
+    this._sheet.className = 'action-sheet';
+    this._sheet.innerHTML = `
+      <button class="act-btn act-on">Włącz</button>
+      <button class="act-btn act-off">Wyłącz</button>
+    `;
+    this._sheet.addEventListener('click', e => {
+      if (e.target === this._sheet) this._hideSheet();       // klik na backdrop
+    });
+    this._sheet.querySelector('.act-on').addEventListener('click',  () => this._callService('turn_on'));
+    this._sheet.querySelector('.act-off').addEventListener('click', () => this._callService('turn_off'));
+    shadow.appendChild(this._sheet);
 
     this._iconEl  = shadow.querySelector('.icon-inner');
     this._stateEl = shadow.querySelector('.state-text');
@@ -9671,11 +9711,14 @@ class AhaSwitchSocketCard extends HTMLElement {
     }
   }
 
-  /* ── Actions ── */
-  _toggle() {
+  /* ── Action sheet ── */
+  _showSheet() { this._sheet?.classList.add('open'); }
+  _hideSheet() { this._sheet?.classList.remove('open'); }
+
+  _callService(service) {
     const entity = this._config.entity;
-    const domain = entity.split('.')[0];
-    this._hass.callService(domain, 'toggle', { entity_id: entity });
+    this._hass.callService(entity.split('.')[0], service, { entity_id: entity });
+    this._hideSheet();
   }
 
   _moreInfo() {
