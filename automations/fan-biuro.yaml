@@ -24,6 +24,19 @@
       target:
         entity_id: switch.biuro_wiatrak
 
+    - action: logbook.log
+      data:
+        name: "Wiatrak biuro"
+        entity_id: switch.biuro_wiatrak
+        message: >
+          WŁĄCZONO | temp {{ states('sensor.biuro_temperature') | round(1) }}°C > 26°C
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"wiatrak_biuro",
+          "akcja":"ON","info":"temp {{ states('sensor.biuro_temperature') | float(0) | round(1) }}°C"}
+
   mode: single
 
 - alias: "Wiatrak biuro – wyłącz (temperatura OK lub 22:00)"
@@ -47,5 +60,18 @@
     - service: switch.turn_off
       target:
         entity_id: switch.biuro_wiatrak
+
+    - action: logbook.log
+      data:
+        name: "Wiatrak biuro"
+        entity_id: switch.biuro_wiatrak
+        message: >
+          WYŁĄCZONO | {% if trigger.platform == 'time' %}22:00{% else %}temp {{ states('sensor.biuro_temperature') | round(1) }}°C ≤ 22°C{% endif %}
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"wiatrak_biuro",
+          "akcja":"OFF","info":"{% if trigger.platform == 'time' %}22:00{% else %}temp {{ states('sensor.biuro_temperature') | float(0) | round(1) }}°C{% endif %}"}
 
   mode: single
