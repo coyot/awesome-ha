@@ -1,0 +1,103 @@
+- alias: "Pokój dzieci – włącz chłodzenie przy upale"
+  description: >
+    Gdy temperatura w pokoju dzieci przekroczy 26°C w godzinach 10:00–18:30
+    i ktoś z rodziców jest w domu — włącz klimatyzację na cooling 21°C (max fan)
+    i zamknij roletę nr 8.
+
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.nenek_temperature
+      above: 26
+
+  condition:
+    - condition: time
+      after: "10:00:00"
+      before: "18:30:00"
+    - condition: or
+      conditions:
+        - condition: zone
+          entity_id: person.tk
+          zone: zone.home
+        - condition: zone
+          entity_id: person.monika
+          zone: zone.home
+    - condition: state
+      entity_id: climate.pokoj_leona
+      state: "off"
+
+  action:
+    - service: climate.set_hvac_mode
+      target:
+        entity_id: climate.pokoj_leona
+      data:
+        hvac_mode: cool
+
+    - service: climate.set_temperature
+      target:
+        entity_id: climate.pokoj_leona
+      data:
+        temperature: 21
+
+    - service: climate.set_fan_mode
+      target:
+        entity_id: climate.pokoj_leona
+      data:
+        fan_mode: high
+
+    - service: cover.close_cover
+      target:
+        entity_id: cover.rollershutter_0008
+
+    - action: logbook.log
+      data:
+        name: "Pokój dzieci – klimatyzacja"
+        entity_id: climate.pokoj_leona
+        message: >
+          WŁĄCZONO chłodzenie | temp {{ states('sensor.nenek_temperature') | round(1) }}°C > 26°C | cel 21°C | roleta 8 zamknięta
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"ac_pokoj_dzieci",
+          "akcja":"ON","info":"temp {{ states('sensor.nenek_temperature') | float(0) | round(1) }}°C · cool 21°C · roleta zamknieta"}
+
+  mode: single
+
+- alias: "Pokój dzieci – wyłącz chłodzenie (temperatura OK lub 18:30)"
+  description: >
+    Wyłącz klimatyzację w pokoju dzieci gdy temperatura spadnie do 21°C
+    lub wybije 18:30.
+
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.nenek_temperature
+      below: 21.1
+    - platform: time
+      at: "18:30:00"
+
+  condition:
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: climate.pokoj_leona
+          state: "off"
+
+  action:
+    - service: climate.turn_off
+      target:
+        entity_id: climate.pokoj_leona
+
+    - action: logbook.log
+      data:
+        name: "Pokój dzieci – klimatyzacja"
+        entity_id: climate.pokoj_leona
+        message: >
+          WYŁĄCZONO | {% if trigger.platform == 'time' %}18:30{% else %}temp {{ states('sensor.nenek_temperature') | round(1) }}°C ≤ 21°C{% endif %}
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"ac_pokoj_dzieci",
+          "akcja":"OFF","info":"{% if trigger.platform == 'time' %}18:30{% else %}temp {{ states('sensor.nenek_temperature') | float(0) | round(1) }}°C{% endif %}"}
+
+  mode: single
