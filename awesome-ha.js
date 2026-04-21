@@ -7345,7 +7345,6 @@ class AhaTempGaugeCard extends HTMLElement {
     const fmtT = v => v === 0 ? '0°' : v > 0 ? `+${v}°` : `${v}°`;
 
     // Extreme-state glow on arc
-    const useGlow = st.key === 'frost' || st.key === 'fire' || st.key === 'warm';
 
     // Humidity zone label
     const humZone = hum === null ? '' : hum < 35 ? 'sucho' : hum < 66 ? 'komfort' : hum < 81 ? 'wilgotno' : 'b. wilgotno';
@@ -7397,62 +7396,23 @@ class AhaTempGaugeCard extends HTMLElement {
     background: ${st.glowCss || 'none'}; transition: background .5s ease;
   }
 
-  /* ── frost card + arc ── */
+  /* ── card pulse — ten sam styl co ac.yaml / vacuum: prosty spread bez blur ── */
+  @keyframes frost-card {
+    0%,100% { box-shadow: 0 0 0 0   rgba(90,200,250,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(90,200,250,0.22); }
+  }
+  @keyframes warm-card {
+    0%,100% { box-shadow: 0 0 0 0   rgba(255,159,10,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(255,159,10,0.20); }
+  }
+  @keyframes fire-card {
+    0%,100% { box-shadow: 0 0 0 0   rgba(255,69,58,0); }
+    50%     { box-shadow: 0 0 0 5px rgba(255,69,58,0.22); }
+  }
   @keyframes frost-pulse  { 0%,100%{opacity:.5}  50%{opacity:.95} }
-  @keyframes frost-card   {
-    0%,100% { box-shadow: 0 0 0 0 rgba(90,200,250,0); }
-    50%     { box-shadow: 0 0 40px 12px rgba(90,200,250,.36), 0 0 0 3px rgba(90,200,250,.16), inset 0 0 28px rgba(90,200,250,.06); }
-  }
   @keyframes frost-arc    { 0%,100%{filter:brightness(1)}  50%{filter:brightness(1.28) saturate(1.3)} }
-
-  /* ── frost icon: shiver + icy glow ── */
-  @keyframes icon-frost {
-    0%   { transform: scale(1) translateX(0);        box-shadow: 0 0 5px 1px rgba(90,200,250,0.35), inset 0 0 6px rgba(90,200,250,0.15); }
-    18%  { transform: scale(1.05) translateX(-1.5px); box-shadow: 0 0 12px 3px rgba(90,200,250,0.65), inset 0 0 8px rgba(90,200,250,0.25); }
-    36%  { transform: scale(0.97) translateX(1.5px);  box-shadow: 0 0 7px 2px rgba(90,200,250,0.45), inset 0 0 6px rgba(90,200,250,0.18); }
-    54%  { transform: scale(1.04) translateX(-1px);   box-shadow: 0 0 16px 5px rgba(90,200,250,0.75), inset 0 0 10px rgba(140,220,255,0.3); }
-    72%  { transform: scale(0.98) translateX(1px);    box-shadow: 0 0 9px 2px rgba(90,200,250,0.50), inset 0 0 7px rgba(90,200,250,0.2); }
-    100% { transform: scale(1) translateX(0);        box-shadow: 0 0 5px 1px rgba(90,200,250,0.35), inset 0 0 6px rgba(90,200,250,0.15); }
-  }
-
-  /* ── warm card ── */
-  @keyframes warm-card    {
-    0%,100% { box-shadow: 0 0 0 0 rgba(255,159,10,0); }
-    50%     { box-shadow: 0 0 30px 8px rgba(255,159,10,.30), 0 0 0 2px rgba(255,159,10,.14), inset 0 0 20px rgba(255,100,0,.05); }
-  }
-
-  /* ── fire card + arc ── */
-  @keyframes fire-card    {
-    0%,100% { box-shadow: 0 0 0 0 rgba(255,69,58,0); }
-    30%     { box-shadow: 0 0 50px 16px rgba(255,80,20,.45), 0 0 0 4px rgba(255,69,58,.22), inset 0 0 32px rgba(255,40,0,.08); }
-    70%     { box-shadow: 0 0 24px 6px rgba(255,80,20,.25); }
-  }
   @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.32) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
   @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.07)} }
-
-  /* ── fire icon: flicker + rising glow ── */
-  @keyframes icon-fire {
-    0%   { transform: scale(1)    translateY(0px)   scaleX(1);    box-shadow: 0 -3px 8px  2px rgba(255,80,0,0.50); }
-    12%  { transform: scale(1.07) translateY(-2px)  scaleX(0.94); box-shadow: 0 -5px 18px 4px rgba(255,110,0,0.75); }
-    28%  { transform: scale(0.96) translateY( 0px)  scaleX(1);    box-shadow: 0 -2px 5px  1px rgba(255,60,0,0.35); }
-    45%  { transform: scale(1.09) translateY(-3px)  scaleX(0.91); box-shadow: 0 -6px 22px 5px rgba(255,130,0,0.85); }
-    62%  { transform: scale(0.97) translateY(-1px)  scaleX(1.02); box-shadow: 0 -3px 10px 2px rgba(255,80,0,0.55); }
-    78%  { transform: scale(1.06) translateY(-2px)  scaleX(0.95); box-shadow: 0 -5px 16px 3px rgba(255,100,0,0.70); }
-    90%  { transform: scale(0.98) translateY( 0px)  scaleX(1);    box-shadow: 0 -2px 6px  1px rgba(255,60,0,0.40); }
-    100% { transform: scale(1)    translateY(0px)   scaleX(1);    box-shadow: 0 -3px 8px  2px rgba(255,80,0,0.50); }
-  }
-
-  /* ── warm icon: gentle warm pulse ── */
-  @keyframes icon-warm {
-    0%,100% { box-shadow: 0 0 5px 1px rgba(255,159,10,0.35); }
-    50%     { box-shadow: 0 0 12px 3px rgba(255,159,10,0.65); transform: scale(1.04); }
-  }
-
-  /* ── cold icon: slow cool pulse ── */
-  @keyframes icon-cold {
-    0%,100% { box-shadow: 0 0 4px 1px rgba(90,200,250,0.22); }
-    50%     { box-shadow: 0 0 9px 2px rgba(90,200,250,0.42); }
-  }
 
   .card.frost { animation: frost-card 3.0s ease-in-out infinite; }
   .card.warm  { animation: warm-card  3.5s ease-in-out infinite; }
@@ -7615,14 +7575,6 @@ class AhaTempGaugeCard extends HTMLElement {
           <stop offset="0%"   stop-color="${st.arcG1}"/>
           <stop offset="100%" stop-color="${st.arcG0}"/>
         </linearGradient>
-        <filter id="arc-glow-${uid}" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="3.5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <filter id="dot-glow-${uid}" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="3" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
         <radialGradient id="cg-${uid}" cx="50%" cy="50%" r="50%">
           <stop offset="0%"   stop-color="${isOffline ? 'transparent' : st.arcG1 + '18'}"/>
           <stop offset="100%" stop-color="transparent"/>
@@ -7650,7 +7602,7 @@ class AhaTempGaugeCard extends HTMLElement {
           fill="none" stroke="url(#tg-${uid})" stroke-width="${SW1}"
           stroke-dasharray="${tempFillLen.toFixed(2)} ${C1.toFixed(2)}"
           stroke-linecap="round" transform="rotate(135,${CX},${CY})"
-          ${useGlow ? `filter="url(#arc-glow-${uid})"` : ''}/>
+          />
         ` : ''}
 
         <!-- hit area -->
@@ -7690,7 +7642,7 @@ class AhaTempGaugeCard extends HTMLElement {
       <!-- indicator dot -->
       ${!isOffline && tempFillLen > 3 ? `
       <circle class="dot-outer" cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="5"
-        fill="${st.arcG0}" opacity="0.85" filter="url(#dot-glow-${uid})"/>
+        fill="${st.arcG0}" opacity="0.85"/>
       <circle cx="${dotX.toFixed(2)}" cy="${dotY.toFixed(2)}" r="2.8"
         fill="rgba(255,255,255,0.95)"/>
       ` : ''}
