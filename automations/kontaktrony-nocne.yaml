@@ -30,8 +30,14 @@ action:
         data:
           title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
           message: >
-            {% set ikony = {'door': '🚪', 'window': '🪟', 'opening': '🔲', 'garage_door': '🏠'} %}
-            {% for s in otwarte %}{{ ikony.get(s.attributes.device_class, '🔓') }} {{ s.attributes.friendly_name }}{% if not loop.last %}
+            {% macro ikona(name) %}
+              {%- set n = name | lower %}
+              {%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠
+              {%- elif 'drzwi' in n or 'drzwi' in n %}🚪
+              {%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟
+              {%- else %}🔓{% endif %}
+            {%- endmacro %}
+            {% for s in otwarte %}{{ ikona(s.attributes.friendly_name) }} {{ s.attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
           data:
             push:
@@ -46,8 +52,14 @@ action:
         data:
           title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
           message: >
-            {% set ikony = {'door': '🚪', 'window': '🪟', 'opening': '🔲', 'garage_door': '🏠'} %}
-            {% for s in otwarte %}{{ ikony.get(s.attributes.device_class, '🔓') }} {{ s.attributes.friendly_name }}{% if not loop.last %}
+            {% macro ikona(name) %}
+              {%- set n = name | lower %}
+              {%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠
+              {%- elif 'drzwi' in n %}🚪
+              {%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟
+              {%- else %}🔓{% endif %}
+            {%- endmacro %}
+            {% for s in otwarte %}{{ ikona(s.attributes.friendly_name) }} {{ s.attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
           data:
             push:
@@ -57,9 +69,9 @@ action:
     data:
       name: "Kontaktrony nocne"
       message: >
-        {% set ikony = {'door': '🚪', 'window': '🪟', 'opening': '🔲', 'garage_door': '🏠'} %}
+        {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
         {{ otwarte | count }} otwart{{ 'y' if otwarte | count == 1 else 'e' }}:
-        {% for s in otwarte %}{{ ikony.get(s.attributes.device_class, '🔓') }} {{ s.attributes.friendly_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        {% for s in otwarte %}{{ ikona(s.attributes.friendly_name) }} {{ s.attributes.friendly_name }}{% if not loop.last %}, {% endif %}{% endfor %}
 
   - action: script.log_push
     data:
