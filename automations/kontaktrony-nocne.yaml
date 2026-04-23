@@ -1,0 +1,64 @@
+alias: "Kontaktrony – otwarte o 22:00"
+description: >
+  Codziennie o 22:00 sprawdza wszystkie czujniki otwarcia (binary_sensor
+  z device_class door/window/opening) w domu. Jeśli któryś jest otwarty,
+  wysyła powiadomienie do domowników przebywających w zone.home.
+
+variables:
+  otwarte: >
+    {{ states.binary_sensor
+       | selectattr('attributes.device_class', 'in',
+           ['door', 'window', 'opening', 'garage_door'])
+       | selectattr('state', 'eq', 'on')
+       | list }}
+
+trigger:
+  - platform: time
+    at: "22:00:00"
+
+condition:
+  - condition: template
+    value_template: "{{ otwarte | count > 0 }}"
+
+action:
+  - if:
+      - condition: zone
+        entity_id: person.tk
+        zone: zone.home
+    then:
+      - service: notify.mobile_app_iphone_tk
+        data:
+          title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
+          message: >
+            {{ otwarte | map(attribute='name') | join('\n') }}
+          data:
+            push:
+              sound: default
+
+  - if:
+      - condition: zone
+        entity_id: person.monika
+        zone: zone.home
+    then:
+      - service: notify.mobile_app_iphone_monika
+        data:
+          title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
+          message: >
+            {{ otwarte | map(attribute='name') | join('\n') }}
+          data:
+            push:
+              sound: default
+
+  - action: logbook.log
+    data:
+      name: "Kontaktrony nocne"
+      message: >
+        {{ otwarte | count }} otwart{{ 'y' if otwarte | count == 1 else 'e' }}: {{ otwarte | map(attribute='name') | join(', ') }}
+
+  - action: script.log_push
+    data:
+      wpis: >
+        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kontaktrony_22",
+        "otwarte":{{ otwarte | count }},"lista":"{{ otwarte | map(attribute='name') | join(' | ') | replace('"','') }}"}
+
+mode: single
