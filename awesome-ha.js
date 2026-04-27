@@ -10167,6 +10167,9 @@ const LH_STYLES = `
   .load-more:active { background: rgba(255,255,255,0.08); }
 `;
 
+// ── IIFE — żeby helper functions nie wyciekały do globalnego scope w bundlu ──
+(function () {
+
 // ── SVG ICONS ────────────────────────────────────────────────────────────────
 
 function iconSvg(e) {
@@ -10524,3 +10527,5 @@ class AhaLogHistoryCard extends HTMLElement {
 
 customElements.define('aha-log-history-card', AhaLogHistoryCard);
 customElements.define('log-history-card', class extends AhaLogHistoryCard {});
+
+})(); // end IIFE
