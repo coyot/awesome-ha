@@ -10,6 +10,7 @@ variables:
        | selectattr('attributes.device_class', 'in',
            ['door', 'window', 'opening', 'garage_door'])
        | selectattr('state', 'eq', 'on')
+       | map(attribute='entity_id')
        | list }}
 
 trigger:
@@ -33,11 +34,11 @@ action:
             {% macro ikona(name) %}
               {%- set n = name | lower %}
               {%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠
-              {%- elif 'drzwi' in n or 'drzwi' in n %}🚪
+              {%- elif 'drzwi' in n %}🚪
               {%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟
               {%- else %}🔓{% endif %}
             {%- endmacro %}
-            {% for s in otwarte %}{{ ikona(s.attributes.friendly_name) }} {{ s.attributes.friendly_name }}{% if not loop.last %}
+            {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
           data:
             push:
@@ -59,7 +60,7 @@ action:
               {%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟
               {%- else %}🔓{% endif %}
             {%- endmacro %}
-            {% for s in otwarte %}{{ ikona(s.attributes.friendly_name) }} {{ s.attributes.friendly_name }}{% if not loop.last %}
+            {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
           data:
             push:
@@ -71,12 +72,12 @@ action:
       message: >
         {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
         {{ otwarte | count }} otwart{{ 'y' if otwarte | count == 1 else 'e' }}:
-        {% for s in otwarte %}{{ ikona(s.attributes.friendly_name) }} {{ s.attributes.friendly_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}, {% endif %}{% endfor %}
 
   - action: script.log_push
     data:
       wpis: >
         {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kontaktrony_22",
-        "otwarte":{{ otwarte | count }},"lista":"{{ otwarte | map(attribute='attributes.friendly_name') | join(' | ') | replace('"','') }}"}
+        "otwarte":{{ otwarte | count }},"lista":"{% for s in otwarte %}{{ states[s].attributes.friendly_name }}{% if not loop.last %} | {% endif %}{% endfor %}"}
 
 mode: single
