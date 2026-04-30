@@ -12334,20 +12334,20 @@ class RoboVacuumCard extends HTMLElement {
 
     // Robot docked
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
-    const Xr_l = 0.68 * W, Zr_l = -0.05 * D;
+    const Xr_l = 0.685 * W, Zr_l = 0;
     const robotCX = pl + cos30 * (Xr_l + Zr_l);
     const robotCY = pt + sin30 * (Xr_l - Zr_l) + H;
-    const robotRX = 19 * cos30 * Math.SQRT2;
-    const robotRY = 19 * sin30 * Math.SQRT2;
+    const robotRX = 26 * cos30 * Math.SQRT2;
+    const robotRY = 26 * sin30 * Math.SQRT2;
 
     // ── Colors ───────────────────────────────────────────────────────────
     const activeDrying  = isMopDrying || dockMopDrying;
-    const dirtyCol      = dirtyBoxProblem ? '#E24B4A' : '#C97A50';
-    const dirtyCBg      = dirtyBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(201,122,80,0.07)';
-    const cleanCol      = cleanBoxProblem ? '#E24B4A' : '#7BAED4';
-    const cleanBg       = cleanBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(123,174,212,0.07)';
-    const fluidCol      = fluidProblem    ? '#E24B4A' : '#97C459';
-    const fluidBg       = fluidProblem    ? 'rgba(226,75,74,0.12)' : 'rgba(151,196,89,0.06)';
+    const dirtyCol      = dirtyBoxProblem ? '#EF9F27' : '#5F5E5A';
+    const dirtyCBg      = dirtyBoxProblem ? 'rgba(239,159,39,0.10)' : 'rgba(95,94,90,0.06)';
+    const cleanCol      = cleanBoxProblem ? '#EF9F27' : '#5F5E5A';
+    const cleanBg       = cleanBoxProblem ? 'rgba(239,159,39,0.10)' : 'rgba(95,94,90,0.06)';
+    const fluidCol      = fluidProblem    ? '#EF9F27' : '#5F5E5A';
+    const fluidBg       = fluidProblem    ? 'rgba(239,159,39,0.10)' : 'rgba(95,94,90,0.06)';
     const mopBayCol     = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.05)';
     const mopBayBg      = isMopWashing ? 'rgba(123,174,212,0.12)' : activeDrying ? 'rgba(201,122,80,0.10)' : 'rgba(255,255,255,0.02)';
     const robotCol      = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
@@ -12364,14 +12364,10 @@ class RoboVacuumCard extends HTMLElement {
     const dirtyFillPts  = poly([fp(0,dirtyFillTopV), fp(0.5,dirtyFillTopV), fp(0.5,0.57), fp(0,0.57)]);
     const cleanFillPts  = poly([fp(0.5,cleanFillTopV), fp(1,cleanFillTopV), fp(1,0.57), fp(0.5,0.57)]);
     const fluidFillPts  = poly([fp(0.02,fluidFillTopV), fp(0.38,fluidFillTopV), fp(0.38,0.95), fp(0.02,0.95)]);
-    const dirtyFillCol  = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.50' : '0.32'})`;
-    const cleanFillCol  = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.50' : '0.38'})`;
-    const fluidFillCol  = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.45' : '0.30'})`;
+    const dirtyFillCol  = dirtyBoxProblem ? 'rgba(239,159,39,0.38)' : 'rgba(95,94,90,0.18)';
+    const cleanFillCol  = cleanBoxProblem ? 'rgba(239,159,39,0.38)' : 'rgba(95,94,90,0.18)';
+    const fluidFillCol  = fluidProblem    ? 'rgba(239,159,39,0.38)' : 'rgba(95,94,90,0.18)';
 
-    const pct = n => `${Math.round(n * 100)}%`;
-    const [dirtTxtX, dirtTxtY]   = fp(0.25, 0.46);
-    const [cleanTxtX, cleanTxtY] = fp(0.75, 0.46);
-    const [fluidTxtX, fluidTxtY] = fp(0.20, 0.82);
     const [dirtyDropX, dirtyDropY] = fp(0.25, 0.30);
     const [cleanDropX, cleanDropY] = fp(0.75, 0.30);
     const [fluidDropX, fluidDropY] = fp(0.20, 0.72);
@@ -12426,6 +12422,23 @@ class RoboVacuumCard extends HTMLElement {
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
            fill="none" style="display:block;overflow:visible;font-family:-apple-system,sans-serif;">
 
+        <!-- ── Robot disc (drawn first — dock overlays upper half) ── -->
+        ${isRobotDocked ? `
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
+                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
+                 fill="${robotBg}" stroke="${robotCol}" stroke-width="1.8"
+                 ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
+        <path d="M ${(robotCX-robotRX*0.78).toFixed(1)} ${(robotCY+robotRY*0.15).toFixed(1)}
+                 A ${(robotRX*0.78).toFixed(1)} ${(robotRY*0.78).toFixed(1)} 0 0 1
+                   ${(robotCX+robotRX*0.78).toFixed(1)} ${(robotCY+robotRY*0.15).toFixed(1)}"
+              stroke="${robotCol}" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.55"/>
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY-robotRY*0.10).toFixed(1)}"
+                 rx="5" ry="3" fill="${robotBg}" stroke="${robotCol}" stroke-width="1.0" opacity="0.9"/>
+        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY+robotRY*0.12+6).toFixed(1)}"
+              text-anchor="middle" font-size="12" fill="#97C459"
+              style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
+        ` : ''}
+
         <!-- Right face -->
         <polygon points="${rightPts}" fill="#161618" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
 
@@ -12439,8 +12452,6 @@ class RoboVacuumCard extends HTMLElement {
         <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none"
                  ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         ${dropIcon(dirtyDropX, dirtyDropY, 5, dirtyCol)}
-        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY+3).toFixed(1)}" text-anchor="middle"
-              font-size="8" font-weight="600" fill="${dirtyCol}">${pct(dirtyLvl)}</text>
 
         <!-- ── Upper: Clean water (right) ── -->
         <polygon points="${rightTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.9"
@@ -12448,8 +12459,6 @@ class RoboVacuumCard extends HTMLElement {
         <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none"
                  ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         ${dropIcon(cleanDropX, cleanDropY, 5, cleanCol)}
-        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY+3).toFixed(1)}" text-anchor="middle"
-              font-size="8" font-weight="600" fill="${cleanCol}">${pct(cleanLvl)}</text>
 
         <!-- Tank divider -->
         <line x1="${tankDivLine[0][0].toFixed(1)}" y1="${tankDivLine[0][1].toFixed(1)}"
@@ -12461,8 +12470,6 @@ class RoboVacuumCard extends HTMLElement {
                  ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
         ${dropIcon(fluidDropX, fluidDropY, 3.5, fluidCol)}
-        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY+3).toFixed(1)}" text-anchor="middle"
-              font-size="8" font-weight="600" fill="${fluidCol}">${pct(fluidLvl)}</text>
 
         <!-- ── Lower: Mop band (right) ── -->
         <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.8"/>
@@ -12474,31 +12481,14 @@ class RoboVacuumCard extends HTMLElement {
 
         <!-- ── Top face ── -->
         <polygon points="${topPts}" fill="#212123" stroke="rgba(255,255,255,0.09)" stroke-width="0.8"/>
-        <polygon points="${topDirtyPts}" fill="rgba(201,122,80,0.14)" stroke="none" opacity="0.9"/>
-        <polygon points="${topCleanPts}" fill="rgba(123,174,212,0.14)" stroke="none" opacity="0.9"/>
+        <polygon points="${topDirtyPts}" fill="${dirtyBoxProblem ? 'rgba(239,159,39,0.12)' : 'rgba(255,255,255,0.04)'}" stroke="none" opacity="0.9"/>
+        <polygon points="${topCleanPts}" fill="${cleanBoxProblem ? 'rgba(239,159,39,0.12)' : 'rgba(255,255,255,0.04)'}" stroke="none" opacity="0.9"/>
         <line x1="${topDivLine[0][0].toFixed(1)}" y1="${topDivLine[0][1].toFixed(1)}"
               x2="${topDivLine[1][0].toFixed(1)}" y2="${topDivLine[1][1].toFixed(1)}"
               stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
               stroke="rgba(255,255,255,0.16)" stroke-width="0.7"/>
-
-        <!-- ── Robot disc ── -->
-        ${isRobotDocked ? `
-        <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
-                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
-                 fill="${robotBg}" stroke="${robotCol}" stroke-width="1.6"
-                 ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
-        <path d="M ${(robotCX-robotRX*0.82).toFixed(1)} ${(robotCY+robotRY*0.18).toFixed(1)}
-                 A ${(robotRX*0.82).toFixed(1)} ${(robotRY*0.82).toFixed(1)} 0 0 1
-                   ${(robotCX+robotRX*0.82).toFixed(1)} ${(robotCY+robotRY*0.18).toFixed(1)}"
-              stroke="${robotCol}" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.65"/>
-        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY-robotRY*0.12).toFixed(1)}"
-                 rx="4" ry="2.4" fill="${robotBg}" stroke="${robotCol}" stroke-width="0.9" opacity="0.9"/>
-        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY+robotRY*0.12+5).toFixed(1)}"
-              text-anchor="middle" font-size="11" fill="#97C459"
-              style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
-        ` : ''}
       </svg>`;
 
     // ── Legend — compact ─────────────────────────────────────────────────
@@ -12683,19 +12673,19 @@ class RoboVacuumCard extends HTMLElement {
 
     // Robot docked — isometric top-down disc
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
-    const Xr_s = 0.68 * W, Zr_s = -0.05 * D;
+    const Xr_s = 0.685 * W, Zr_s = 0;
     const robotCX = pl + cos30 * (Xr_s + Zr_s);
     const robotCY = pt + sin30 * (Xr_s - Zr_s) + H;
-    const robotRX  = 14 * cos30 * Math.SQRT2;
-    const robotRY  = 14 * sin30 * Math.SQRT2;
+    const robotRX  = 18 * cos30 * Math.SQRT2;
+    const robotRY  = 18 * sin30 * Math.SQRT2;
 
     // ── Colors ───────────────────────────────────────────────────────────
-    const dirtyCol   = dirtyBoxProblem ? '#E24B4A' : '#C97A50';
-    const dirtyCBg   = dirtyBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(201,122,80,0.07)';
-    const cleanCol   = cleanBoxProblem ? '#E24B4A' : '#7BAED4';
-    const cleanBg    = cleanBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(123,174,212,0.07)';
-    const fluidCol   = fluidProblem ? '#E24B4A' : '#97C459';
-    const fluidBg    = fluidProblem ? 'rgba(226,75,74,0.12)' : 'rgba(151,196,89,0.06)';
+    const dirtyCol   = dirtyBoxProblem ? '#EF9F27' : '#5F5E5A';
+    const dirtyCBg   = dirtyBoxProblem ? 'rgba(239,159,39,0.10)' : 'rgba(95,94,90,0.06)';
+    const cleanCol   = cleanBoxProblem ? '#EF9F27' : '#5F5E5A';
+    const cleanBg    = cleanBoxProblem ? 'rgba(239,159,39,0.10)' : 'rgba(95,94,90,0.06)';
+    const fluidCol   = fluidProblem    ? '#EF9F27' : '#5F5E5A';
+    const fluidBg    = fluidProblem    ? 'rgba(239,159,39,0.10)' : 'rgba(95,94,90,0.06)';
     const mopBayCol  = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.05)';
     const mopBayBg   = isMopWashing ? 'rgba(123,174,212,0.12)' : activeDrying ? 'rgba(201,122,80,0.10)' : 'rgba(255,255,255,0.02)';
     const robotCol   = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
@@ -12712,15 +12702,9 @@ class RoboVacuumCard extends HTMLElement {
     const dirtyFillPts  = poly([fp(0,dirtyFillTopV), fp(0.5,dirtyFillTopV), fp(0.5,0.57), fp(0,0.57)]);
     const cleanFillPts  = poly([fp(0.5,cleanFillTopV), fp(1,cleanFillTopV), fp(1,0.57), fp(0.5,0.57)]);
     const fluidFillPts  = poly([fp(0.02,fluidFillTopV), fp(0.38,fluidFillTopV), fp(0.38,0.95), fp(0.02,0.95)]);
-    const dirtyFillCol  = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.50' : '0.32'})`;
-    const cleanFillCol  = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.50' : '0.38'})`;
-    const fluidFillCol  = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.45' : '0.30'})`;
-
-    const pct = n => `${Math.round(n * 100)}%`;
-    // % labels — centered in each panel
-    const [dirtTxtX, dirtTxtY] = fp(0.25, 0.46);
-    const [cleanTxtX, cleanTxtY] = fp(0.75, 0.46);
-    const [fluidTxtX, fluidTxtY] = fp(0.20, 0.82);
+    const dirtyFillCol  = dirtyBoxProblem ? 'rgba(239,159,39,0.38)' : 'rgba(95,94,90,0.18)';
+    const cleanFillCol  = cleanBoxProblem ? 'rgba(239,159,39,0.38)' : 'rgba(95,94,90,0.18)';
+    const fluidFillCol  = fluidProblem    ? 'rgba(239,159,39,0.38)' : 'rgba(95,94,90,0.18)';
 
     // Water drop icon helper
     const dropIcon = (cx, cy, r, col) => {
@@ -12776,6 +12760,23 @@ class RoboVacuumCard extends HTMLElement {
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
            fill="none" style="display:block;overflow:visible;font-family:-apple-system,sans-serif;">
 
+        <!-- ── Robot disc (drawn first — dock overlays upper half) ── -->
+        ${isRobotDocked ? `
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
+                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
+                 fill="${robotBg}" stroke="${robotCol}" stroke-width="1.4"
+                 ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
+        <path d="M ${(robotCX-robotRX*0.78).toFixed(1)} ${(robotCY+robotRY*0.15).toFixed(1)}
+                 A ${(robotRX*0.78).toFixed(1)} ${(robotRY*0.78).toFixed(1)} 0 0 1
+                   ${(robotCX+robotRX*0.78).toFixed(1)} ${(robotCY+robotRY*0.15).toFixed(1)}"
+              stroke="${robotCol}" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.55"/>
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY-robotRY*0.10).toFixed(1)}"
+                 rx="3.5" ry="2.1" fill="${robotBg}" stroke="${robotCol}" stroke-width="0.8" opacity="0.9"/>
+        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY+robotRY*0.12+4).toFixed(1)}"
+              text-anchor="middle" font-size="8" fill="#97C459"
+              style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
+        ` : ''}
+
         <!-- Right face -->
         <polygon points="${rightPts}" fill="#161618" stroke="rgba(255,255,255,0.07)" stroke-width="0.7"/>
 
@@ -12789,8 +12790,6 @@ class RoboVacuumCard extends HTMLElement {
         <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none"
                  ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         ${dropIcon(dirtyDropX, dirtyDropY, 3.5, dirtyCol)}
-        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY+2).toFixed(1)}" text-anchor="middle"
-              font-size="6" font-weight="600" fill="${dirtyCol}">${pct(dirtyLvl)}</text>
 
         <!-- ── Upper: Clean water tank (right) ── -->
         <polygon points="${rightTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.8"
@@ -12798,8 +12797,6 @@ class RoboVacuumCard extends HTMLElement {
         <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none"
                  ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         ${dropIcon(cleanDropX, cleanDropY, 3.5, cleanCol)}
-        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY+2).toFixed(1)}" text-anchor="middle"
-              font-size="6" font-weight="600" fill="${cleanCol}">${pct(cleanLvl)}</text>
 
         <!-- Tank divider -->
         <line x1="${tankDivLine[0][0].toFixed(1)}" y1="${tankDivLine[0][1].toFixed(1)}"
@@ -12811,8 +12808,6 @@ class RoboVacuumCard extends HTMLElement {
                  ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
         ${dropIcon(fluidDropX, fluidDropY, 2.5, fluidCol)}
-        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY+2).toFixed(1)}" text-anchor="middle"
-              font-size="6" font-weight="600" fill="${fluidCol}">${pct(fluidLvl)}</text>
 
         <!-- ── Lower: Mop band (right) ── -->
         <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.7"/>
@@ -12824,31 +12819,14 @@ class RoboVacuumCard extends HTMLElement {
 
         <!-- ── Top face ── -->
         <polygon points="${topPts}" fill="#212123" stroke="rgba(255,255,255,0.09)" stroke-width="0.7"/>
-        <polygon points="${topDirtyPts}" fill="rgba(201,122,80,0.12)" stroke="none" opacity="0.9"/>
-        <polygon points="${topCleanPts}" fill="rgba(123,174,212,0.12)" stroke="none" opacity="0.9"/>
+        <polygon points="${topDirtyPts}" fill="${dirtyBoxProblem ? 'rgba(239,159,39,0.12)' : 'rgba(255,255,255,0.04)'}" stroke="none" opacity="0.9"/>
+        <polygon points="${topCleanPts}" fill="${cleanBoxProblem ? 'rgba(239,159,39,0.12)' : 'rgba(255,255,255,0.04)'}" stroke="none" opacity="0.9"/>
         <line x1="${topDivLine[0][0].toFixed(1)}" y1="${topDivLine[0][1].toFixed(1)}"
               x2="${topDivLine[1][0].toFixed(1)}" y2="${topDivLine[1][1].toFixed(1)}"
               stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
               stroke="rgba(255,255,255,0.16)" stroke-width="0.6"/>
-
-        <!-- ── Robot disc ── -->
-        ${isRobotDocked ? `
-        <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
-                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
-                 fill="${robotBg}" stroke="${robotCol}" stroke-width="1.2"
-                 ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
-        <path d="M ${(robotCX - robotRX*0.82).toFixed(1)} ${(robotCY + robotRY*0.18).toFixed(1)}
-                 A ${(robotRX*0.82).toFixed(1)} ${(robotRY*0.82).toFixed(1)} 0 0 1
-                   ${(robotCX + robotRX*0.82).toFixed(1)} ${(robotCY + robotRY*0.18).toFixed(1)}"
-              stroke="${robotCol}" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.6"/>
-        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY - robotRY*0.12).toFixed(1)}"
-                 rx="3" ry="1.8" fill="${robotBg}" stroke="${robotCol}" stroke-width="0.8" opacity="0.9"/>
-        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY + robotRY*0.1 + 4).toFixed(1)}"
-              text-anchor="middle" font-size="7" fill="#97C459"
-              style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
-        ` : ''}
       </svg>`;
   }
 
