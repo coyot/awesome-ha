@@ -1011,6 +1011,16 @@ class RoboVacuumCard extends HTMLElement {
     return isNaN(n) ? null : n;
   }
 
+  // Returns fill level 0–100. Uses numeric sensor if configured, else derives from binary.
+  // emptyIsBad=true  → empty = problem (clean water, fluid): ok≈88%, problem≈5%
+  // emptyIsBad=false → full  = problem (dirty water, dust):  ok≈8%,  problem≈92%
+  _getDockLevel(levelKey, binaryKey, emptyIsBad) {
+    const n = this._getDockSensorNum(levelKey);
+    if (n !== null) return Math.max(0, Math.min(100, n));
+    const isProblem = this._isDockProblem(binaryKey);
+    return emptyIsBad ? (isProblem ? 5 : 88) : (isProblem ? 92 : 8);
+  }
+
   // Derive the effective group from vacuum state + status sensor
   _getGroup() {
     const entity = this._hass.states[this._config.entity];
@@ -1608,12 +1618,12 @@ class RoboVacuumCard extends HTMLElement {
 
     // Robot is in the dock only when charging / being serviced
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
-    // Isometric top-down disc: X=0.80*W (right side), Z=-0.06*D (just in front of front face)
-    const Xr_l = 0.80 * W, Zr_l = -0.06 * D;
+    // Center at X=0.68*W (center of dock slot opening), Z=-0.05*D (at front face)
+    const Xr_l = 0.68 * W, Zr_l = -0.05 * D;
     const robotCX = pl + cos30 * (Xr_l + Zr_l);
     const robotCY = pt + sin30 * (Xr_l - Zr_l) + H;
-    const robotRX  = 17 * cos30 * Math.SQRT2;   // isometric ellipse half-width
-    const robotRY  = 17 * sin30 * Math.SQRT2;   // isometric ellipse half-height
+    const robotRX  = 19 * cos30 * Math.SQRT2;   // isometric ellipse half-width  (~r=19)
+    const robotRY  = 19 * sin30 * Math.SQRT2;   // isometric ellipse half-height
     const mopCY_lo = fp(0.5, 0.38)[1];  // lower mop bay horizontal
     const mopCY_mi = fp(0.5, 0.28)[1];
     const mopCY_hi = fp(0.5, 0.18)[1];
@@ -1687,7 +1697,33 @@ class RoboVacuumCard extends HTMLElement {
                   style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
       : '';
 
-    // Tank indicator dots on top face
+    // ── Fill levels for tanks & fluid ────────────────────────────────────
+    // dirty water: 0% = empty = OK, 100% = full = problem
+    const dirtyLvl  = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
+    // clean water: 100% = full = OK, 0% = empty = problem
+    const cleanLvl  = this._getDockLevel('clean_water_level', 'clean_water_box', true)  / 100;
+    // fluid: 100% = full = OK, 0% = empty = problem
+    const fluidLvl  = this._getDockLevel('fluid_level', 'cleaning_fluid', true)         / 100;
+
+    // Fill polygons (from near edge d=0 inward to fill fraction)
+    const dirtyFillPts = poly([tp(0,0), tp(0.5,0), tp(0.5,dirtyLvl), tp(0,dirtyLvl)]);
+    const cleanFillPts = poly([tp(0.5,0), tp(1,0), tp(1,cleanLvl), tp(0.5,cleanLvl)]);
+    // Fluid fill rises from bottom of compartment (v=0.95) up to fill line
+    const fluidFillV   = 0.95 - (0.95 - 0.60) * fluidLvl;
+    const fluidFillPts = poly([fp(0.04,fluidFillV), fp(0.38,fluidFillV), fp(0.38,0.95), fp(0.04,0.95)]);
+
+    // Fill colors
+    const dirtyFillCol = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.45' : '0.22'})`;
+    const cleanFillCol = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.45' : '0.28'})`;
+    const fluidFillCol = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.40' : '0.24'})`;
+
+    // Percentage labels (positioned on tank top face)
+    const pct = n => `${Math.round(n * 100)}%`;
+    const [dirtTxtX, dirtTxtY] = tp(0.25, 0.5);
+    const [cleanTxtX, cleanTxtY] = tp(0.75, 0.5);
+    const [fluidTxtX, fluidTxtY] = fp(0.21, 0.78);
+
+    // Tank indicator dots on top face (kept for OK/problem dot)
     const [cx, cy] = tp(0.25, 0.5);
     const [dirtX, dirtY] = tp(0.75, 0.5);
 
@@ -1715,14 +1751,16 @@ class RoboVacuumCard extends HTMLElement {
         <!-- Dust collector port (narrow band) -->
         <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.7"/>
 
-        <!-- Cleaning fluid compartment (front lower-left) -->
+        <!-- Cleaning fluid compartment (front lower-left) — outline -->
         <polygon points="${fluidPts}"
                  fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.9"
                  ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <!-- Fluid indicator dot -->
-        <circle cx="${fp(0.21,0.775)[0].toFixed(1)}" cy="${fp(0.21,0.775)[1].toFixed(1)}" r="2.5"
-                fill="${fluidCol}" opacity="0.9"
-                ${fluidProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <!-- Fluid fill level -->
+        <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
+        <!-- Fluid % label -->
+        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY + 3).toFixed(1)}" text-anchor="middle"
+              font-size="7" font-weight="600" fill="${fluidCol}"
+              font-family="-apple-system,sans-serif">${pct(fluidLvl)}</text>
 
         <!-- Robot dock slot outline — faint guide, always shown -->
         <polygon points="${dockSlotPts}"
@@ -1732,21 +1770,25 @@ class RoboVacuumCard extends HTMLElement {
         <!-- Top face (brightest — light from above) -->
         <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
 
-        <!-- Dirty water tank (LEFT half of top) -->
+        <!-- Dirty water tank (LEFT half of top) — outline + fill level -->
         <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}"
                  stroke-width="0.9" opacity="0.9"
                  ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.8"
-                fill="${dirtyCol}" opacity="0.9"
-                ${dirtyBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none" opacity="0.9"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY + 3).toFixed(1)}" text-anchor="middle"
+              font-size="7" font-weight="600" fill="${dirtyCol}"
+              font-family="-apple-system,sans-serif">${pct(dirtyLvl)}</text>
 
-        <!-- Clean water tank (RIGHT half of top) -->
+        <!-- Clean water tank (RIGHT half of top) — outline + fill level -->
         <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}"
                  stroke-width="0.9" opacity="0.9"
                  ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <circle cx="${dirtX.toFixed(1)}" cy="${dirtY.toFixed(1)}" r="2.8"
-                fill="${cleanCol}" opacity="0.9"
-                ${cleanBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none" opacity="0.9"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY + 3).toFixed(1)}" text-anchor="middle"
+              font-size="7" font-weight="600" fill="${cleanCol}"
+              font-family="-apple-system,sans-serif">${pct(cleanLvl)}</text>
 
         <!-- Tank divider line -->
         <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
@@ -1953,11 +1995,12 @@ class RoboVacuumCard extends HTMLElement {
 
     // Robot docked — isometric top-down disc
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
-    const Xr_s = 0.82 * W, Zr_s = -0.06 * D;
+    // Center at X=0.68*W (center of dock slot), Z=-0.05*D
+    const Xr_s = 0.68 * W, Zr_s = -0.05 * D;
     const robotCX = pl + cos30 * (Xr_s + Zr_s);
     const robotCY = pt + sin30 * (Xr_s - Zr_s) + H;
-    const robotRX  = 13 * cos30 * Math.SQRT2;
-    const robotRY  = 13 * sin30 * Math.SQRT2;
+    const robotRX  = 14 * cos30 * Math.SQRT2;
+    const robotRY  = 14 * sin30 * Math.SQRT2;
 
     const [cx, cy]       = tp(0.25, 0.5);
     const [dirtX, dirtY] = tp(0.75, 0.5);
@@ -1974,6 +2017,25 @@ class RoboVacuumCard extends HTMLElement {
     const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
     const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
     const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
+
+    // ── Fill levels ───────────────────────────────────────────────────────
+    const dirtyLvl = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
+    const cleanLvl = this._getDockLevel('clean_water_level', 'clean_water_box', true)  / 100;
+    const fluidLvl = this._getDockLevel('fluid_level', 'cleaning_fluid', true)         / 100;
+
+    const dirtyFillPts = poly([tp(0,0), tp(0.5,0), tp(0.5,dirtyLvl), tp(0,dirtyLvl)]);
+    const cleanFillPts = poly([tp(0.5,0), tp(1,0), tp(1,cleanLvl), tp(0.5,cleanLvl)]);
+    const fluidFillV   = 0.95 - (0.95 - 0.60) * fluidLvl;
+    const fluidFillPts = poly([fp(0.04,fluidFillV), fp(0.38,fluidFillV), fp(0.38,0.95), fp(0.04,0.95)]);
+
+    const dirtyFillCol = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.45' : '0.22'})`;
+    const cleanFillCol = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.45' : '0.28'})`;
+    const fluidFillCol = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.40' : '0.24'})`;
+
+    const pct = n => `${Math.round(n * 100)}%`;
+    const [dirtTxtX, dirtTxtY] = tp(0.25, 0.5);
+    const [cleanTxtX, cleanTxtY] = tp(0.75, 0.5);
+    const [fluidTxtX, fluidTxtY] = fp(0.21, 0.78);
 
     // Animations (same as full version but scaled)
     const makeMopLine = (v, delay, col) => {
@@ -2024,20 +2086,27 @@ class RoboVacuumCard extends HTMLElement {
         <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.6"/>
         <polygon points="${fluidPts}" fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.8"
                  ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <circle cx="${fp(0.21,0.775)[0].toFixed(1)}" cy="${fp(0.21,0.775)[1].toFixed(1)}" r="2"
-                fill="${fluidCol}" opacity="0.9"
-                ${fluidProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
+        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY + 2).toFixed(1)}" text-anchor="middle"
+              font-size="6" font-weight="600" fill="${fluidCol}"
+              font-family="-apple-system,sans-serif">${pct(fluidLvl)}</text>
         <polygon points="${dockSlotPts}" fill="rgba(255,255,255,0.01)"
                  stroke="rgba(255,255,255,0.05)" stroke-width="0.6" stroke-dasharray="2,2"/>
         <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
         <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}" stroke-width="0.8" opacity="0.9"
                  ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.2" fill="${dirtyCol}" opacity="0.9"
-                ${dirtyBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none" opacity="0.9"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY + 2).toFixed(1)}" text-anchor="middle"
+              font-size="6" font-weight="600" fill="${dirtyCol}"
+              font-family="-apple-system,sans-serif">${pct(dirtyLvl)}</text>
         <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.8" opacity="0.9"
                  ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <circle cx="${dirtX.toFixed(1)}" cy="${dirtY.toFixed(1)}" r="2.2" fill="${cleanCol}" opacity="0.9"
-                ${cleanBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none" opacity="0.9"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY + 2).toFixed(1)}" text-anchor="middle"
+              font-size="6" font-weight="600" fill="${cleanCol}"
+              font-family="-apple-system,sans-serif">${pct(cleanLvl)}</text>
         <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
               x2="${tankDivPts[1][0].toFixed(1)}" y2="${tankDivPts[1][1].toFixed(1)}"
               stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
