@@ -11415,43 +11415,56 @@ const CARD_STYLES = `
     gap: 4px;
   }
 
+  /* ── Consumables — compact icon row ── */
   .consumables {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .consumable-row {
-    display: grid;
-    grid-template-columns: 90px 1fr 60px 16px;
-    gap: 6px;
     align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
-  .consumable-label {
-    font-size: 11px;
-    color: #888780;
+  .ci {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    cursor: default;
+    flex-shrink: 0;
+  }
+  .ci:hover .ct { display: block; }
+  .ct {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 130px;
+    background: rgba(36,36,38,0.97);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 10px;
+    padding: 10px 12px;
+    z-index: 30;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+    pointer-events: none;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .consumable-track {
+  .ct-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #F5F5F7;
+    margin-bottom: 6px;
+  }
+  .ct-bar-track {
     height: 3px;
     border-radius: 99px;
-    background: rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.12);
     overflow: hidden;
+    margin-bottom: 5px;
   }
-  .consumable-fill {
-    height: 100%;
-    border-radius: 99px;
-  }
-  .consumable-value {
-    font-size: 10px;
-    color: rgba(255,255,255,0.35);
-    text-align: right;
-    white-space: nowrap;
-  }
-  .consumable-warn {
-    font-size: 11px;
-  }
+  .ct-bar-fill { height: 100%; border-radius: 99px; }
+  .ct-value { font-size: 11px; }
 
   .lifetime-row {
     margin-top: 8px;
@@ -12424,92 +12437,103 @@ class RoboVacuumCard extends HTMLElement {
               stroke="rgba(255,255,255,0.14)" stroke-width="0.6"/>
       </svg>`;
 
-    // ── Legend rows ──────────────────────────────────────────────────────
-    const dot = (col, anim) =>
-      `<span style="width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0;${anim ? `animation:${anim}` : ''}"></span>`;
-    const row = (dotCol, anim, left, right, rightCol) =>
-      `<div style="display:flex;align-items:center;gap:7px;">
-         ${dot(dotCol, anim)}
-         <span style="color:rgba(255,255,255,0.40);font-size:10px;flex:1;">${left}</span>
-         <span style="color:${rightCol};font-size:10px;">${right}</span>
+    // ── Legend — compact ─────────────────────────────────────────────────
+    // OK items: tiny muted dot in a row; problem items: full chip
+
+    // Helper: small status dot (OK — muted, problem — colored + label)
+    const okDot  = (label) =>
+      `<span title="${label}" style="display:inline-block;width:7px;height:7px;
+              border-radius:50%;background:rgba(151,196,89,0.30);flex-shrink:0;"></span>`;
+    const problemChip = (label, value, col) =>
+      `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;
+                   border-radius:8px;background:rgba(226,75,74,0.10);
+                   border:1px solid rgba(226,75,74,0.22);">
+         <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0;
+                      animation:vac-dot 1.8s ease-in-out infinite;"></span>
+         <span style="font-size:10px;color:rgba(255,255,255,0.55);">${label}</span>
+         <span style="font-size:10px;font-weight:600;color:${col};margin-left:auto;">${value}</span>
+       </div>`;
+    const activeChip = (label, value, col) =>
+      `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;
+                   border-radius:8px;background:rgba(${col==='#C97A50'?'201,122,80':'133,183,235'},0.10);
+                   border:1px solid rgba(${col==='#C97A50'?'201,122,80':'133,183,235'},0.20);">
+         <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0;
+                      animation:vac-dot 1.8s ease-in-out infinite;"></span>
+         <span style="font-size:10px;color:${col};font-weight:500;">${label}</span>
+         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.40);margin-left:2px;">${value}</span>` : ''}
        </div>`;
 
-    const rows = [];
+    // Row 1: quiet OK dots for all-ok items + problem chips
+    const statusDots = [];   // tiny dots for OK items
+    const problemRows = [];  // full chips for problems
 
-    // Dirty water box (lewo góra)
-    rows.push(row(
-      dirtyCol,
-      dirtyBoxProblem ? 'vac-dot 1.8s ease-in-out infinite' : null,
-      'Brudna woda',
-      dirtyBoxProblem ? '⚠ pełna' : 'ok',
-      dirtyCol
-    ));
+    const dockItems = [
+      { key: 'dirty', label: 'Brudna woda', problem: dirtyBoxProblem, value: '⚠ pełna' },
+      { key: 'clean', label: 'Czysta woda', problem: cleanBoxProblem, value: '⚠ pusta' },
+      { key: 'fluid', label: 'Płyn czyszczący', problem: fluidProblem, value: '⚠ uzupełnij' },
+    ];
 
-    // Clean water box (prawo góra)
-    rows.push(row(
-      cleanCol,
-      cleanBoxProblem ? 'vac-dot 1.8s ease-in-out infinite' : null,
-      'Czysta woda',
-      cleanBoxProblem ? '⚠ pusta' : 'ok',
-      cleanCol
-    ));
-
-    // Cleaning fluid (lewo dół)
-    rows.push(row(
-      fluidCol,
-      fluidProblem ? 'vac-dot 1.8s ease-in-out infinite' : null,
-      'Płyn czyszczący',
-      fluidProblem ? '⚠ uzupełnij' : 'ok',
-      fluidCol
-    ));
-
-    // Mop drying — from dock binary sensor, with countdown
-    if (activeDrying) {
-      let dryingLabel = 'suszy mop';
-      if (mopDryingTimeSec !== null && mopDryingTimeSec > 0) {
-        const m = Math.ceil(mopDryingTimeSec / 60);
-        dryingLabel = `suszy mop · ~${m} min`;
+    dockItems.forEach(item => {
+      if (item.problem) {
+        problemRows.push(problemChip(item.label, item.value, '#E24B4A'));
+      } else {
+        statusDots.push(okDot(item.label + ' · ok'));
       }
-      rows.push(row('#C97A50', 'vac-dot 1.8s ease-in-out infinite', 'Suszenie', dryingLabel, '#C97A50'));
+    });
+
+    // Mop state
+    if (mopAttached) {
+      statusDots.push(`<span title="Mop założony" style="display:inline-block;width:7px;height:7px;
+        border-radius:50%;background:rgba(133,183,235,0.35);flex-shrink:0;"></span>`);
     }
 
-    // Mop attached (from vacuum robot)
-    rows.push(row(
-      mopAttached ? '#85B7EB' : '#5F5E5A', null,
-      'Mop',
-      mopAttached ? 'założony' : 'brak',
-      mopAttached ? '#85B7EB' : '#5F5E5A'
-    ));
+    // Active dock operations
+    if (activeDrying) {
+      let timeStr = '';
+      if (mopDryingTimeSec !== null && mopDryingTimeSec > 0) {
+        const m = Math.ceil(mopDryingTimeSec / 60);
+        timeStr = `~${m} min`;
+      }
+      problemRows.push(activeChip('suszy mop', timeStr, '#C97A50'));
+    }
 
     // Dock error
     if (hasDockError) {
       const DOCK_ERROR_MAP = {
-        duct_blockage:           'Zatkany przewód',
-        water_empty:             'Brak wody',
-        waste_water_tank_full:   'Pełny zbiornik brudnej wody',
-        maintenance_brush_jammed:'Zablokowana szczotka konserwacyjna',
-        dirty_tank_latch_open:   'Otwarty zatrzask zbiornika',
-        no_dustbin:              'Brak pojemnika na pył',
-        cleaning_tank_full_or_blocked: 'Zbiornik czyszczący pełny lub zablokowany',
+        duct_blockage:                 'Zatkany przewód',
+        water_empty:                   'Brak wody',
+        waste_water_tank_full:         'Pełna brudna woda',
+        maintenance_brush_jammed:      'Szczotka zablokowana',
+        dirty_tank_latch_open:         'Otwarty zatrzask',
+        no_dustbin:                    'Brak pojemnika',
+        cleaning_tank_full_or_blocked: 'Zbiornik czyszczący',
       };
-      rows.push(row('#E24B4A', 'vac-dot 1.8s ease-in-out infinite',
-                    'Błąd doku', DOCK_ERROR_MAP[dockError] || dockError, '#E24B4A'));
+      problemRows.push(problemChip('Błąd doku', DOCK_ERROR_MAP[dockError] || dockError, '#E24B4A'));
     }
 
-    // Vacuum robot error (minor — show at bottom without pulsing)
+    // Vacuum robot error — very muted, single dot
     if (hasVacError) {
       const errLabel = ERROR_MAP[vacError] || vacError;
-      rows.push(row('#EF9F27', null, 'Robot', errLabel, '#EF9F27'));
+      problemRows.push(problemChip('Robot', errLabel, '#EF9F27'));
     }
+
+    const dotsRow = statusDots.length
+      ? `<div style="display:flex;align-items:center;gap:5px;">${statusDots.join('')}</div>`
+      : '';
+    const rows = problemRows;
+
+    const legendHtml = `
+      <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px;flex:1;min-width:0;">
+        ${dotsRow}
+        ${rows.join('')}
+      </div>`;
 
     return `
       <div class="dock-section">
         <div class="dock-title">Dok · Saros 10R</div>
         <div style="display:flex;align-items:flex-start;gap:14px;">
           <div style="flex-shrink:0;">${svg}</div>
-          <div style="display:flex;flex-direction:column;gap:7px;padding-top:6px;flex:1;min-width:0;">
-            ${rows.join('')}
-          </div>
+          ${legendHtml}
         </div>
       </div>`;
   }
@@ -12519,58 +12543,77 @@ class RoboVacuumCard extends HTMLElement {
     const totalTime  = this._getSensorNum('total_time');
     const totalCount = this._getSensorNum('total_count');
 
-    // Merge robot consumables + dock strainer
+    // SVG paths per consumable type
+    const ICONS = {
+      filter_left:     `<path d="M3 4h18l-7 8.5v5.5l-4-2V12.5L3 4z"/>`,
+      main_brush_left: `<rect x="2" y="9" width="20" height="5" rx="2.5"/>
+                        <line x1="6"  y1="14" x2="5.5" y2="19"/>
+                        <line x1="10" y1="14" x2="10"  y2="19"/>
+                        <line x1="14" y1="14" x2="14"  y2="19"/>
+                        <line x1="18" y1="14" x2="18.5" y2="19"/>`,
+      side_brush_left: `<circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+                        <line x1="12" y1="9.5" x2="12" y2="4"/>
+                        <line x1="10" y1="13.2" x2="4.8" y2="16.3"/>
+                        <line x1="14" y1="13.2" x2="19.2" y2="16.3"/>`,
+      sensor_left:     `<circle cx="12" cy="12" r="3"/>
+                        <path d="M5 12a7 7 0 0 1 14 0" fill="none"/>
+                        <path d="M8 12a4 4 0 0 1 8 0" fill="none"/>`,
+      _dock_strainer:  `<rect x="3" y="3" width="18" height="18" rx="3" fill="none"/>
+                        <line x1="3" y1="8"  x2="21" y2="8"/>
+                        <line x1="3" y1="13" x2="21" y2="13"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                        <line x1="8"  y1="3" x2="8"  y2="21"/>
+                        <line x1="13" y1="3" x2="13" y2="21"/>`,
+    };
+
     const allConsumables = [
       ...CONSUMABLES,
       { key: '_dock_strainer', label: 'Filtr doku', maxHours: 150, warnAt: 30 },
     ];
 
-    const rows = allConsumables.map(c => {
+    const icons = allConsumables.map(c => {
       const hoursLeft = c.key === '_dock_strainer'
         ? this._getDockSensorNum('strainer_left')
         : this._getSensorNum(c.key);
-      if (hoursLeft === null) {
-        return `
-          <div class="consumable-row">
-            <span class="consumable-label">${c.label}</span>
-            <div class="consumable-track"><div class="consumable-fill" style="width:0%;background:#5F5E5A;"></div></div>
-            <span class="consumable-value">—</span>
-            <span class="consumable-warn"></span>
-          </div>
-        `;
-      }
-      const pct = consumablePct(hoursLeft, c.maxHours);
-      const col = consumableColor(pct);
-      const warn = hoursLeft <= c.warnAt;
+
+      const pct     = hoursLeft !== null ? consumablePct(hoursLeft, c.maxHours) : null;
+      const col     = pct !== null ? consumableColor(pct) : '#5F5E5A';
+      const warn    = hoursLeft !== null && hoursLeft <= c.warnAt;
+      const valStr  = hoursLeft !== null ? `${fmtHours(hoursLeft)} · ${Math.round(pct ?? 0)}%` : '—';
+      const svgPath = ICONS[c.key] || '';
+
+      const warnDot = warn
+        ? `<span style="position:absolute;top:2px;right:2px;width:6px;height:6px;
+                        border-radius:50%;background:#E24B4A;border:1px solid #1C1C1E;"></span>`
+        : '';
+
       return `
-        <div class="consumable-row">
-          <span class="consumable-label">${c.label}</span>
-          <div class="consumable-track">
-            <div class="consumable-fill" style="width:${pct.toFixed(1)}%;background:${col};"></div>
+        <div class="ci" style="background:rgba(${col==='#97C459'?'151,196,89':col==='#EF9F27'?'239,159,39':'226,75,74'},0.10);
+                               border:1px solid rgba(${col==='#97C459'?'151,196,89':col==='#EF9F27'?'239,159,39':'226,75,74'},${warn?'0.35':'0.15'});">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="${col}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+               ${warn ? `style="filter:drop-shadow(0 0 4px ${col}88)"` : ''}>${svgPath}</svg>
+          ${warnDot}
+          <div class="ct">
+            <div class="ct-label">${c.label}</div>
+            <div class="ct-bar-track">
+              <div class="ct-bar-fill" style="width:${(pct??0).toFixed(1)}%;background:${col};"></div>
+            </div>
+            <div class="ct-value" style="color:${col};">${valStr}</div>
           </div>
-          <span class="consumable-value">${fmtHours(hoursLeft)}</span>
-          <span class="consumable-warn" title="${warn ? 'Wymień wkrótce' : 'OK'}">
-            ${warn ? '⚠' : ''}
-          </span>
-        </div>
-      `;
+        </div>`;
     });
 
-    let lifetimeHtml = '';
-    if (totalCount !== null || totalArea !== null || totalTime !== null) {
-      const parts = [];
-      if (totalCount !== null) parts.push(`${Math.round(totalCount)} sesji`);
-      if (totalArea  !== null) parts.push(`${parseFloat(totalArea).toFixed(1)} m² łącznie`);
-      if (totalTime  !== null) parts.push(`${fmtTime(totalTime)} łącznie`);
-      lifetimeHtml = `<div class="lifetime-row">${parts.join(' · ')}</div>`;
-    }
+    // Lifetime stats — compact, right-aligned
+    const lifetimeParts = [];
+    if (totalCount !== null) lifetimeParts.push(`${Math.round(totalCount)}×`);
+    if (totalArea  !== null) lifetimeParts.push(fmtArea(parseFloat(totalArea)));
+    if (totalTime  !== null) lifetimeParts.push(fmtTime(totalTime));
+    const lifetime = lifetimeParts.length
+      ? `<span style="font-size:10px;color:rgba(255,255,255,0.18);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
+      : '';
 
-    return `
-      <div class="consumables">
-        ${rows.join('')}
-        ${lifetimeHtml}
-      </div>
-    `;
+    return `<div class="consumables">${icons.join('')}${lifetime}</div>`;
   }
 
   _renderActions(group, vacState) {
