@@ -1349,15 +1349,9 @@ class RoboVacuumCard extends HTMLElement {
     sections.push('<div class="sep"></div>');
     sections.push('<div class="section">' + this._renderChips(group, mopAttached, waterShortage) + '</div>');
 
-    // ── Section 5: Dock ──
-    if (showDock) {
-      sections.push('<div class="sep"></div>');
-      sections.push('<div class="section">' + this._renderDockDiagram(group) + '</div>');
-    }
-
-    // ── Section 6: Consumables ──
+    // ── Section 5: Dok + Konsumable (combined) ──
     sections.push('<div class="sep"></div>');
-    sections.push('<div class="section">' + this._renderConsumables() + '</div>');
+    sections.push('<div class="section">' + this._renderDockAndConsumables(group, showDock) + '</div>');
 
     // ── Section 7: Actions ──
     const actionsHtml = this._renderActions(group, vacState);
@@ -1870,6 +1864,331 @@ class RoboVacuumCard extends HTMLElement {
           ${legendHtml}
         </div>
       </div>`;
+  }
+
+  // ── Combined: compact dock SVG (left) + status + consumables (right) ──
+  _renderDockAndConsumables(group, showDock) {
+    const dockSvg = showDock ? this._buildCompactDockSvg(group) : null;
+    const legendHtml = showDock ? this._buildDockLegend(group) : null;
+    const consumablesHtml = this._buildConsumableIcons();
+
+    if (!dockSvg) {
+      // No dock — just consumables row
+      return consumablesHtml;
+    }
+
+    return `
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+
+        <!-- Left: compact dock SVG -->
+        <div style="flex-shrink:0;">
+          <div class="dock-title" style="margin-bottom:6px;">Dok</div>
+          ${dockSvg}
+        </div>
+
+        <!-- Right: dock status + consumables -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;">
+
+          ${legendHtml}
+
+          <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
+
+          <!-- Consumable icons + lifetime -->
+          ${consumablesHtml}
+
+        </div>
+      </div>`;
+  }
+
+  // Compact SVG — same geometry but W/D/H scaled down ~30%
+  _buildCompactDockSvg(group) {
+    const isMopWashing  = group === 'mop_washing';
+    const isEmptying    = group === 'emptying';
+    const isCharging    = this._isBinaryOn('charging');
+    const dirtyBoxProblem = this._isDockProblem('dirty_water_box');
+    const cleanBoxProblem = this._isDockProblem('clean_water_box');
+    const fluidProblem    = this._isDockProblem('cleaning_fluid');
+    const dockMopDrying   = this._isDockRunning('mop_drying');
+    const activeDrying    = group === 'mop_drying' || dockMopDrying;
+    const vacError        = this._getSensorState('vacuum_error') || 'none';
+    const hasDockError    = (() => { const e = this._getDockSensorState('dock_error'); return e && e !== 'ok' && e !== 'unknown'; })();
+    const hasError        = hasDockError;
+
+    // ── Smaller proportions ──────────────────────────────────────────
+    const W = 52, D = 30, H = 68;
+    const cos30 = 0.866, sin30 = 0.5;
+    const dx  = W * cos30, dy  = W * sin30;
+    const ddx = D * cos30, ddy = D * sin30;
+    const pl = 6, pt = ddy + 7;
+
+    const fp = (u, v) => [pl + u*dx,        pt + u*dy + v*H];
+    const tp = (u, d) => [pl + u*dx + d*ddx, pt + u*dy - d*ddy];
+    const rp = (d, v) => [pl + dx + d*ddx,   pt + dy - d*ddy + v*H];
+    const poly = pts => pts.map(p => p.join(',')).join(' ');
+
+    const frontPts     = poly([fp(0,0), fp(1,0), fp(1,1), fp(0,1)]);
+    const rightPts     = poly([rp(0,0), rp(1,0), rp(1,1), rp(0,1)]);
+    const topPts       = poly([tp(0,0), tp(1,0), tp(1,1), tp(0,1)]);
+    const dirtyTankPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
+    const cleanTankPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
+    const tankDivPts   = [tp(0.5,0), tp(0.5,1)];
+    const mopBayPts    = poly([fp(0.10,0.05), fp(0.90,0.05), fp(0.90,0.46), fp(0.10,0.46)]);
+    const dustPts      = poly([fp(0.28,0.47), fp(0.72,0.47), fp(0.72,0.60), fp(0.28,0.60)]);
+    const fluidPts     = poly([fp(0.04,0.60), fp(0.38,0.60), fp(0.38,0.96), fp(0.04,0.96)]);
+    const dockSlotPts  = poly([fp(0.40,0.62), fp(0.96,0.62), fp(0.96,0.97), fp(0.40,0.97)]);
+
+    const robotCX = (fp(0.42,0.80)[0] + fp(0.80,0.80)[0]) / 2;
+    const robotCY = (fp(0.42,0.80)[1] + fp(0.80,0.80)[1]) / 2;
+    const [cx, cy]       = tp(0.25, 0.5);
+    const [dirtX, dirtY] = tp(0.75, 0.5);
+
+    const dirtyCol = dirtyBoxProblem ? '#E24B4A' : '#97C459';
+    const dirtyCBg = dirtyBoxProblem ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
+    const cleanCol = cleanBoxProblem ? '#E24B4A' : '#97C459';
+    const cleanBg  = cleanBoxProblem ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
+    const fluidCol = fluidProblem ? '#E24B4A' : '#97C459';
+    const fluidBg  = fluidProblem ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.12)';
+    const mopBayCol = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
+    const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : activeDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
+    const dustCol   = isEmptying ? '#EF9F27' : 'rgba(255,255,255,0.07)';
+    const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
+    const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
+    const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
+    const slotCol   = isCharging ? '#97C459' : hasError ? '#E24B4A' : 'rgba(255,255,255,0.06)';
+
+    // Animations (same as full version but scaled)
+    const makeMopLine = (v, delay, col) => {
+      const [x1, y1] = fp(0.12, v), [x2, y2] = fp(0.88, v);
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+                    stroke="${col}" stroke-width="1" stroke-linecap="round"
+                    style="animation:vac-water-drop 1.2s ${delay}s ease-in-out infinite"/>`;
+    };
+    const makeHeatArc = (uMid, v, delay) => {
+      const [xs, ys] = fp(uMid-0.14, v+0.05), [xe, ye] = fp(uMid+0.14, v+0.05), [xc, yc] = fp(uMid, v-0.06);
+      return `<path d="M ${xs.toFixed(1)} ${ys.toFixed(1)} Q ${xc.toFixed(1)} ${yc.toFixed(1)} ${xe.toFixed(1)} ${ye.toFixed(1)}"
+                    stroke="#C97A50" stroke-width="1" fill="none" stroke-linecap="round"
+                    style="animation:vac-heat 1.5s ${delay}s ease-in-out infinite"/>`;
+    };
+    const makeDustDot = (u, v, r, delay) => {
+      const [cx2, cy2] = fp(u, v);
+      return `<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${r}" fill="#EF9F27"
+                      style="animation:vac-water-drop 0.9s ${delay}s ease-in-out infinite"/>`;
+    };
+
+    let activeAnim = '';
+    if (isMopWashing) {
+      activeAnim = makeMopLine(0.18,0.00,'#7BAED4') + makeMopLine(0.28,0.35,'#7BAED4') + makeMopLine(0.38,0.70,'#7BAED4');
+    } else if (activeDrying) {
+      activeAnim = makeHeatArc(0.28,0.38,0.0) + makeHeatArc(0.50,0.38,0.3) + makeHeatArc(0.72,0.38,0.6)
+                 + makeHeatArc(0.28,0.22,0.15) + makeHeatArc(0.50,0.22,0.45) + makeHeatArc(0.72,0.22,0.75);
+    } else if (isEmptying) {
+      activeAnim = makeDustDot(0.38,0.51,1.0,0.00) + makeDustDot(0.50,0.53,1.2,0.25) + makeDustDot(0.62,0.51,1.0,0.50);
+    }
+
+    const errorOverlay = hasError
+      ? `<polygon points="${frontPts}" fill="rgba(226,75,74,0.07)" style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
+      : '';
+    const [bx, by] = fp(0.5, 0.67);
+    const chargeBolt = isCharging
+      ? `<text x="${bx.toFixed(1)}" y="${(by-3).toFixed(1)}" text-anchor="middle" font-size="7"
+               fill="#97C459" style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>`
+      : '';
+
+    const vbW = Math.ceil(pl + dx + ddx + 8);
+    const vbH = Math.ceil(pt + dy + H + 5);
+
+    return `
+      <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
+           fill="none" style="display:block;overflow:visible;">
+        <polygon points="${rightPts}" fill="#161618" stroke="rgba(255,255,255,0.07)" stroke-width="0.7"/>
+        <polygon points="${frontPts}" fill="#1E1E20" stroke="rgba(255,255,255,0.09)" stroke-width="0.7"/>
+        ${errorOverlay}
+        <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.8"/>
+        ${activeAnim}
+        <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.6"/>
+        <polygon points="${fluidPts}" fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.8"
+                 ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <circle cx="${fp(0.21,0.775)[0].toFixed(1)}" cy="${fp(0.21,0.775)[1].toFixed(1)}" r="2"
+                fill="${fluidCol}" opacity="0.9"
+                ${fluidProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${dockSlotPts}" fill="${robotBg}" stroke="${slotCol}" stroke-width="0.8"
+                 stroke-dasharray="${isCharging||hasError?'none':'2,2'}"/>
+        <circle cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}" r="6"
+                fill="${robotBg}" stroke="${robotCol}" stroke-width="1.1"/>
+        <path d="M ${(robotCX-3.5).toFixed(1)} ${(robotCY+0.8).toFixed(1)} A 3.5 3.5 0 0 1 ${(robotCX+3.5).toFixed(1)} ${(robotCY+0.8).toFixed(1)}"
+              stroke="${robotCol}" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+        ${chargeBolt}
+        <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
+        <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}" stroke-width="0.8" opacity="0.9"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.2" fill="${dirtyCol}" opacity="0.9"
+                ${dirtyBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.8" opacity="0.9"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <circle cx="${dirtX.toFixed(1)}" cy="${dirtY.toFixed(1)}" r="2.2" fill="${cleanCol}" opacity="0.9"
+                ${cleanBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+        <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
+              x2="${tankDivPts[1][0].toFixed(1)}" y2="${tankDivPts[1][1].toFixed(1)}"
+              stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
+        <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
+              x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
+              stroke="rgba(255,255,255,0.14)" stroke-width="0.5"/>
+      </svg>`;
+  }
+
+  _buildDockLegend(group) {
+    const dirtyBoxProblem = this._isDockProblem('dirty_water_box');
+    const cleanBoxProblem = this._isDockProblem('clean_water_box');
+    const fluidProblem    = this._isDockProblem('cleaning_fluid');
+    const dockMopDrying   = this._isDockRunning('mop_drying');
+    const activeDrying    = group === 'mop_drying' || dockMopDrying;
+    const mopAttached     = this._isBinaryOn('mop_attached');
+    const mopDryingTimeSec = this._getDockSensorNum('mop_drying_time');
+    const dockError       = this._getDockSensorState('dock_error');
+    const hasDockError    = dockError && dockError !== 'ok' && dockError !== 'unknown';
+    const vacError        = this._getSensorState('vacuum_error') || 'none';
+    const hasVacError     = vacError !== 'none' && vacError !== 'unknown';
+    const isMopWashing    = group === 'mop_washing';
+
+    const okDot = (label) =>
+      `<span title="${label}: ok" style="display:inline-block;width:6px;height:6px;border-radius:50%;
+              background:rgba(151,196,89,0.28);flex-shrink:0;"></span>`;
+
+    const problemChip = (label, value) =>
+      `<div style="display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:7px;
+                   background:rgba(226,75,74,0.10);border:1px solid rgba(226,75,74,0.20);">
+         <span style="width:5px;height:5px;border-radius:50%;background:#E24B4A;flex-shrink:0;
+                      animation:vac-dot 1.8s ease-in-out infinite;"></span>
+         <span style="font-size:10px;color:rgba(255,255,255,0.50);">${label}</span>
+         <span style="font-size:10px;font-weight:600;color:#E24B4A;margin-left:auto;">${value}</span>
+       </div>`;
+
+    const activeChip = (label, value, col) => {
+      const rgb = col === '#C97A50' ? '201,122,80' : '123,174,212';
+      return `<div style="display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:7px;
+                     background:rgba(${rgb},0.10);border:1px solid rgba(${rgb},0.20);">
+         <span style="width:5px;height:5px;border-radius:50%;background:${col};flex-shrink:0;
+                      animation:vac-dot 1.8s ease-in-out infinite;"></span>
+         <span style="font-size:10px;color:${col};font-weight:500;">${label}</span>
+         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.35);margin-left:2px;">${value}</span>` : ''}
+       </div>`;
+    };
+
+    const dots = [];
+    const chips = [];
+
+    const items = [
+      { label: 'Brudna woda', problem: dirtyBoxProblem, value: '⚠ pełna' },
+      { label: 'Czysta woda', problem: cleanBoxProblem, value: '⚠ pusta' },
+      { label: 'Płyn',        problem: fluidProblem,    value: '⚠ uzupełnij' },
+    ];
+    items.forEach(i => {
+      if (i.problem) chips.push(problemChip(i.label, i.value));
+      else dots.push(okDot(i.label));
+    });
+
+    if (mopAttached) dots.push(`<span title="Mop założony" style="display:inline-block;width:6px;height:6px;
+      border-radius:50%;background:rgba(133,183,235,0.35);flex-shrink:0;"></span>`);
+
+    if (activeDrying) {
+      const m = mopDryingTimeSec && mopDryingTimeSec > 0 ? `~${Math.ceil(mopDryingTimeSec/60)} min` : '';
+      chips.push(activeChip('suszy mop', m, '#C97A50'));
+    }
+    if (isMopWashing) chips.push(activeChip('myje mop', '', '#7BAED4'));
+
+    if (hasDockError) {
+      const DOCK_ERR = {
+        duct_blockage:'Zatkany przewód', water_empty:'Brak wody',
+        waste_water_tank_full:'Pełna brudna woda', maintenance_brush_jammed:'Szczotka zablok.',
+        dirty_tank_latch_open:'Otwarty zatrzask', no_dustbin:'Brak pojemnika',
+        cleaning_tank_full_or_blocked:'Zbiornik zablok.',
+      };
+      chips.push(problemChip('Dok', DOCK_ERR[dockError] || dockError));
+    }
+    if (hasVacError) {
+      const lbl = ERROR_MAP[vacError] || vacError;
+      chips.push(`<div style="display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:7px;
+                   background:rgba(239,159,39,0.08);border:1px solid rgba(239,159,39,0.15);">
+         <span style="width:5px;height:5px;border-radius:50%;background:#EF9F27;flex-shrink:0;"></span>
+         <span style="font-size:10px;color:rgba(255,255,255,0.40);">Robot</span>
+         <span style="font-size:10px;color:#EF9F27;margin-left:auto;">${lbl}</span>
+       </div>`);
+    }
+
+    const dotsHtml = dots.length
+      ? `<div style="display:flex;align-items:center;gap:4px;">${dots.join('')}</div>` : '';
+    const chipsHtml = chips.length
+      ? `<div style="display:flex;flex-direction:column;gap:4px;">${chips.join('')}</div>` : '';
+
+    return `<div style="display:flex;flex-direction:column;gap:5px;">${dotsHtml}${chipsHtml}</div>`;
+  }
+
+  _buildConsumableIcons() {
+    const ICONS = {
+      filter_left:     `<path d="M3 4h18l-7 8.5v5.5l-4-2V12.5L3 4z"/>`,
+      main_brush_left: `<rect x="2" y="9" width="20" height="5" rx="2.5"/>
+                        <line x1="6"  y1="14" x2="5.5" y2="19"/>
+                        <line x1="10" y1="14" x2="10"  y2="19"/>
+                        <line x1="14" y1="14" x2="14"  y2="19"/>
+                        <line x1="18" y1="14" x2="18.5" y2="19"/>`,
+      side_brush_left: `<circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+                        <line x1="12" y1="9.5" x2="12" y2="4"/>
+                        <line x1="10" y1="13.2" x2="4.8" y2="16.3"/>
+                        <line x1="14" y1="13.2" x2="19.2" y2="16.3"/>`,
+      sensor_left:     `<circle cx="12" cy="12" r="3"/>
+                        <path d="M5 12a7 7 0 0 1 14 0" fill="none"/>
+                        <path d="M8 12a4 4 0 0 1 8 0" fill="none"/>`,
+      _dock_strainer:  `<rect x="3" y="3" width="18" height="18" rx="3" fill="none"/>
+                        <line x1="3" y1="8"  x2="21" y2="8"/>
+                        <line x1="3" y1="13" x2="21" y2="13"/>
+                        <line x1="8"  y1="3" x2="8"  y2="21"/>
+                        <line x1="13" y1="3" x2="13" y2="21"/>`,
+    };
+
+    const allConsumables = [
+      ...CONSUMABLES,
+      { key: '_dock_strainer', label: 'Filtr doku', maxHours: 150, warnAt: 30 },
+    ];
+
+    const totalArea  = this._getSensorNum('total_area');
+    const totalTime  = this._getSensorNum('total_time');
+    const totalCount = this._getSensorNum('total_count');
+
+    const icons = allConsumables.map(c => {
+      const hoursLeft = c.key === '_dock_strainer'
+        ? this._getDockSensorNum('strainer_left')
+        : this._getSensorNum(c.key);
+      const pct    = hoursLeft !== null ? consumablePct(hoursLeft, c.maxHours) : null;
+      const col    = pct !== null ? consumableColor(pct) : '#5F5E5A';
+      const warn   = hoursLeft !== null && hoursLeft <= c.warnAt;
+      const valStr = hoursLeft !== null ? `${fmtHours(hoursLeft)} · ${Math.round(pct??0)}%` : '—';
+      const rgb    = col === '#97C459' ? '151,196,89' : col === '#EF9F27' ? '239,159,39' : '226,75,74';
+
+      return `
+        <div class="ci" style="background:rgba(${rgb},0.10);
+                               border:1px solid rgba(${rgb},${warn?'0.35':'0.15'});">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="${col}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+               ${warn ? `style="filter:drop-shadow(0 0 4px ${col}88)"` : ''}>${ICONS[c.key]||''}</svg>
+          ${warn ? `<span style="position:absolute;top:2px;right:2px;width:6px;height:6px;
+                                 border-radius:50%;background:#E24B4A;border:1px solid #1C1C1E;"></span>` : ''}
+          <div class="ct">
+            <div class="ct-label">${c.label}</div>
+            <div class="ct-bar-track"><div class="ct-bar-fill" style="width:${(pct??0).toFixed(1)}%;background:${col};"></div></div>
+            <div class="ct-value" style="color:${col};">${valStr}</div>
+          </div>
+        </div>`;
+    });
+
+    const lifetimeParts = [];
+    if (totalCount !== null) lifetimeParts.push(`${Math.round(totalCount)}×`);
+    if (totalArea  !== null) lifetimeParts.push(fmtArea(parseFloat(totalArea)));
+    if (totalTime  !== null) lifetimeParts.push(fmtTime(totalTime));
+    const lifetime = lifetimeParts.length
+      ? `<span style="font-size:10px;color:rgba(255,255,255,0.18);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
+      : '';
+
+    return `<div class="consumables">${icons.join('')}${lifetime}</div>`;
   }
 
   _renderConsumables() {
