@@ -493,6 +493,10 @@ const CARD_STYLES = `
     0%, 100% { opacity: 0; }
     50%       { opacity: 1; }
   }
+  @keyframes vac-pulse-charging {
+    0%, 100% { filter: drop-shadow(0 0 0px rgba(151,196,89,0)); }
+    50%       { filter: drop-shadow(0 0 5px rgba(151,196,89,0.55)); }
+  }
   @keyframes vac-dot {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.2; }
@@ -1602,9 +1606,14 @@ class RoboVacuumCard extends HTMLElement {
     // Front face lower-left: cleaning fluid compartment
     const fluidPts     = poly([fp(0.04,0.60), fp(0.38,0.60), fp(0.38,0.95), fp(0.04,0.95)]);
 
-    // Robot center (shifted right to leave room for fluid compartment on left)
-    const robotCX = (fp(0.42,0.80)[0] + fp(0.80,0.80)[0]) / 2;
-    const robotCY = (fp(0.42,0.80)[1] + fp(0.80,0.80)[1]) / 2;
+    // Robot is in the dock only when charging / being serviced
+    const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
+    // Isometric top-down disc: X=0.80*W (right side), Z=-0.06*D (just in front of front face)
+    const Xr_l = 0.80 * W, Zr_l = -0.06 * D;
+    const robotCX = pl + cos30 * (Xr_l + Zr_l);
+    const robotCY = pt + sin30 * (Xr_l - Zr_l) + H;
+    const robotRX  = 17 * cos30 * Math.SQRT2;   // isometric ellipse half-width
+    const robotRY  = 17 * sin30 * Math.SQRT2;   // isometric ellipse half-height
     const mopCY_lo = fp(0.5, 0.38)[1];  // lower mop bay horizontal
     const mopCY_mi = fp(0.5, 0.28)[1];
     const mopCY_hi = fp(0.5, 0.18)[1];
@@ -1628,7 +1637,6 @@ class RoboVacuumCard extends HTMLElement {
     const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
     const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
     const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
-    const slotCol   = isCharging ? '#97C459' : hasError ? '#E24B4A' : 'rgba(255,255,255,0.06)';
 
     // ── Animated overlays inside mop bay ────────────────────────────────
     // Lines are drawn parallel to the isometric x-axis (slanted left→right+down)
@@ -1679,21 +1687,15 @@ class RoboVacuumCard extends HTMLElement {
                   style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
       : '';
 
-    // Charging bolt
-    const [bx, by] = fp(0.5, 0.67);
-    const chargeBolt = isCharging
-      ? `<text x="${bx.toFixed(1)}" y="${(by - 4).toFixed(1)}" text-anchor="middle"
-               font-size="9" fill="#97C459"
-               style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>`
-      : '';
-
     // Tank indicator dots on top face
     const [cx, cy] = tp(0.25, 0.5);
     const [dirtX, dirtY] = tp(0.75, 0.5);
 
-    // ViewBox
+    // ViewBox — extend height so robot ellipse is fully visible
     const vbW = Math.ceil(pl + dx + ddx + 10);
-    const vbH = Math.ceil(pt + dy + H + 6);
+    const vbH = isRobotDocked
+      ? Math.ceil(robotCY + robotRY + 4)
+      : Math.ceil(pt + dy + H + 6);
 
     const svg = `
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
@@ -1722,19 +1724,10 @@ class RoboVacuumCard extends HTMLElement {
                 fill="${fluidCol}" opacity="0.9"
                 ${fluidProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
 
-        <!-- Robot dock slot (lower right portion of front) -->
+        <!-- Robot dock slot outline — faint guide, always shown -->
         <polygon points="${dockSlotPts}"
-                 fill="${robotBg}" stroke="${slotCol}"
-                 stroke-width="0.9" stroke-dasharray="${isCharging || hasError ? 'none' : '2.5,2'}"/>
-
-        <!-- Robot circle inside slot -->
-        <circle cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}" r="7.5"
-                fill="${robotBg}" stroke="${robotCol}" stroke-width="1.3"/>
-        <!-- Robot bumper arc -->
-        <path d="M ${(robotCX-5).toFixed(1)} ${(robotCY+1).toFixed(1)}
-                 A 5 5 0 0 1 ${(robotCX+5).toFixed(1)} ${(robotCY+1).toFixed(1)}"
-              stroke="${robotCol}" stroke-width="0.9" fill="none" stroke-linecap="round"/>
-        ${chargeBolt}
+                 fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.05)"
+                 stroke-width="0.7" stroke-dasharray="2.5,2"/>
 
         <!-- Top face (brightest — light from above) -->
         <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
@@ -1764,6 +1757,26 @@ class RoboVacuumCard extends HTMLElement {
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
               stroke="rgba(255,255,255,0.14)" stroke-width="0.6"/>
+
+        ${isRobotDocked ? `
+        <!-- Robot — isometric top-down disc (only when docked) -->
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
+                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
+                 fill="${robotBg}" stroke="${robotCol}" stroke-width="1.6"
+                 ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
+        <!-- Bumper arc (front edge, lower part of disc) -->
+        <path d="M ${(robotCX - robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}
+                 A ${(robotRX * 0.82).toFixed(1)} ${(robotRY * 0.82).toFixed(1)} 0 0 1
+                   ${(robotCX + robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}"
+              stroke="${robotCol}" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.65"/>
+        <!-- LIDAR dome (slightly back from center) -->
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY - robotRY * 0.12).toFixed(1)}"
+                 rx="4" ry="2.4"
+                 fill="${robotBg}" stroke="${robotCol}" stroke-width="0.9" opacity="0.9"/>
+        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY + robotRY * 0.12 + 4).toFixed(1)}"
+              text-anchor="middle" font-size="10" fill="#97C459"
+              style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
+        ` : ''}
       </svg>`;
 
     // ── Legend — compact ─────────────────────────────────────────────────
@@ -1938,8 +1951,14 @@ class RoboVacuumCard extends HTMLElement {
     const fluidPts     = poly([fp(0.04,0.60), fp(0.38,0.60), fp(0.38,0.96), fp(0.04,0.96)]);
     const dockSlotPts  = poly([fp(0.40,0.62), fp(0.96,0.62), fp(0.96,0.97), fp(0.40,0.97)]);
 
-    const robotCX = (fp(0.42,0.80)[0] + fp(0.80,0.80)[0]) / 2;
-    const robotCY = (fp(0.42,0.80)[1] + fp(0.80,0.80)[1]) / 2;
+    // Robot docked — isometric top-down disc
+    const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
+    const Xr_s = 0.82 * W, Zr_s = -0.06 * D;
+    const robotCX = pl + cos30 * (Xr_s + Zr_s);
+    const robotCY = pt + sin30 * (Xr_s - Zr_s) + H;
+    const robotRX  = 13 * cos30 * Math.SQRT2;
+    const robotRY  = 13 * sin30 * Math.SQRT2;
+
     const [cx, cy]       = tp(0.25, 0.5);
     const [dirtX, dirtY] = tp(0.75, 0.5);
 
@@ -1955,7 +1974,6 @@ class RoboVacuumCard extends HTMLElement {
     const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
     const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
     const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
-    const slotCol   = isCharging ? '#97C459' : hasError ? '#E24B4A' : 'rgba(255,255,255,0.06)';
 
     // Animations (same as full version but scaled)
     const makeMopLine = (v, delay, col) => {
@@ -1989,14 +2007,11 @@ class RoboVacuumCard extends HTMLElement {
     const errorOverlay = hasError
       ? `<polygon points="${frontPts}" fill="rgba(226,75,74,0.07)" style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
       : '';
-    const [bx, by] = fp(0.5, 0.67);
-    const chargeBolt = isCharging
-      ? `<text x="${bx.toFixed(1)}" y="${(by-3).toFixed(1)}" text-anchor="middle" font-size="7"
-               fill="#97C459" style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>`
-      : '';
 
     const vbW = Math.ceil(pl + dx + ddx + 8);
-    const vbH = Math.ceil(pt + dy + H + 5);
+    const vbH = isRobotDocked
+      ? Math.ceil(robotCY + robotRY + 3)
+      : Math.ceil(pt + dy + H + 5);
 
     return `
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
@@ -2012,13 +2027,8 @@ class RoboVacuumCard extends HTMLElement {
         <circle cx="${fp(0.21,0.775)[0].toFixed(1)}" cy="${fp(0.21,0.775)[1].toFixed(1)}" r="2"
                 fill="${fluidCol}" opacity="0.9"
                 ${fluidProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
-        <polygon points="${dockSlotPts}" fill="${robotBg}" stroke="${slotCol}" stroke-width="0.8"
-                 stroke-dasharray="${isCharging||hasError?'none':'2,2'}"/>
-        <circle cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}" r="6"
-                fill="${robotBg}" stroke="${robotCol}" stroke-width="1.1"/>
-        <path d="M ${(robotCX-3.5).toFixed(1)} ${(robotCY+0.8).toFixed(1)} A 3.5 3.5 0 0 1 ${(robotCX+3.5).toFixed(1)} ${(robotCY+0.8).toFixed(1)}"
-              stroke="${robotCol}" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-        ${chargeBolt}
+        <polygon points="${dockSlotPts}" fill="rgba(255,255,255,0.01)"
+                 stroke="rgba(255,255,255,0.05)" stroke-width="0.6" stroke-dasharray="2,2"/>
         <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
         <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}" stroke-width="0.8" opacity="0.9"
                  ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
@@ -2034,6 +2044,26 @@ class RoboVacuumCard extends HTMLElement {
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
               stroke="rgba(255,255,255,0.14)" stroke-width="0.5"/>
+
+        ${isRobotDocked ? `
+        <!-- Robot — isometric top-down disc (only when docked) -->
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
+                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
+                 fill="${robotBg}" stroke="${robotCol}" stroke-width="1.2"
+                 ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
+        <!-- Bumper arc (front edge of disc) -->
+        <path d="M ${(robotCX - robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}
+                 A ${(robotRX * 0.82).toFixed(1)} ${(robotRY * 0.82).toFixed(1)} 0 0 1
+                   ${(robotCX + robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}"
+              stroke="${robotCol}" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.6"/>
+        <!-- LIDAR dome -->
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY - robotRY * 0.12).toFixed(1)}"
+                 rx="3" ry="1.8"
+                 fill="${robotBg}" stroke="${robotCol}" stroke-width="0.8" opacity="0.9"/>
+        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY + robotRY * 0.1 + 4).toFixed(1)}"
+              text-anchor="middle" font-size="7" fill="#97C459"
+              style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
+        ` : ''}
       </svg>`;
   }
 
