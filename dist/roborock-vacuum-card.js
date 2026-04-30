@@ -1429,7 +1429,7 @@ class RoboVacuumCard extends HTMLElement {
     let html = `<div class="chips-row">${chips.join('')}</div>`;
 
     if (waterShortage) {
-      html += `<div class="water-alert">⚠ Brak wody w pojemniku — uzupełnij zanim wróci</div>`;
+      html += `<div class="water-alert">⚠ Brak płynu czyszczącego — uzupełnij zanim wróci</div>`;
     }
 
     return html;
@@ -1496,8 +1496,12 @@ class RoboVacuumCard extends HTMLElement {
     const mopX_r   = fp(0.88, 0)[0];
 
     // Colors derived from state
-    const cleanCol  = waterShortage ? '#E24B4A' : '#97C459';
-    const cleanBg   = waterShortage ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.18)';
+    // Clean water tank in dock has no direct sensor — always show as OK
+    const cleanCol  = '#97C459';
+    const cleanBg   = 'rgba(151,196,89,0.18)';
+    // water_shortage = cleaning fluid (detergent) low — separate from clean water tank
+    const fluidCol  = waterShortage ? '#E24B4A' : '#97C459';
+    const fluidBg   = waterShortage ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.18)';
     const mopBayCol = isMopWashing ? '#7BAED4' : isMopDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
     const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : isMopDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
     const dustCol   = isEmptying ? '#EF9F27' : 'rgba(255,255,255,0.07)';
@@ -1610,8 +1614,7 @@ class RoboVacuumCard extends HTMLElement {
         <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}"
                  stroke-width="0.9" opacity="0.9"/>
         <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.8"
-                fill="${cleanCol}" opacity="0.9"
-                ${waterShortage ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+                fill="${cleanCol}" opacity="0.9"/>
 
         <!-- Dirty water tank (right half of top) -->
         <polygon points="${dirtyTankPts}" fill="rgba(95,94,90,0.15)"
@@ -1642,17 +1645,20 @@ class RoboVacuumCard extends HTMLElement {
 
     const rows = [];
 
-    // Clean water
-    rows.push(row(
-      cleanCol,
-      waterShortage ? 'vac-dot 1.8s ease-in-out infinite' : null,
-      'Czysta woda',
-      waterShortage ? '⚠ brak' : 'ok',
-      cleanCol
-    ));
+    // Clean water tank — no sensor, always OK
+    rows.push(row(cleanCol, null, 'Czysta woda', 'ok', cleanCol));
 
-    // Dirty water (no direct sensor — just static)
+    // Dirty water tank — no sensor
     rows.push(row('#5F5E5A', null, 'Brudna woda', '—', '#5F5E5A'));
+
+    // Cleaning fluid (detergent) — water_shortage sensor
+    rows.push(row(
+      fluidCol,
+      waterShortage ? 'vac-dot 1.8s ease-in-out infinite' : null,
+      'Płyn czyszczący',
+      waterShortage ? '⚠ uzupełnij' : 'ok',
+      fluidCol
+    ));
 
     // Mop
     rows.push(row(
