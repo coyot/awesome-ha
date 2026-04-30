@@ -12314,138 +12314,109 @@ class RoboVacuumCard extends HTMLElement {
 
     const poly = pts => pts.map(p => p.join(',')).join(' ');
 
-    // Full face outlines
-    const frontPts = poly([fp(0,0), fp(1,0), fp(1,1), fp(0,1)]);
-    const rightPts = poly([rp(0,0), rp(1,0), rp(1,1), rp(0,1)]);
-    const topPts   = poly([tp(0,0), tp(1,0), tp(1,1), tp(0,1)]);
+    // ── Geometry — new layout matching actual Saros 10R dock ────────────
+    const frontPts      = poly([fp(0,0), fp(1,0), fp(1,1), fp(0,1)]);
+    const rightPts      = poly([rp(0,0), rp(1,0), rp(1,1), rp(0,1)]);
+    const topPts        = poly([tp(0,0), tp(1,0), tp(1,1), tp(0,1)]);
+    const topDirtyPts   = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
+    const topCleanPts   = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
+    const topDivLine    = [tp(0.5,0), tp(0.5,1)];
 
-    // ── Component regions on front face ──────────────────────────────────
-    // Mop washing/drying bay  — upper 46% of front
-    const mopBayPts  = poly([fp(0.10,0.05), fp(0.90,0.05), fp(0.90,0.46), fp(0.10,0.46)]);
-    // Dust collector port     — narrow band below mop bay
-    const dustPts    = poly([fp(0.28,0.47), fp(0.72,0.47), fp(0.72,0.60), fp(0.28,0.60)]);
-    // Robot dock slot — right portion of front (left reserved for cleaning fluid)
-    const dockSlotPts= poly([fp(0.40,0.62), fp(0.96,0.62), fp(0.96,0.98), fp(0.40,0.98)]);
+    // Front face — upper: two large tank panels
+    const leftTankPts   = poly([fp(0,0.03), fp(0.5,0.03), fp(0.5,0.57), fp(0,0.57)]);
+    const rightTankPts  = poly([fp(0.5,0.03), fp(1,0.03), fp(1,0.57), fp(0.5,0.57)]);
+    const tankDivLine   = [fp(0.5,0.03), fp(0.5,0.57)];
 
-    // Top face: LEFT = dirty water, RIGHT = clean water (actual Saros 10R dock layout)
-    const dirtyTankPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
-    const cleanTankPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
-    const tankDivPts   = [tp(0.5,0), tp(0.5,1)];
-    // Front face lower-left: cleaning fluid compartment
-    const fluidPts     = poly([fp(0.04,0.60), fp(0.38,0.60), fp(0.38,0.95), fp(0.04,0.95)]);
+    // Front face — lower: fluid (left), mop band (right narrow), dock slot (right)
+    const fluidPts      = poly([fp(0.02,0.59), fp(0.38,0.59), fp(0.38,0.95), fp(0.02,0.95)]);
+    const mopBayPts     = poly([fp(0.40,0.59), fp(0.97,0.59), fp(0.97,0.70), fp(0.40,0.70)]);
+    const dockSlotPts   = poly([fp(0.40,0.71), fp(0.97,0.71), fp(0.97,0.97), fp(0.40,0.97)]);
 
-    // Robot is in the dock only when charging / being serviced
+    // Robot docked
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
-    // Center at X=0.68*W (center of dock slot opening), Z=-0.05*D (at front face)
     const Xr_l = 0.68 * W, Zr_l = -0.05 * D;
     const robotCX = pl + cos30 * (Xr_l + Zr_l);
     const robotCY = pt + sin30 * (Xr_l - Zr_l) + H;
-    const robotRX  = 19 * cos30 * Math.SQRT2;   // isometric ellipse half-width  (~r=19)
-    const robotRY  = 19 * sin30 * Math.SQRT2;   // isometric ellipse half-height
-    const mopCY_lo = fp(0.5, 0.38)[1];  // lower mop bay horizontal
-    const mopCY_mi = fp(0.5, 0.28)[1];
-    const mopCY_hi = fp(0.5, 0.18)[1];
-    const mopX_l   = fp(0.12, 0)[0];    // left x on the mop rows (iso-adjusted per row)
-    const mopX_r   = fp(0.88, 0)[0];
+    const robotRX = 19 * cos30 * Math.SQRT2;
+    const robotRY = 19 * sin30 * Math.SQRT2;
 
-    // Colors derived from state
-    // Top face: LEFT = dirty water, RIGHT = clean water (actual dock layout)
-    const dirtyCol  = dirtyBoxProblem  ? '#E24B4A' : '#97C459';
-    const dirtyCBg  = dirtyBoxProblem  ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
-    const cleanCol  = cleanBoxProblem  ? '#E24B4A' : '#97C459';
-    const cleanBg   = cleanBoxProblem  ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
-    // Front face lower-left: cleaning fluid
-    const fluidCol  = fluidProblem     ? '#E24B4A' : '#97C459';
-    const fluidBg   = fluidProblem     ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.12)';
-    // Mop bay (upper front)
-    const activeDrying = isMopDrying || dockMopDrying;
-    const mopBayCol = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
-    const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : activeDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
-    const dustCol   = isEmptying ? '#EF9F27' : 'rgba(255,255,255,0.07)';
-    const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
-    const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
-    const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
+    // ── Colors ───────────────────────────────────────────────────────────
+    const activeDrying  = isMopDrying || dockMopDrying;
+    const dirtyCol      = dirtyBoxProblem ? '#E24B4A' : '#C97A50';
+    const dirtyCBg      = dirtyBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(201,122,80,0.07)';
+    const cleanCol      = cleanBoxProblem ? '#E24B4A' : '#7BAED4';
+    const cleanBg       = cleanBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(123,174,212,0.07)';
+    const fluidCol      = fluidProblem    ? '#E24B4A' : '#97C459';
+    const fluidBg       = fluidProblem    ? 'rgba(226,75,74,0.12)' : 'rgba(151,196,89,0.06)';
+    const mopBayCol     = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.05)';
+    const mopBayBg      = isMopWashing ? 'rgba(123,174,212,0.12)' : activeDrying ? 'rgba(201,122,80,0.10)' : 'rgba(255,255,255,0.02)';
+    const robotCol      = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
+    const robotBg       = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
 
-    // ── Animated overlays inside mop bay ────────────────────────────────
-    // Lines are drawn parallel to the isometric x-axis (slanted left→right+down)
-    // so they visually sit on the front face rather than floating.
-    const makeMopLine = (v, delay, col) => {
-      const [x1, y1] = fp(0.12, v), [x2, y2] = fp(0.88, v);
-      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}"
-                    x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+    // ── Fill levels (front-face vertical fills, rising from bottom) ──────
+    const dirtyLvl      = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
+    const cleanLvl      = this._getDockLevel('clean_water_level', 'clean_water_box', true)  / 100;
+    const fluidLvl      = this._getDockLevel('fluid_level', 'cleaning_fluid', true)         / 100;
+
+    const dirtyFillTopV = 0.57 - 0.54 * dirtyLvl;
+    const cleanFillTopV = 0.57 - 0.54 * cleanLvl;
+    const fluidFillTopV = 0.95 - 0.36 * fluidLvl;
+    const dirtyFillPts  = poly([fp(0,dirtyFillTopV), fp(0.5,dirtyFillTopV), fp(0.5,0.57), fp(0,0.57)]);
+    const cleanFillPts  = poly([fp(0.5,cleanFillTopV), fp(1,cleanFillTopV), fp(1,0.57), fp(0.5,0.57)]);
+    const fluidFillPts  = poly([fp(0.02,fluidFillTopV), fp(0.38,fluidFillTopV), fp(0.38,0.95), fp(0.02,0.95)]);
+    const dirtyFillCol  = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.50' : '0.32'})`;
+    const cleanFillCol  = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.50' : '0.38'})`;
+    const fluidFillCol  = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.45' : '0.30'})`;
+
+    const pct = n => `${Math.round(n * 100)}%`;
+    const [dirtTxtX, dirtTxtY]   = fp(0.25, 0.46);
+    const [cleanTxtX, cleanTxtY] = fp(0.75, 0.46);
+    const [fluidTxtX, fluidTxtY] = fp(0.20, 0.82);
+    const [dirtyDropX, dirtyDropY] = fp(0.25, 0.30);
+    const [cleanDropX, cleanDropY] = fp(0.75, 0.30);
+    const [fluidDropX, fluidDropY] = fp(0.20, 0.72);
+
+    const dropIcon = (cx, cy, r, col) => {
+      const t = n => n.toFixed(1);
+      return `<path d="M${t(cx)},${t(cy-r)} C${t(cx+r*0.6)},${t(cy-r*0.15)} ${t(cx+r)},${t(cy+r*0.4)} ${t(cx)},${t(cy+r)} C${t(cx-r)},${t(cy+r*0.4)} ${t(cx-r*0.6)},${t(cy-r*0.15)} ${t(cx)},${t(cy-r)}" fill="${col}" opacity="0.65"/>`;
+    };
+
+    // ── Animations in mop band ────────────────────────────────────────────
+    const makeMopLine = (frac, delay, col) => {
+      const v = 0.59 + 0.11 * frac;
+      const [x1, y1] = fp(0.42, v), [x2, y2] = fp(0.95, v);
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
                     stroke="${col}" stroke-width="1.2" stroke-linecap="round"
                     style="animation:vac-water-drop 1.2s ${delay}s ease-in-out infinite"/>`;
     };
-    const makeHeatArc = (uMid, v, delay) => {
-      const [xs, ys] = fp(uMid - 0.14, v + 0.05);
-      const [xe, ye] = fp(uMid + 0.14, v + 0.05);
-      const [xc, yc] = fp(uMid, v - 0.06);
+    const makeHeatArc = (uf, vf, delay) => {
+      const [xs, ys] = fp(0.42+0.53*uf-0.07, 0.59+0.11*vf+0.02);
+      const [xe, ye] = fp(0.42+0.53*uf+0.07, 0.59+0.11*vf+0.02);
+      const [xc, yc] = fp(0.42+0.53*uf,      0.59+0.11*vf-0.03);
       return `<path d="M ${xs.toFixed(1)} ${ys.toFixed(1)} Q ${xc.toFixed(1)} ${yc.toFixed(1)} ${xe.toFixed(1)} ${ye.toFixed(1)}"
                     stroke="#C97A50" stroke-width="1.3" fill="none" stroke-linecap="round"
                     style="animation:vac-heat 1.5s ${delay}s ease-in-out infinite"/>`;
     };
-    const makeDustParticle = (u, v, r, delay) => {
-      const [cx, cy] = fp(u, v);
-      return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}"
-                      fill="#EF9F27"
-                      style="animation:vac-water-drop 0.9s ${delay}s ease-in-out infinite"/>`;
+    const makeDustParticle = (uf, r, delay) => {
+      const [cx2, cy2] = fp(0.50 + 0.40*uf, 0.64);
+      return `<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${r}"
+                      fill="#EF9F27" style="animation:vac-water-drop 0.9s ${delay}s ease-in-out infinite"/>`;
     };
 
     let activeAnim = '';
     if (isMopWashing) {
-      activeAnim = makeMopLine(0.18, 0.0, '#7BAED4')
-                 + makeMopLine(0.28, 0.35, '#7BAED4')
-                 + makeMopLine(0.38, 0.70, '#7BAED4');
+      activeAnim = makeMopLine(0.2,0.0,'#7BAED4') + makeMopLine(0.55,0.35,'#7BAED4') + makeMopLine(0.9,0.7,'#7BAED4');
     } else if (activeDrying) {
-      activeAnim = makeHeatArc(0.28, 0.38, 0.0)
-                 + makeHeatArc(0.50, 0.38, 0.3)
-                 + makeHeatArc(0.72, 0.38, 0.6)
-                 + makeHeatArc(0.28, 0.22, 0.15)
-                 + makeHeatArc(0.50, 0.22, 0.45)
-                 + makeHeatArc(0.72, 0.22, 0.75);
+      activeAnim = makeHeatArc(0.15,0.5,0.0) + makeHeatArc(0.5,0.5,0.3) + makeHeatArc(0.85,0.5,0.6)
+                 + makeHeatArc(0.3,0.1,0.15) + makeHeatArc(0.7,0.1,0.45);
     } else if (isEmptying) {
-      activeAnim = makeDustParticle(0.38, 0.51, 1.3, 0.00)
-                 + makeDustParticle(0.50, 0.53, 1.6, 0.25)
-                 + makeDustParticle(0.62, 0.51, 1.3, 0.50);
+      activeAnim = makeDustParticle(0,1.5,0.0) + makeDustParticle(0.5,1.8,0.25) + makeDustParticle(1,1.5,0.5);
     }
 
-    // Error pulsing overlay on front face
     const errorOverlay = hasError
-      ? `<polygon points="${frontPts}" fill="rgba(226,75,74,0.07)"
-                  style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
+      ? `<polygon points="${frontPts}" fill="rgba(226,75,74,0.07)" style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
       : '';
 
-    // ── Fill levels for tanks & fluid ────────────────────────────────────
-    // dirty water: 0% = empty = OK, 100% = full = problem
-    const dirtyLvl  = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
-    // clean water: 100% = full = OK, 0% = empty = problem
-    const cleanLvl  = this._getDockLevel('clean_water_level', 'clean_water_box', true)  / 100;
-    // fluid: 100% = full = OK, 0% = empty = problem
-    const fluidLvl  = this._getDockLevel('fluid_level', 'cleaning_fluid', true)         / 100;
-
-    // Fill polygons (from near edge d=0 inward to fill fraction)
-    const dirtyFillPts = poly([tp(0,0), tp(0.5,0), tp(0.5,dirtyLvl), tp(0,dirtyLvl)]);
-    const cleanFillPts = poly([tp(0.5,0), tp(1,0), tp(1,cleanLvl), tp(0.5,cleanLvl)]);
-    // Fluid fill rises from bottom of compartment (v=0.95) up to fill line
-    const fluidFillV   = 0.95 - (0.95 - 0.60) * fluidLvl;
-    const fluidFillPts = poly([fp(0.04,fluidFillV), fp(0.38,fluidFillV), fp(0.38,0.95), fp(0.04,0.95)]);
-
-    // Fill colors
-    const dirtyFillCol = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.45' : '0.22'})`;
-    const cleanFillCol = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.45' : '0.28'})`;
-    const fluidFillCol = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.40' : '0.24'})`;
-
-    // Percentage labels (positioned on tank top face)
-    const pct = n => `${Math.round(n * 100)}%`;
-    const [dirtTxtX, dirtTxtY] = tp(0.25, 0.5);
-    const [cleanTxtX, cleanTxtY] = tp(0.75, 0.5);
-    const [fluidTxtX, fluidTxtY] = fp(0.21, 0.78);
-
-    // Tank indicator dots on top face (kept for OK/problem dot)
-    const [cx, cy] = tp(0.25, 0.5);
-    const [dirtX, dirtY] = tp(0.75, 0.5);
-
-    // ViewBox — extend height so robot ellipse is fully visible
     const vbW = Math.ceil(pl + dx + ddx + 10);
     const vbH = isRobotDocked
       ? Math.ceil(robotCY + robotRY + 4)
@@ -12453,88 +12424,79 @@ class RoboVacuumCard extends HTMLElement {
 
     const svg = `
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
-           fill="none" style="display:block;overflow:visible;">
+           fill="none" style="display:block;overflow:visible;font-family:-apple-system,sans-serif;">
 
-        <!-- Right face — darkest (side light) -->
+        <!-- Right face -->
         <polygon points="${rightPts}" fill="#161618" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
 
         <!-- Front face base -->
-        <polygon points="${frontPts}" fill="#1E1E20" stroke="rgba(255,255,255,0.09)" stroke-width="0.8"/>
+        <polygon points="${frontPts}" fill="#1C1C1E" stroke="rgba(255,255,255,0.09)" stroke-width="0.8"/>
         ${errorOverlay}
 
-        <!-- Mop washing/drying bay (upper front) -->
-        <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.9"/>
+        <!-- ── Upper: Dirty water (left) ── -->
+        <polygon points="${leftTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}" stroke-width="0.9"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        ${dropIcon(dirtyDropX, dirtyDropY, 5, dirtyCol)}
+        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY+3).toFixed(1)}" text-anchor="middle"
+              font-size="8" font-weight="600" fill="${dirtyCol}">${pct(dirtyLvl)}</text>
+
+        <!-- ── Upper: Clean water (right) ── -->
+        <polygon points="${rightTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.9"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        ${dropIcon(cleanDropX, cleanDropY, 5, cleanCol)}
+        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY+3).toFixed(1)}" text-anchor="middle"
+              font-size="8" font-weight="600" fill="${cleanCol}">${pct(cleanLvl)}</text>
+
+        <!-- Tank divider -->
+        <line x1="${tankDivLine[0][0].toFixed(1)}" y1="${tankDivLine[0][1].toFixed(1)}"
+              x2="${tankDivLine[1][0].toFixed(1)}" y2="${tankDivLine[1][1].toFixed(1)}"
+              stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+
+        <!-- ── Lower: Fluid (left) ── -->
+        <polygon points="${fluidPts}" fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.9"
+                 ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
+        ${dropIcon(fluidDropX, fluidDropY, 3.5, fluidCol)}
+        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY+3).toFixed(1)}" text-anchor="middle"
+              font-size="8" font-weight="600" fill="${fluidCol}">${pct(fluidLvl)}</text>
+
+        <!-- ── Lower: Mop band (right) ── -->
+        <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.8"/>
         ${activeAnim}
 
-        <!-- Dust collector port (narrow band) -->
-        <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.7"/>
+        <!-- ── Lower: Dock slot ── -->
+        <polygon points="${dockSlotPts}" fill="rgba(255,255,255,0.01)"
+                 stroke="rgba(255,255,255,0.05)" stroke-width="0.7" stroke-dasharray="2.5,2"/>
 
-        <!-- Cleaning fluid compartment (front lower-left) — outline -->
-        <polygon points="${fluidPts}"
-                 fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.9"
-                 ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <!-- Fluid fill level -->
-        <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
-        <!-- Fluid % label -->
-        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY + 3).toFixed(1)}" text-anchor="middle"
-              font-size="7" font-weight="600" fill="${fluidCol}"
-              font-family="-apple-system,sans-serif">${pct(fluidLvl)}</text>
-
-        <!-- Robot dock slot outline — faint guide, always shown -->
-        <polygon points="${dockSlotPts}"
-                 fill="rgba(255,255,255,0.01)" stroke="rgba(255,255,255,0.05)"
-                 stroke-width="0.7" stroke-dasharray="2.5,2"/>
-
-        <!-- Top face (brightest — light from above) -->
-        <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
-
-        <!-- Dirty water tank (LEFT half of top) — outline + fill level -->
-        <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}"
-                 stroke-width="0.9" opacity="0.9"
-                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none" opacity="0.9"
-                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY + 3).toFixed(1)}" text-anchor="middle"
-              font-size="7" font-weight="600" fill="${dirtyCol}"
-              font-family="-apple-system,sans-serif">${pct(dirtyLvl)}</text>
-
-        <!-- Clean water tank (RIGHT half of top) — outline + fill level -->
-        <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}"
-                 stroke-width="0.9" opacity="0.9"
-                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none" opacity="0.9"
-                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY + 3).toFixed(1)}" text-anchor="middle"
-              font-size="7" font-weight="600" fill="${cleanCol}"
-              font-family="-apple-system,sans-serif">${pct(cleanLvl)}</text>
-
-        <!-- Tank divider line -->
-        <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
-              x2="${tankDivPts[1][0].toFixed(1)}" y2="${tankDivPts[1][1].toFixed(1)}"
+        <!-- ── Top face ── -->
+        <polygon points="${topPts}" fill="#212123" stroke="rgba(255,255,255,0.09)" stroke-width="0.8"/>
+        <polygon points="${topDirtyPts}" fill="rgba(201,122,80,0.14)" stroke="none" opacity="0.9"/>
+        <polygon points="${topCleanPts}" fill="rgba(123,174,212,0.14)" stroke="none" opacity="0.9"/>
+        <line x1="${topDivLine[0][0].toFixed(1)}" y1="${topDivLine[0][1].toFixed(1)}"
+              x2="${topDivLine[1][0].toFixed(1)}" y2="${topDivLine[1][1].toFixed(1)}"
               stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
-
-        <!-- Top-front edge highlight -->
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
-              stroke="rgba(255,255,255,0.14)" stroke-width="0.6"/>
+              stroke="rgba(255,255,255,0.16)" stroke-width="0.7"/>
 
+        <!-- ── Robot disc ── -->
         ${isRobotDocked ? `
-        <!-- Robot — isometric top-down disc (only when docked) -->
         <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
                  rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
                  fill="${robotBg}" stroke="${robotCol}" stroke-width="1.6"
                  ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
-        <!-- Bumper arc (front edge, lower part of disc) -->
-        <path d="M ${(robotCX - robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}
-                 A ${(robotRX * 0.82).toFixed(1)} ${(robotRY * 0.82).toFixed(1)} 0 0 1
-                   ${(robotCX + robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}"
+        <path d="M ${(robotCX-robotRX*0.82).toFixed(1)} ${(robotCY+robotRY*0.18).toFixed(1)}
+                 A ${(robotRX*0.82).toFixed(1)} ${(robotRY*0.82).toFixed(1)} 0 0 1
+                   ${(robotCX+robotRX*0.82).toFixed(1)} ${(robotCY+robotRY*0.18).toFixed(1)}"
               stroke="${robotCol}" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.65"/>
-        <!-- LIDAR dome (slightly back from center) -->
-        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY - robotRY * 0.12).toFixed(1)}"
-                 rx="4" ry="2.4"
-                 fill="${robotBg}" stroke="${robotCol}" stroke-width="0.9" opacity="0.9"/>
-        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY + robotRY * 0.12 + 4).toFixed(1)}"
-              text-anchor="middle" font-size="10" fill="#97C459"
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY-robotRY*0.12).toFixed(1)}"
+                 rx="4" ry="2.4" fill="${robotBg}" stroke="${robotCol}" stroke-width="0.9" opacity="0.9"/>
+        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY+robotRY*0.12+5).toFixed(1)}"
+              text-anchor="middle" font-size="11" fill="#97C459"
               style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
         ` : ''}
       </svg>`;
@@ -12700,88 +12662,105 @@ class RoboVacuumCard extends HTMLElement {
     const rp = (d, v) => [pl + dx + d*ddx,   pt + dy - d*ddy + v*H];
     const poly = pts => pts.map(p => p.join(',')).join(' ');
 
-    const frontPts     = poly([fp(0,0), fp(1,0), fp(1,1), fp(0,1)]);
-    const rightPts     = poly([rp(0,0), rp(1,0), rp(1,1), rp(0,1)]);
-    const topPts       = poly([tp(0,0), tp(1,0), tp(1,1), tp(0,1)]);
-    const dirtyTankPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
-    const cleanTankPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
-    const tankDivPts   = [tp(0.5,0), tp(0.5,1)];
-    const mopBayPts    = poly([fp(0.10,0.05), fp(0.90,0.05), fp(0.90,0.46), fp(0.10,0.46)]);
-    const dustPts      = poly([fp(0.28,0.47), fp(0.72,0.47), fp(0.72,0.60), fp(0.28,0.60)]);
-    const fluidPts     = poly([fp(0.04,0.60), fp(0.38,0.60), fp(0.38,0.96), fp(0.04,0.96)]);
-    const dockSlotPts  = poly([fp(0.40,0.62), fp(0.96,0.62), fp(0.96,0.97), fp(0.40,0.97)]);
+    // ── Geometry — new layout matching actual Saros 10R dock ────────────
+    // Structural faces
+    const frontPts  = poly([fp(0,0), fp(1,0), fp(1,1), fp(0,1)]);
+    const rightPts  = poly([rp(0,0), rp(1,0), rp(1,1), rp(0,1)]);
+    const topPts    = poly([tp(0,0), tp(1,0), tp(1,1), tp(0,1)]);
+    const topDirtyPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
+    const topCleanPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
+    const topDivLine  = [tp(0.5,0), tp(0.5,1)];
+
+    // Front face — upper half: two large tank panels
+    const leftTankPts  = poly([fp(0,0.03), fp(0.5,0.03), fp(0.5,0.57), fp(0,0.57)]);
+    const rightTankPts = poly([fp(0.5,0.03), fp(1,0.03), fp(1,0.57), fp(0.5,0.57)]);
+    const tankDivLine  = [fp(0.5,0.03), fp(0.5,0.57)];
+
+    // Front face — lower half: fluid (left), mop band (right narrow), dock slot (right)
+    const fluidPts    = poly([fp(0.02,0.59), fp(0.38,0.59), fp(0.38,0.95), fp(0.02,0.95)]);
+    const mopBayPts   = poly([fp(0.40,0.59), fp(0.97,0.59), fp(0.97,0.70), fp(0.40,0.70)]);
+    const dockSlotPts = poly([fp(0.40,0.71), fp(0.97,0.71), fp(0.97,0.97), fp(0.40,0.97)]);
 
     // Robot docked — isometric top-down disc
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
-    // Center at X=0.68*W (center of dock slot), Z=-0.05*D
     const Xr_s = 0.68 * W, Zr_s = -0.05 * D;
     const robotCX = pl + cos30 * (Xr_s + Zr_s);
     const robotCY = pt + sin30 * (Xr_s - Zr_s) + H;
     const robotRX  = 14 * cos30 * Math.SQRT2;
     const robotRY  = 14 * sin30 * Math.SQRT2;
 
-    const [cx, cy]       = tp(0.25, 0.5);
-    const [dirtX, dirtY] = tp(0.75, 0.5);
+    // ── Colors ───────────────────────────────────────────────────────────
+    const dirtyCol   = dirtyBoxProblem ? '#E24B4A' : '#C97A50';
+    const dirtyCBg   = dirtyBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(201,122,80,0.07)';
+    const cleanCol   = cleanBoxProblem ? '#E24B4A' : '#7BAED4';
+    const cleanBg    = cleanBoxProblem ? 'rgba(226,75,74,0.12)' : 'rgba(123,174,212,0.07)';
+    const fluidCol   = fluidProblem ? '#E24B4A' : '#97C459';
+    const fluidBg    = fluidProblem ? 'rgba(226,75,74,0.12)' : 'rgba(151,196,89,0.06)';
+    const mopBayCol  = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.05)';
+    const mopBayBg   = isMopWashing ? 'rgba(123,174,212,0.12)' : activeDrying ? 'rgba(201,122,80,0.10)' : 'rgba(255,255,255,0.02)';
+    const robotCol   = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
+    const robotBg    = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
 
-    const dirtyCol = dirtyBoxProblem ? '#E24B4A' : '#97C459';
-    const dirtyCBg = dirtyBoxProblem ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
-    const cleanCol = cleanBoxProblem ? '#E24B4A' : '#97C459';
-    const cleanBg  = cleanBoxProblem ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
-    const fluidCol = fluidProblem ? '#E24B4A' : '#97C459';
-    const fluidBg  = fluidProblem ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.12)';
-    const mopBayCol = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
-    const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : activeDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
-    const dustCol   = isEmptying ? '#EF9F27' : 'rgba(255,255,255,0.07)';
-    const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
-    const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
-    const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
-
-    // ── Fill levels ───────────────────────────────────────────────────────
+    // ── Fill levels (front-face vertical fills rising from bottom) ───────
     const dirtyLvl = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
     const cleanLvl = this._getDockLevel('clean_water_level', 'clean_water_box', true)  / 100;
     const fluidLvl = this._getDockLevel('fluid_level', 'cleaning_fluid', true)         / 100;
 
-    const dirtyFillPts = poly([tp(0,0), tp(0.5,0), tp(0.5,dirtyLvl), tp(0,dirtyLvl)]);
-    const cleanFillPts = poly([tp(0.5,0), tp(1,0), tp(1,cleanLvl), tp(0.5,cleanLvl)]);
-    const fluidFillV   = 0.95 - (0.95 - 0.60) * fluidLvl;
-    const fluidFillPts = poly([fp(0.04,fluidFillV), fp(0.38,fluidFillV), fp(0.38,0.95), fp(0.04,0.95)]);
-
-    const dirtyFillCol = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.45' : '0.22'})`;
-    const cleanFillCol = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.45' : '0.28'})`;
-    const fluidFillCol = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.40' : '0.24'})`;
+    const dirtyFillTopV = 0.57 - 0.54 * dirtyLvl;
+    const cleanFillTopV = 0.57 - 0.54 * cleanLvl;
+    const fluidFillTopV = 0.95 - 0.36 * fluidLvl;
+    const dirtyFillPts  = poly([fp(0,dirtyFillTopV), fp(0.5,dirtyFillTopV), fp(0.5,0.57), fp(0,0.57)]);
+    const cleanFillPts  = poly([fp(0.5,cleanFillTopV), fp(1,cleanFillTopV), fp(1,0.57), fp(0.5,0.57)]);
+    const fluidFillPts  = poly([fp(0.02,fluidFillTopV), fp(0.38,fluidFillTopV), fp(0.38,0.95), fp(0.02,0.95)]);
+    const dirtyFillCol  = `rgba(${dirtyBoxProblem ? '226,75,74' : '201,122,80'},${dirtyBoxProblem ? '0.50' : '0.32'})`;
+    const cleanFillCol  = `rgba(${cleanBoxProblem ? '226,75,74' : '123,174,212'},${cleanBoxProblem ? '0.50' : '0.38'})`;
+    const fluidFillCol  = `rgba(${fluidProblem    ? '226,75,74' : '151,196,89'},${fluidProblem    ? '0.45' : '0.30'})`;
 
     const pct = n => `${Math.round(n * 100)}%`;
-    const [dirtTxtX, dirtTxtY] = tp(0.25, 0.5);
-    const [cleanTxtX, cleanTxtY] = tp(0.75, 0.5);
-    const [fluidTxtX, fluidTxtY] = fp(0.21, 0.78);
+    // % labels — centered in each panel
+    const [dirtTxtX, dirtTxtY] = fp(0.25, 0.46);
+    const [cleanTxtX, cleanTxtY] = fp(0.75, 0.46);
+    const [fluidTxtX, fluidTxtY] = fp(0.20, 0.82);
 
-    // Animations (same as full version but scaled)
-    const makeMopLine = (v, delay, col) => {
-      const [x1, y1] = fp(0.12, v), [x2, y2] = fp(0.88, v);
+    // Water drop icon helper
+    const dropIcon = (cx, cy, r, col) => {
+      const t = n => n.toFixed(1);
+      return `<path d="M${t(cx)},${t(cy-r)} C${t(cx+r*0.6)},${t(cy-r*0.15)} ${t(cx+r)},${t(cy+r*0.4)} ${t(cx)},${t(cy+r)} C${t(cx-r)},${t(cy+r*0.4)} ${t(cx-r*0.6)},${t(cy-r*0.15)} ${t(cx)},${t(cy-r)}" fill="${col}" opacity="0.65"/>`;
+    };
+    const [dirtyDropX, dirtyDropY] = fp(0.25, 0.30);
+    const [cleanDropX, cleanDropY] = fp(0.75, 0.30);
+    const [fluidDropX, fluidDropY] = fp(0.20, 0.72);
+
+    // ── Animations inside mop band ────────────────────────────────────────
+    const makeMopLine = (frac, delay, col) => {
+      const v = 0.59 + 0.11 * frac;
+      const [x1, y1] = fp(0.42, v), [x2, y2] = fp(0.95, v);
       return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
                     stroke="${col}" stroke-width="1" stroke-linecap="round"
                     style="animation:vac-water-drop 1.2s ${delay}s ease-in-out infinite"/>`;
     };
-    const makeHeatArc = (uMid, v, delay) => {
-      const [xs, ys] = fp(uMid-0.14, v+0.05), [xe, ye] = fp(uMid+0.14, v+0.05), [xc, yc] = fp(uMid, v-0.06);
+    const makeHeatArc = (uf, vf, delay) => {
+      const [xs, ys] = fp(0.42+0.53*uf-0.06, 0.59+0.11*vf+0.02);
+      const [xe, ye] = fp(0.42+0.53*uf+0.06, 0.59+0.11*vf+0.02);
+      const [xc, yc] = fp(0.42+0.53*uf,      0.59+0.11*vf-0.02);
       return `<path d="M ${xs.toFixed(1)} ${ys.toFixed(1)} Q ${xc.toFixed(1)} ${yc.toFixed(1)} ${xe.toFixed(1)} ${ye.toFixed(1)}"
                     stroke="#C97A50" stroke-width="1" fill="none" stroke-linecap="round"
                     style="animation:vac-heat 1.5s ${delay}s ease-in-out infinite"/>`;
     };
-    const makeDustDot = (u, v, r, delay) => {
-      const [cx2, cy2] = fp(u, v);
+    const makeDustDot = (uf, r, delay) => {
+      const [cx2, cy2] = fp(0.50 + 0.40*uf, 0.64);
       return `<circle cx="${cx2.toFixed(1)}" cy="${cy2.toFixed(1)}" r="${r}" fill="#EF9F27"
                       style="animation:vac-water-drop 0.9s ${delay}s ease-in-out infinite"/>`;
     };
 
     let activeAnim = '';
     if (isMopWashing) {
-      activeAnim = makeMopLine(0.18,0.00,'#7BAED4') + makeMopLine(0.28,0.35,'#7BAED4') + makeMopLine(0.38,0.70,'#7BAED4');
+      activeAnim = makeMopLine(0.2,0.0,'#7BAED4') + makeMopLine(0.55,0.35,'#7BAED4') + makeMopLine(0.9,0.7,'#7BAED4');
     } else if (activeDrying) {
-      activeAnim = makeHeatArc(0.28,0.38,0.0) + makeHeatArc(0.50,0.38,0.3) + makeHeatArc(0.72,0.38,0.6)
-                 + makeHeatArc(0.28,0.22,0.15) + makeHeatArc(0.50,0.22,0.45) + makeHeatArc(0.72,0.22,0.75);
+      activeAnim = makeHeatArc(0.15,0.5,0.0) + makeHeatArc(0.5,0.5,0.3) + makeHeatArc(0.85,0.5,0.6)
+                 + makeHeatArc(0.3,0.1,0.15) + makeHeatArc(0.7,0.1,0.45);
     } else if (isEmptying) {
-      activeAnim = makeDustDot(0.38,0.51,1.0,0.00) + makeDustDot(0.50,0.53,1.2,0.25) + makeDustDot(0.62,0.51,1.0,0.50);
+      activeAnim = makeDustDot(0,1.0,0.0) + makeDustDot(0.5,1.2,0.25) + makeDustDot(1,1.0,0.5);
     }
 
     const errorOverlay = hasError
@@ -12795,59 +12774,78 @@ class RoboVacuumCard extends HTMLElement {
 
     return `
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
-           fill="none" style="display:block;overflow:visible;">
+           fill="none" style="display:block;overflow:visible;font-family:-apple-system,sans-serif;">
+
+        <!-- Right face -->
         <polygon points="${rightPts}" fill="#161618" stroke="rgba(255,255,255,0.07)" stroke-width="0.7"/>
-        <polygon points="${frontPts}" fill="#1E1E20" stroke="rgba(255,255,255,0.09)" stroke-width="0.7"/>
+
+        <!-- Front face base -->
+        <polygon points="${frontPts}" fill="#1C1C1E" stroke="rgba(255,255,255,0.09)" stroke-width="0.7"/>
         ${errorOverlay}
-        <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.8"/>
-        ${activeAnim}
-        <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.6"/>
+
+        <!-- ── Upper: Dirty water tank (left) ── -->
+        <polygon points="${leftTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}" stroke-width="0.8"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        ${dropIcon(dirtyDropX, dirtyDropY, 3.5, dirtyCol)}
+        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY+2).toFixed(1)}" text-anchor="middle"
+              font-size="6" font-weight="600" fill="${dirtyCol}">${pct(dirtyLvl)}</text>
+
+        <!-- ── Upper: Clean water tank (right) ── -->
+        <polygon points="${rightTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.8"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        ${dropIcon(cleanDropX, cleanDropY, 3.5, cleanCol)}
+        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY+2).toFixed(1)}" text-anchor="middle"
+              font-size="6" font-weight="600" fill="${cleanCol}">${pct(cleanLvl)}</text>
+
+        <!-- Tank divider -->
+        <line x1="${tankDivLine[0][0].toFixed(1)}" y1="${tankDivLine[0][1].toFixed(1)}"
+              x2="${tankDivLine[1][0].toFixed(1)}" y2="${tankDivLine[1][1].toFixed(1)}"
+              stroke="rgba(255,255,255,0.12)" stroke-width="0.7"/>
+
+        <!-- ── Lower: Fluid compartment (left) ── -->
         <polygon points="${fluidPts}" fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.8"
                  ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         <polygon points="${fluidFillPts}" fill="${fluidFillCol}" stroke="none"/>
-        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY + 2).toFixed(1)}" text-anchor="middle"
-              font-size="6" font-weight="600" fill="${fluidCol}"
-              font-family="-apple-system,sans-serif">${pct(fluidLvl)}</text>
+        ${dropIcon(fluidDropX, fluidDropY, 2.5, fluidCol)}
+        <text x="${fluidTxtX.toFixed(1)}" y="${(fluidTxtY+2).toFixed(1)}" text-anchor="middle"
+              font-size="6" font-weight="600" fill="${fluidCol}">${pct(fluidLvl)}</text>
+
+        <!-- ── Lower: Mop band (right) ── -->
+        <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.7"/>
+        ${activeAnim}
+
+        <!-- ── Lower: Dock slot ── -->
         <polygon points="${dockSlotPts}" fill="rgba(255,255,255,0.01)"
                  stroke="rgba(255,255,255,0.05)" stroke-width="0.6" stroke-dasharray="2,2"/>
-        <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
-        <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}" stroke-width="0.8" opacity="0.9"
-                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <polygon points="${dirtyFillPts}" fill="${dirtyFillCol}" stroke="none" opacity="0.9"
-                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <text x="${dirtTxtX.toFixed(1)}" y="${(dirtTxtY + 2).toFixed(1)}" text-anchor="middle"
-              font-size="6" font-weight="600" fill="${dirtyCol}"
-              font-family="-apple-system,sans-serif">${pct(dirtyLvl)}</text>
-        <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}" stroke-width="0.8" opacity="0.9"
-                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <polygon points="${cleanFillPts}" fill="${cleanFillCol}" stroke="none" opacity="0.9"
-                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
-        <text x="${cleanTxtX.toFixed(1)}" y="${(cleanTxtY + 2).toFixed(1)}" text-anchor="middle"
-              font-size="6" font-weight="600" fill="${cleanCol}"
-              font-family="-apple-system,sans-serif">${pct(cleanLvl)}</text>
-        <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
-              x2="${tankDivPts[1][0].toFixed(1)}" y2="${tankDivPts[1][1].toFixed(1)}"
+
+        <!-- ── Top face ── -->
+        <polygon points="${topPts}" fill="#212123" stroke="rgba(255,255,255,0.09)" stroke-width="0.7"/>
+        <polygon points="${topDirtyPts}" fill="rgba(201,122,80,0.12)" stroke="none" opacity="0.9"/>
+        <polygon points="${topCleanPts}" fill="rgba(123,174,212,0.12)" stroke="none" opacity="0.9"/>
+        <line x1="${topDivLine[0][0].toFixed(1)}" y1="${topDivLine[0][1].toFixed(1)}"
+              x2="${topDivLine[1][0].toFixed(1)}" y2="${topDivLine[1][1].toFixed(1)}"
               stroke="rgba(255,255,255,0.10)" stroke-width="0.7"/>
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
-              stroke="rgba(255,255,255,0.14)" stroke-width="0.5"/>
+              stroke="rgba(255,255,255,0.16)" stroke-width="0.6"/>
 
+        <!-- ── Robot disc ── -->
         ${isRobotDocked ? `
-        <!-- Robot — isometric top-down disc (only when docked) -->
         <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
                  rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
                  fill="${robotBg}" stroke="${robotCol}" stroke-width="1.2"
                  ${isCharging ? 'style="animation:vac-pulse-charging 2.5s ease-in-out infinite"' : ''}/>
-        <!-- Bumper arc (front edge of disc) -->
-        <path d="M ${(robotCX - robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}
-                 A ${(robotRX * 0.82).toFixed(1)} ${(robotRY * 0.82).toFixed(1)} 0 0 1
-                   ${(robotCX + robotRX * 0.82).toFixed(1)} ${(robotCY + robotRY * 0.18).toFixed(1)}"
+        <path d="M ${(robotCX - robotRX*0.82).toFixed(1)} ${(robotCY + robotRY*0.18).toFixed(1)}
+                 A ${(robotRX*0.82).toFixed(1)} ${(robotRY*0.82).toFixed(1)} 0 0 1
+                   ${(robotCX + robotRX*0.82).toFixed(1)} ${(robotCY + robotRY*0.18).toFixed(1)}"
               stroke="${robotCol}" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.6"/>
-        <!-- LIDAR dome -->
-        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY - robotRY * 0.12).toFixed(1)}"
-                 rx="3" ry="1.8"
-                 fill="${robotBg}" stroke="${robotCol}" stroke-width="0.8" opacity="0.9"/>
-        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY + robotRY * 0.1 + 4).toFixed(1)}"
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY - robotRY*0.12).toFixed(1)}"
+                 rx="3" ry="1.8" fill="${robotBg}" stroke="${robotCol}" stroke-width="0.8" opacity="0.9"/>
+        ${isCharging ? `<text x="${robotCX.toFixed(1)}" y="${(robotCY + robotRY*0.1 + 4).toFixed(1)}"
               text-anchor="middle" font-size="7" fill="#97C459"
               style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>` : ''}
         ` : ''}
