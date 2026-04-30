@@ -1084,113 +1084,165 @@ class RoboVacuumCard extends HTMLElement {
   }
 
   _renderSlim() {
-    const entity = this._hass.states[this._config.entity];
+    const entity  = this._hass.states[this._config.entity];
     const vacState = entity?.state || 'idle';
-    const name = this._config.name || entity?.attributes?.friendly_name || this._config.entity;
-
-    const group = this._getGroup();
-    const accent = ACCENT[group] || '#888780';
+    const name    = this._config.name || entity?.attributes?.friendly_name || this._config.entity;
+    const group   = this._getGroup();
+    const accent  = ACCENT[group] || '#888780';
     const badgeLabel = BADGE_LABELS[group] || group;
-    const isActive = ACTIVE_BADGE_GROUPS.has(group);
-    const pulseAnim = PULSE_ANIM[group] || null;
+    const isActive   = ACTIVE_BADGE_GROUPS.has(group);
+    const pulseAnim  = PULSE_ANIM[group] || null;
 
-    const battery = this._getSensorNum('battery') ?? entity?.attributes?.battery_level ?? null;
+    const battery   = this._getSensorNum('battery') ?? entity?.attributes?.battery_level ?? null;
     const isCharging = this._isBinaryOn('charging');
+    const batPct    = battery !== null ? Math.max(0, Math.min(100, battery)) : 0;
+    const batCol    = batteryColor(battery, isCharging);
 
-    // Right column value
-    let rightVal = '';
+    // ── Right column (same logic as vacuum.yaml) ───────────────────────
+    let rightVal   = '—';
     let rightLabel = '';
+    let rightCol   = accent;
+
+    const isActiveClean = ['cleaning','mopping','combo'].includes(group);
     if (group === 'mop_washing') {
-      rightVal = '🫧';
-      rightLabel = 'myje mop';
+      rightVal = '🫧'; rightLabel = 'myje mop';
     } else if (group === 'mop_drying') {
-      rightVal = '🌡';
-      rightLabel = 'suszy mop';
+      const sec = this._getDockSensorNum('mop_drying_time');
+      rightVal = sec && sec > 0 ? `~${Math.ceil(sec/60)}m` : '🌡';
+      rightLabel = 'suszy mop'; rightCol = '#C97A50';
     } else if (group === 'emptying') {
-      rightVal = '🌪';
-      rightLabel = 'opróżnia';
-    } else if (['cleaning','mopping','combo'].includes(group)) {
-      const progress = this._getSensorNum('progress');
+      rightVal = '🌪'; rightLabel = 'opróżnia';
+    } else if (isActiveClean) {
       const timeVal = this._getSensorNum('time');
-      if (progress !== null) {
-        rightVal = `${Math.round(progress)}%`;
-        rightLabel = 'postęp';
-      } else if (timeVal !== null) {
-        rightVal = fmtTime(timeVal);
-        rightLabel = 'czas';
-      } else {
-        rightVal = 'sprząta';
-        rightLabel = '';
+      if (timeVal !== null) {
+        const h = Math.floor(timeVal / 60), m = Math.round(timeVal % 60);
+        rightVal  = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        rightLabel = 'czas sprzątania';
       }
+      rightCol = accent;
     } else if (group === 'returning' || group === 'docking') {
-      rightVal = '↩';
-      rightLabel = 'wraca';
-    } else if (isCharging) {
-      rightVal = battery !== null ? `⚡${battery}%` : '⚡';
-      rightLabel = 'ładuje';
-    } else if (battery !== null) {
-      rightVal = `${battery}%`;
-      rightLabel = 'bateria';
+      rightVal = battery !== null ? `${battery}%` : '↩';
+      rightLabel = 'bateria'; rightCol = batCol;
+    } else {
+      // docked / idle / error — show battery %
+      rightVal  = battery !== null ? `${battery}%` : '—';
+      rightLabel = isCharging ? 'ładuje' : 'bateria';
+      rightCol  = batCol;
     }
 
-    const batPct = battery !== null ? Math.max(0, Math.min(100, battery)) : 0;
-    const batCol = batteryColor(battery, isCharging);
+    // ── Progress bar (cleaning progress or battery) ────────────────────
+    let barPct   = batPct;
+    let barLabel = isCharging ? 'ładuje' : 'bateria';
+    let barCol   = batCol;
+    let barGrad  = isCharging
+      ? `linear-gradient(90deg,#5A6356,${batCol})`
+      : batPct > 60 ? `linear-gradient(90deg,#5F8932,#97C459)`
+      : batPct > 30 ? `linear-gradient(90deg,#9A5230,#EF9F27)`
+      :               `linear-gradient(90deg,#8F2320,#E24B4A)`;
 
-    const icon = getStateIcon(group, isCharging ? '#97C459' : (battery > 20 ? '#97C459' : '#E24B4A'));
+    if (isActiveClean) {
+      const prog = this._getSensorNum('progress');
+      if (prog !== null) {
+        barPct   = Math.max(0, Math.min(100, prog));
+        barLabel = 'postęp sprzątania';
+        barCol   = accent;
+        barGrad  = `linear-gradient(90deg,${accent}88,${accent})`;
+      }
+    }
 
-    const borderStyle = pulseAnim
-      ? `border: 1px solid ${accent}47; animation: ${pulseAnim};`
-      : 'border: 0.5px solid rgba(255,255,255,0.08);';
+    // ── Chips (fan + mop, compact) ─────────────────────────────────────
+    const chips = [];
+    const fanSpeed = entity?.attributes?.fan_speed || null;
+    if (fanSpeed) {
+      const fi = FAN_MAP[fanSpeed] || { label: fanSpeed, col: '#888780', bg: 'rgba(136,135,128,0.12)' };
+      chips.push(`<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                               background:${fi.bg};color:${fi.col};white-space:nowrap;">${fi.label}</span>`);
+    }
+    const mopAttached = this._isBinaryOn('mop_attached');
+    const mopIntensity = this._getSelectState('mop_intensity');
+    if (mopAttached && mopIntensity && mopIntensity !== 'off') {
+      const mi = MOP_INTENSITY_MAP[mopIntensity];
+      if (mi) chips.push(`<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                                       background:${mi.bg};color:${mi.col};white-space:nowrap;">${mi.label}</span>`);
+    } else if (!mopAttached) {
+      chips.push(`<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                               background:rgba(95,94,90,0.10);color:#5F5E5A;white-space:nowrap;">bez mopa</span>`);
+    }
+    // Show area when cleaning
+    if (isActiveClean) {
+      const area = this._getSensorNum('area');
+      if (area) chips.push(`<span style="font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;
+                                         background:rgba(151,196,89,0.10);color:#97C459;white-space:nowrap;">
+                                         ${fmtArea(area)}</span>`);
+    }
+    const chipsRow = chips.length
+      ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${chips.join('')}</div>`
+      : '';
 
+    // ── Badge ──────────────────────────────────────────────────────────
     const badgeBg = isActive
-      ? `background: ${accent}24; color: ${accent};`
-      : `background: rgba(136,135,128,0.12); color: ${accent};`;
+      ? `background:${accent}24;color:${accent};`
+      : `background:rgba(136,135,128,0.12);color:${accent};`;
+
+    // ── Card border + pulse ────────────────────────────────────────────
+    const borderStyle = pulseAnim
+      ? `border:1px solid ${accent}47;animation:${pulseAnim};`
+      : 'border:0.5px solid rgba(255,255,255,0.08);';
+
+    const icon = getStateIcon(group, accent);
 
     return `
       <div class="card slim" style="${borderStyle}">
-        <div style="display:grid;grid-template-columns:4px 26px 1fr auto 28px;gap:0 10px;
-                    align-items:center;padding:14px 14px 16px 0;min-height:64px;">
+        <div style="display:grid;grid-template-columns:4px 1fr auto;gap:0 14px;
+                    align-items:stretch;padding:14px 16px;
+                    font-family:-apple-system,system-ui,sans-serif;">
+
           <!-- accent bar -->
-          <div style="width:4px;height:100%;background:${accent};border-radius:16px 0 0 16px;align-self:stretch;
-                      min-height:36px;"></div>
+          <div style="width:4px;border-radius:16px 0 0 16px;background:${accent};align-self:stretch;"></div>
 
-          <!-- icon -->
-          <div style="display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            ${icon}
-          </div>
+          <!-- body -->
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
 
-          <!-- center: name + badge -->
-          <div style="min-width:0;display:flex;flex-direction:column;gap:3px;overflow:hidden;">
-            <div style="display:flex;align-items:center;gap:6px;overflow:hidden;">
-              <span style="font-size:13px;font-weight:500;color:#F1EFE8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                ${name}
-              </span>
+            <!-- row 1: icon + name + badge + toggle -->
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${icon}
+              <span style="font-size:13px;font-weight:500;color:#F1EFE8;flex:1;min-width:0;
+                           overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</span>
               <span class="badge" style="${badgeBg}">
-                <span class="badge-dot ${isActive ? 'pulse' : ''}" style="background:${accent};"></span>
+                <span style="width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${accent};
+                             ${isActive ? 'animation:vac-dot 1.8s ease-in-out infinite;' : ''}"></span>
                 ${badgeLabel}
               </span>
+              <button class="toggle-btn" title="Rozwiń" style="margin-left:2px;">${svgToggleExpand()}</button>
             </div>
+
+            <!-- row 2: chips -->
+            ${chipsRow}
+
+            <!-- row 3: progress bar — jak w vacuum.yaml -->
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="height:3px;border-radius:99px;background:rgba(255,255,255,0.07);overflow:hidden;">
+                <div style="height:100%;width:${barPct.toFixed(1)}%;border-radius:99px;
+                            background:${barGrad};transition:width 1s ease;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barLabel}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barPct.toFixed(0)}%</span>
+              </div>
+            </div>
+
           </div>
 
-          <!-- right value -->
-          <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:0px;">
-            <span style="font-size:18px;font-weight:600;letter-spacing:-0.5px;line-height:1.1;
-                         color:${group==='error'?'#E24B4A':accent};">${rightVal}</span>
+          <!-- right column — 20px/600 jak w vacuum.yaml -->
+          <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+                      gap:2px;min-width:52px;">
+            <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
+                         color:${rightCol};">${rightVal}</span>
             <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
           </div>
 
-          <!-- toggle -->
-          <button class="toggle-btn" title="Rozwiń">${svgToggleExpand()}</button>
         </div>
-
-        <!-- battery bar — absolutely positioned, 2px, full width -->
-        <div style="position:absolute;bottom:0;left:0;right:0;height:2px;
-                    background:rgba(255,255,255,0.06);border-radius:0 0 16px 16px;overflow:hidden;">
-          <div style="height:100%;width:${batPct}%;background:${batCol};
-                      border-radius:0 0 16px 16px;transition:width 0.8s ease;"></div>
-        </div>
-      </div>
-    `;
+      </div>`;
   }
 
   _renderVerbose() {
