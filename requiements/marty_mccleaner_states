@@ -1,0 +1,154 @@
+binary_sensor.marty_mccleaner_charging
+Marty McCleaner Charging
+on
+device_class: battery_charging
+friendly_name: Marty McCleaner Charging
+binary_sensor.marty_mccleaner_cleaning
+Marty McCleaner Cleaning
+off
+device_class: running
+friendly_name: Marty McCleaner Cleaning
+binary_sensor.marty_mccleaner_mop_attached
+Marty McCleaner Mop attached
+on
+device_class: connectivity
+friendly_name: Marty McCleaner Mop attached
+binary_sensor.marty_mccleaner_water_box_attached
+Marty McCleaner Water box attached
+on
+device_class: connectivity
+friendly_name: Marty McCleaner Water box attached
+binary_sensor.marty_mccleaner_water_shortage
+Marty McCleaner Water shortage
+on
+device_class: problem
+friendly_name: Marty McCleaner Water shortage
+image.marty_mccleaner_salon
+Marty McCleaner Salon
+2026-04-30T11:47:31.768676+00:00
+access_token: fe3c1920943f5cb726661fe22c8c9773062ea6280726433e02326dd0959d659f
+entity_picture: /api/image_proxy/image.marty_mccleaner_salon?token=fe3c1920943f5cb726661fe22c8c9773062ea6280726433e02326dd0959d659f
+friendly_name: Marty McCleaner Salon
+number.marty_mccleaner_volume
+Marty McCleaner Volume
+1.0
+min: 0
+max: 100
+step: 1
+mode: auto
+unit_of_measurement: %
+friendly_name: Marty McCleaner Volume
+select.marty_mccleaner_mop_intensity
+Marty McCleaner Mop intensity
+unknown
+options: off, slight, low, medium, moderate, high, extreme
+friendly_name: Marty McCleaner Mop intensity
+select.marty_mccleaner_mop_mode
+Marty McCleaner Mop mode
+smart_mode
+options: standard, deep, deep_plus, fast, smart_mode, custom
+friendly_name: Marty McCleaner Mop mode
+select.marty_mccleaner_selected_map
+Marty McCleaner Selected map
+Salon
+options: Salon
+friendly_name: Marty McCleaner Selected map
+sensor.marty_mccleaner_battery
+Marty McCleaner Battery
+99
+unit_of_measurement: %
+device_class: battery
+friendly_name: Marty McCleaner Battery
+sensor.marty_mccleaner_cleaning_area
+Marty McCleaner Cleaning area
+51.1
+unit_of_measurement: m²
+friendly_name: Marty McCleaner Cleaning area
+sensor.marty_mccleaner_cleaning_progress
+Marty McCleaner Cleaning progress
+0
+unit_of_measurement: %
+friendly_name: Marty McCleaner Cleaning progress
+sensor.marty_mccleaner_cleaning_time
+Marty McCleaner Cleaning time
+8.35
+unit_of_measurement: min
+device_class: duration
+friendly_name: Marty McCleaner Cleaning time
+sensor.marty_mccleaner_current_room
+Marty McCleaner Current room
+Living room
+options: Living room
+device_class: enum
+friendly_name: Marty McCleaner Current room
+sensor.marty_mccleaner_filter_time_left
+Marty McCleaner Filter time left
+150.0
+unit_of_measurement: h
+device_class: duration
+friendly_name: Marty McCleaner Filter time left
+sensor.marty_mccleaner_main_brush_time_left
+Marty McCleaner Main brush time left
+300.0
+unit_of_measurement: h
+device_class: duration
+friendly_name: Marty McCleaner Main brush time left
+sensor.marty_mccleaner_sensor_time_left
+Marty McCleaner Sensor time left
+30.0
+unit_of_measurement: h
+device_class: duration
+friendly_name: Marty McCleaner Sensor time left
+sensor.marty_mccleaner_side_brush_time_left
+Marty McCleaner Side brush time left
+200.0
+unit_of_measurement: h
+device_class: duration
+friendly_name: Marty McCleaner Side brush time left
+sensor.marty_mccleaner_status
+Marty McCleaner Status
+charging
+options: unknown, starting, charger_disconnected, idle, remote_control_active, cleaning, returning_home, manual_mode, charging, charging_problem, paused, spot_cleaning, error, shutting_down, updating, docking, going_to_target, zoned_cleaning, segment_cleaning, emptying_the_bin, washing_the_mop, washing_the_mop_2, going_to_wash_the_mop, in_call, mapping, egg_attack, patrol, attaching_the_mop, detaching_the_mop, charging_complete, device_offline, locked, air_drying_stopping, robot_status_mopping, clean_mop_cleaning, clean_mop_mopping, segment_mopping, segment_clean_mop_cleaning, segment_clean_mop_mopping, zoned_mopping, zoned_clean_mop_cleaning, zoned_clean_mop_mopping, back_to_dock_washing_duster
+device_class: enum
+friendly_name: Marty McCleaner Status
+sensor.marty_mccleaner_total_cleaning_area
+Marty McCleaner Total cleaning area
+0.0
+unit_of_measurement: m²
+friendly_name: Marty McCleaner Total cleaning area
+sensor.marty_mccleaner_total_cleaning_count
+Marty McCleaner Total cleaning count
+0
+state_class: total_increasing
+friendly_name: Marty McCleaner Total cleaning count
+sensor.marty_mccleaner_total_cleaning_time
+Marty McCleaner Total cleaning time
+0.0
+unit_of_measurement: h
+device_class: duration
+friendly_name: Marty McCleaner Total cleaning time
+sensor.marty_mccleaner_vacuum_error
+Marty McCleaner Vacuum error
+none
+options: none, lidar_blocked, bumper_stuck, wheels_suspended, cliff_sensor_error, main_brush_jammed, side_brush_jammed, wheels_jammed, robot_trapped, no_dustbin, strainer_error, compass_error, low_battery, charging_error, battery_error, wall_sensor_dirty, robot_tilted, side_brush_error, fan_error, dock, optical_flow_sensor_dirt, vertical_bumper_pressed, dock_locator_error, return_to_dock_fail, nogo_zone_detected, visual_sensor, light_touch, vibrarise_jammed, robot_on_carpet, filter_blocked, invisible_wall_detected, cannot_cross_carpet, internal_error, collect_dust_error_3, collect_dust_error_4, mopping_roller_1, mopping_roller_error_2, clear_water_box_hoare, dirty_water_box_hoare, sink_strainer_hoare, clear_water_box_exception, clear_brush_exception, clear_brush_exception_2, filter_screen_exception, mopping_roller_2, up_water_exception, drain_water_exception, temperature_protection, clean_carousel_exception, clean_carousel_water_full, water_carriage_drop, check_clean_carouse, audio_error
+device_class: enum
+friendly_name: Marty McCleaner Vacuum error
+switch.marty_mccleaner_do_not_disturb
+Marty McCleaner Do not disturb
+on
+friendly_name: Marty McCleaner Do not disturb
+time.marty_mccleaner_do_not_disturb_begin
+Marty McCleaner Do not disturb begin
+19:00:00
+friendly_name: Marty McCleaner Do not disturb begin
+time.marty_mccleaner_do_not_disturb_end
+Marty McCleaner Do not disturb end
+08:00:00
+friendly_name: Marty McCleaner Do not disturb end
+vacuum.marty_mccleaner
+Marty McCleaner
+docked
+fan_speed_list: quiet, balanced, turbo, max, max_plus, off_raise_main_brush, smart_mode, custom
+fan_speed: smart_mode
+friendly_name: Marty McCleaner
+supported_features: 30524

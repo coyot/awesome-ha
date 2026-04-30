@@ -11552,12 +11552,17 @@ class RoboVacuumCard extends HTMLElement {
       dock_entity: config.dock_entity || null,
       map_image: config.map_image || null,
       show_dock: config.show_dock !== false,   // default: true
+      dock_sensors: config.dock_sensors || {},
+      dock_binary_sensors: config.dock_binary_sensors || {},
     };
     // Apply default entity IDs if not provided
     const base = 'marty_mccleaner';
+    const dock = 'saros_10r_dock';
     const s = this._config.sensors;
     const bs = this._config.binary_sensors;
     const sel = this._config.selects;
+    const ds = this._config.dock_sensors;
+    const dbs = this._config.dock_binary_sensors;
 
     if (!s.battery)         s.battery         = `sensor.${base}_battery`;
     if (!s.area)            s.area            = `sensor.${base}_cleaning_area`;
@@ -11584,6 +11589,16 @@ class RoboVacuumCard extends HTMLElement {
     if (!sel.selected_map)  sel.selected_map  = `select.${base}_selected_map`;
 
     if (!this._config.map_image) this._config.map_image = `image.${base}_salon`;
+
+    // Dock entity defaults (saros_10r_dock prefix)
+    // device_class: problem → on = PROBLEM, off = OK
+    if (!dbs.clean_water_box)  dbs.clean_water_box  = `binary_sensor.${dock}_clean_water_box`;
+    if (!dbs.dirty_water_box)  dbs.dirty_water_box  = `binary_sensor.${dock}_dirty_water_box`;
+    if (!dbs.cleaning_fluid)   dbs.cleaning_fluid   = `binary_sensor.${dock}_cleaning_fluid`;
+    if (!dbs.mop_drying)       dbs.mop_drying       = `binary_sensor.${dock}_mop_drying`;
+    if (!ds.dock_error)        ds.dock_error        = `sensor.${dock}_dock_error`;
+    if (!ds.mop_drying_time)   ds.mop_drying_time   = `sensor.${dock}_mop_drying_remaining_time`;
+    if (!ds.strainer_left)     ds.strainer_left     = `sensor.${dock}_strainer_time_left`;
 
     this._mode = this._config.default_mode;
   }
@@ -11669,11 +11684,41 @@ class RoboVacuumCard extends HTMLElement {
     return s.state;
   }
 
+  // Dock entity helpers (saros_10r_dock prefix)
+  _getDockBinary(key) {
+    const id = this._config.dock_binary_sensors?.[key];
+    return id ? (this._hass.states[id] || null) : null;
+  }
+  _isDockProblem(key) {
+    // device_class: problem → on = PROBLEM
+    return this._getDockBinary(key)?.state === 'on';
+  }
+  _isDockRunning(key) {
+    // device_class: running → on = active
+    return this._getDockBinary(key)?.state === 'on';
+  }
+  _getDockSensorState(key) {
+    const id = this._config.dock_sensors?.[key];
+    if (!id) return null;
+    const s = this._hass.states[id];
+    if (!s || s.state === 'unavailable' || s.state === 'unknown') return null;
+    return s.state;
+  }
+  _getDockSensorNum(key) {
+    const v = this._getDockSensorState(key);
+    if (v === null) return null;
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
   // Derive the effective group from vacuum state + status sensor
   _getGroup() {
     const entity = this._hass.states[this._config.entity];
     const vacState = entity?.state || 'idle';
     const statusVal = this._getSensorState('status');
+
+    // Dock binary sensors take highest priority (most accurate)
+    if (this._isDockRunning('mop_drying'))  return 'mop_drying';
 
     // If we have a status sensor, prefer it for dock states
     if (statusVal) {
@@ -12159,10 +12204,19 @@ class RoboVacuumCard extends HTMLElement {
     const isEmptying    = group === 'emptying';
     const isCharging    = this._isBinaryOn('charging');
     const mopAttached   = this._isBinaryOn('mop_attached');
-    const waterShortage = this._isBinaryOn('water_shortage');
     const statusVal     = this._getSensorState('status') || '';
     const vacError      = this._getSensorState('vacuum_error') || 'none';
-    const hasError      = vacError !== 'none' && vacError !== 'unknown';
+    const hasVacError   = vacError !== 'none' && vacError !== 'unknown';
+
+    // Dock sensors (saros_10r_dock) — device_class:problem → on = PROBLEM
+    const dirtyBoxProblem  = this._isDockProblem('dirty_water_box');   // brudna woda (lewo góra)
+    const cleanBoxProblem  = this._isDockProblem('clean_water_box');   // czysta woda (prawo góra)
+    const fluidProblem     = this._isDockProblem('cleaning_fluid');    // płyn czyszczący (lewo dół)
+    const dockMopDrying    = this._isDockRunning('mop_drying');        // dok suszy mop
+    const dockError        = this._getDockSensorState('dock_error');   // ok / error code
+    const hasDockError     = dockError && dockError !== 'ok' && dockError !== 'unknown';
+    const mopDryingTimeSec = this._getDockSensorNum('mop_drying_time');// sekundy pozostałe
+    const hasError         = hasDockError;                             // dla SVG overlay
 
     // ── Isometric 30° projection ─────────────────────────────────────────
     // Saros 10R dock: wide rect box, roughly 1:0.7:1.15 (W:D:H)
@@ -12196,17 +12250,19 @@ class RoboVacuumCard extends HTMLElement {
     const mopBayPts  = poly([fp(0.10,0.05), fp(0.90,0.05), fp(0.90,0.46), fp(0.10,0.46)]);
     // Dust collector port     — narrow band below mop bay
     const dustPts    = poly([fp(0.28,0.47), fp(0.72,0.47), fp(0.72,0.60), fp(0.28,0.60)]);
-    // Robot dock slot         — bottom 38% of front face
-    const dockSlotPts= poly([fp(0.20,0.62), fp(0.80,0.62), fp(0.80,0.98), fp(0.20,0.98)]);
+    // Robot dock slot — right portion of front (left reserved for cleaning fluid)
+    const dockSlotPts= poly([fp(0.40,0.62), fp(0.96,0.62), fp(0.96,0.98), fp(0.40,0.98)]);
 
-    // Top face: clean water tank (left) / dirty water tank (right), split at u=0.5
-    const cleanTankPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
-    const dirtyTankPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
+    // Top face: LEFT = dirty water, RIGHT = clean water (actual Saros 10R dock layout)
+    const dirtyTankPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
+    const cleanTankPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
     const tankDivPts   = [tp(0.5,0), tp(0.5,1)];
+    // Front face lower-left: cleaning fluid compartment
+    const fluidPts     = poly([fp(0.04,0.60), fp(0.38,0.60), fp(0.38,0.95), fp(0.04,0.95)]);
 
-    // Computed positions for robot circle center and mop bay center
-    const robotCX = (fp(0.20,0.80)[0] + fp(0.80,0.80)[0]) / 2;
-    const robotCY = (fp(0.20,0.80)[1] + fp(0.80,0.80)[1]) / 2;
+    // Robot center (shifted right to leave room for fluid compartment on left)
+    const robotCX = (fp(0.42,0.80)[0] + fp(0.80,0.80)[0]) / 2;
+    const robotCY = (fp(0.42,0.80)[1] + fp(0.80,0.80)[1]) / 2;
     const mopCY_lo = fp(0.5, 0.38)[1];  // lower mop bay horizontal
     const mopCY_mi = fp(0.5, 0.28)[1];
     const mopCY_hi = fp(0.5, 0.18)[1];
@@ -12214,14 +12270,18 @@ class RoboVacuumCard extends HTMLElement {
     const mopX_r   = fp(0.88, 0)[0];
 
     // Colors derived from state
-    // Clean water tank in dock has no direct sensor — always show as OK
-    const cleanCol  = '#97C459';
-    const cleanBg   = 'rgba(151,196,89,0.18)';
-    // water_shortage = cleaning fluid (detergent) low — separate from clean water tank
-    const fluidCol  = waterShortage ? '#E24B4A' : '#97C459';
-    const fluidBg   = waterShortage ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.18)';
-    const mopBayCol = isMopWashing ? '#7BAED4' : isMopDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
-    const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : isMopDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
+    // Top face: LEFT = dirty water, RIGHT = clean water (actual dock layout)
+    const dirtyCol  = dirtyBoxProblem  ? '#E24B4A' : '#97C459';
+    const dirtyCBg  = dirtyBoxProblem  ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
+    const cleanCol  = cleanBoxProblem  ? '#E24B4A' : '#97C459';
+    const cleanBg   = cleanBoxProblem  ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.15)';
+    // Front face lower-left: cleaning fluid
+    const fluidCol  = fluidProblem     ? '#E24B4A' : '#97C459';
+    const fluidBg   = fluidProblem     ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.12)';
+    // Mop bay (upper front)
+    const activeDrying = isMopDrying || dockMopDrying;
+    const mopBayCol = isMopWashing ? '#7BAED4' : activeDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
+    const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : activeDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
     const dustCol   = isEmptying ? '#EF9F27' : 'rgba(255,255,255,0.07)';
     const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
     const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
@@ -12258,7 +12318,7 @@ class RoboVacuumCard extends HTMLElement {
       activeAnim = makeMopLine(0.18, 0.0, '#7BAED4')
                  + makeMopLine(0.28, 0.35, '#7BAED4')
                  + makeMopLine(0.38, 0.70, '#7BAED4');
-    } else if (isMopDrying) {
+    } else if (activeDrying) {
       activeAnim = makeHeatArc(0.28, 0.38, 0.0)
                  + makeHeatArc(0.50, 0.38, 0.3)
                  + makeHeatArc(0.72, 0.38, 0.6)
@@ -12311,7 +12371,16 @@ class RoboVacuumCard extends HTMLElement {
         <!-- Dust collector port (narrow band) -->
         <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.7"/>
 
-        <!-- Robot dock slot (lower front) -->
+        <!-- Cleaning fluid compartment (front lower-left) -->
+        <polygon points="${fluidPts}"
+                 fill="${fluidBg}" stroke="${fluidCol}" stroke-width="0.9"
+                 ${fluidProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
+        <!-- Fluid indicator dot -->
+        <circle cx="${fp(0.21,0.775)[0].toFixed(1)}" cy="${fp(0.21,0.775)[1].toFixed(1)}" r="2.5"
+                fill="${fluidCol}" opacity="0.9"
+                ${fluidProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+
+        <!-- Robot dock slot (lower right portion of front) -->
         <polygon points="${dockSlotPts}"
                  fill="${robotBg}" stroke="${slotCol}"
                  stroke-width="0.9" stroke-dasharray="${isCharging || hasError ? 'none' : '2.5,2'}"/>
@@ -12328,17 +12397,21 @@ class RoboVacuumCard extends HTMLElement {
         <!-- Top face (brightest — light from above) -->
         <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
 
-        <!-- Clean water tank (left half of top) -->
-        <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}"
-                 stroke-width="0.9" opacity="0.9"/>
+        <!-- Dirty water tank (LEFT half of top) -->
+        <polygon points="${dirtyTankPts}" fill="${dirtyCBg}" stroke="${dirtyCol}"
+                 stroke-width="0.9" opacity="0.9"
+                 ${dirtyBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.8"
-                fill="${cleanCol}" opacity="0.9"/>
+                fill="${dirtyCol}" opacity="0.9"
+                ${dirtyBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
 
-        <!-- Dirty water tank (right half of top) -->
-        <polygon points="${dirtyTankPts}" fill="rgba(95,94,90,0.15)"
-                 stroke="#5F5E5A" stroke-width="0.8" opacity="0.8"/>
+        <!-- Clean water tank (RIGHT half of top) -->
+        <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}"
+                 stroke-width="0.9" opacity="0.9"
+                 ${cleanBoxProblem ? 'style="animation:vac-pulse-error 2s ease-in-out infinite"' : ''}/>
         <circle cx="${dirtX.toFixed(1)}" cy="${dirtY.toFixed(1)}" r="2.8"
-                fill="#5F5E5A" opacity="0.7"/>
+                fill="${cleanCol}" opacity="0.9"
+                ${cleanBoxProblem ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
 
         <!-- Tank divider line -->
         <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
@@ -12363,22 +12436,44 @@ class RoboVacuumCard extends HTMLElement {
 
     const rows = [];
 
-    // Clean water tank — no sensor, always OK
-    rows.push(row(cleanCol, null, 'Czysta woda', 'ok', cleanCol));
+    // Dirty water box (lewo góra)
+    rows.push(row(
+      dirtyCol,
+      dirtyBoxProblem ? 'vac-dot 1.8s ease-in-out infinite' : null,
+      'Brudna woda',
+      dirtyBoxProblem ? '⚠ pełna' : 'ok',
+      dirtyCol
+    ));
 
-    // Dirty water tank — no sensor
-    rows.push(row('#5F5E5A', null, 'Brudna woda', '—', '#5F5E5A'));
+    // Clean water box (prawo góra)
+    rows.push(row(
+      cleanCol,
+      cleanBoxProblem ? 'vac-dot 1.8s ease-in-out infinite' : null,
+      'Czysta woda',
+      cleanBoxProblem ? '⚠ pusta' : 'ok',
+      cleanCol
+    ));
 
-    // Cleaning fluid (detergent) — water_shortage sensor
+    // Cleaning fluid (lewo dół)
     rows.push(row(
       fluidCol,
-      waterShortage ? 'vac-dot 1.8s ease-in-out infinite' : null,
+      fluidProblem ? 'vac-dot 1.8s ease-in-out infinite' : null,
       'Płyn czyszczący',
-      waterShortage ? '⚠ uzupełnij' : 'ok',
+      fluidProblem ? '⚠ uzupełnij' : 'ok',
       fluidCol
     ));
 
-    // Mop
+    // Mop drying — from dock binary sensor, with countdown
+    if (activeDrying) {
+      let dryingLabel = 'suszy mop';
+      if (mopDryingTimeSec !== null && mopDryingTimeSec > 0) {
+        const m = Math.ceil(mopDryingTimeSec / 60);
+        dryingLabel = `suszy mop · ~${m} min`;
+      }
+      rows.push(row('#C97A50', 'vac-dot 1.8s ease-in-out infinite', 'Suszenie', dryingLabel, '#C97A50'));
+    }
+
+    // Mop attached (from vacuum robot)
     rows.push(row(
       mopAttached ? '#85B7EB' : '#5F5E5A', null,
       'Mop',
@@ -12386,18 +12481,25 @@ class RoboVacuumCard extends HTMLElement {
       mopAttached ? '#85B7EB' : '#5F5E5A'
     ));
 
-    // Active dock operation
-    const dockInfo = DOCK_STATUS_LABELS[statusVal] || null;
-    if (dockInfo && ['mop_washing','mop_drying','emptying','returning'].includes(group)) {
-      rows.push(row(dockInfo.color, 'vac-dot 1.8s ease-in-out infinite',
-                    'Status', dockInfo.text, dockInfo.color));
+    // Dock error
+    if (hasDockError) {
+      const DOCK_ERROR_MAP = {
+        duct_blockage:           'Zatkany przewód',
+        water_empty:             'Brak wody',
+        waste_water_tank_full:   'Pełny zbiornik brudnej wody',
+        maintenance_brush_jammed:'Zablokowana szczotka konserwacyjna',
+        dirty_tank_latch_open:   'Otwarty zatrzask zbiornika',
+        no_dustbin:              'Brak pojemnika na pył',
+        cleaning_tank_full_or_blocked: 'Zbiornik czyszczący pełny lub zablokowany',
+      };
+      rows.push(row('#E24B4A', 'vac-dot 1.8s ease-in-out infinite',
+                    'Błąd doku', DOCK_ERROR_MAP[dockError] || dockError, '#E24B4A'));
     }
 
-    // Error
-    if (hasError) {
+    // Vacuum robot error (minor — show at bottom without pulsing)
+    if (hasVacError) {
       const errLabel = ERROR_MAP[vacError] || vacError;
-      rows.push(row('#E24B4A', 'vac-dot 1.8s ease-in-out infinite',
-                    'Błąd', errLabel, '#E24B4A'));
+      rows.push(row('#EF9F27', null, 'Robot', errLabel, '#EF9F27'));
     }
 
     return `
@@ -12417,8 +12519,16 @@ class RoboVacuumCard extends HTMLElement {
     const totalTime  = this._getSensorNum('total_time');
     const totalCount = this._getSensorNum('total_count');
 
-    const rows = CONSUMABLES.map(c => {
-      const hoursLeft = this._getSensorNum(c.key);
+    // Merge robot consumables + dock strainer
+    const allConsumables = [
+      ...CONSUMABLES,
+      { key: '_dock_strainer', label: 'Filtr doku', maxHours: 150, warnAt: 30 },
+    ];
+
+    const rows = allConsumables.map(c => {
+      const hoursLeft = c.key === '_dock_strainer'
+        ? this._getDockSensorNum('strainer_left')
+        : this._getSensorNum(c.key);
       if (hoursLeft === null) {
         return `
           <div class="consumable-row">

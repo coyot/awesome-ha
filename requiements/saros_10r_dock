@@ -1,0 +1,47 @@
+binary_sensor.saros_10r_dock_clean_water_box
+Saros 10R Dock Clean water box
+off
+device_class: problem
+friendly_name: Saros 10R Dock Clean water box
+binary_sensor.saros_10r_dock_cleaning_fluid
+Saros 10R Dock Cleaning fluid
+on
+device_class: problem
+friendly_name: Saros 10R Dock Cleaning fluid
+binary_sensor.saros_10r_dock_dirty_water_box
+Saros 10R Dock Dirty water box
+off
+device_class: problem
+friendly_name: Saros 10R Dock Dirty water box
+binary_sensor.saros_10r_dock_mop_drying
+Saros 10R Dock Mop drying
+off
+device_class: running
+friendly_name: Saros 10R Dock Mop drying
+select.saros_10r_dock_empty_mode
+Saros 10R Dock Empty mode
+smart
+options: unknown, smart, light, balanced, max
+friendly_name: Saros 10R Dock Empty mode
+sensor.saros_10r_dock_dock_error
+Saros 10R Dock Dock error
+ok
+options: ok, duct_blockage, water_empty, waste_water_tank_full, maintenance_brush_jammed, dirty_tank_latch_open, no_dustbin, cleaning_tank_full_or_blocked
+device_class: enum
+friendly_name: Saros 10R Dock Dock error
+sensor.saros_10r_dock_mop_drying_remaining_time
+Saros 10R Dock Mop drying remaining time
+0
+unit_of_measurement: s
+device_class: duration
+friendly_name: Saros 10R Dock Mop drying remaining time
+sensor.saros_10r_dock_strainer_time_left
+Saros 10R Dock Strainer time left
+150
+unit_of_measurement: h
+device_class: duration
+friendly_name: Saros 10R Dock Strainer time left
+switch.saros_10r_dock_child_lock
+Saros 10R Dock Child lock
+off
+friendly_name: Saros 10R Dock Child lock
