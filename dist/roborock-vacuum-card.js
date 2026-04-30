@@ -1634,8 +1634,8 @@ class RoboVacuumCard extends HTMLElement {
     const mopBayBg      = isMopWashing ? 'rgba(123,174,212,0.12)' : activeDrying ? 'rgba(201,122,80,0.10)' : 'rgba(255,255,255,0.02)';
     const robotCol      = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
     const robotBg       = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
-    const robotSideBg   = isCharging ? 'rgba(151,196,89,0.24)' : hasError ? 'rgba(226,75,74,0.20)' : 'rgba(95,94,90,0.18)';
-    const robotH        = 5;
+    const robotSideBg   = isCharging ? 'rgba(151,196,89,0.38)' : hasError ? 'rgba(226,75,74,0.32)' : 'rgba(80,80,78,0.55)';
+    const robotH        = 8;
 
     // ── Fill levels (front-face vertical fills, rising from bottom) ──────
     const dirtyLvl      = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
@@ -1708,11 +1708,9 @@ class RoboVacuumCard extends HTMLElement {
 
         <!-- ── Robot (drawn first — dock overlays upper half) ── -->
         ${isRobotDocked ? `
-        <path d="M ${(robotCX-robotRX).toFixed(1)},${robotCY.toFixed(1)}
-                 A ${robotRX.toFixed(1)},${robotRY.toFixed(1)} 0 0 1 ${(robotCX+robotRX).toFixed(1)},${robotCY.toFixed(1)}
-                 L ${(robotCX+robotRX).toFixed(1)},${(robotCY+robotH).toFixed(1)}
-                 A ${robotRX.toFixed(1)},${robotRY.toFixed(1)} 0 0 0 ${(robotCX-robotRX).toFixed(1)},${(robotCY+robotH).toFixed(1)} Z"
-              fill="${robotSideBg}" stroke="${robotCol}" stroke-width="1.4"/>
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY+robotH).toFixed(1)}"
+                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
+                 fill="${robotSideBg}" stroke="${robotCol}" stroke-width="1.4"/>
         <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
                  rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
                  fill="${robotBg}" stroke="${robotCol}" stroke-width="1.8"
@@ -1979,8 +1977,8 @@ class RoboVacuumCard extends HTMLElement {
     const mopBayBg   = isMopWashing ? 'rgba(123,174,212,0.12)' : activeDrying ? 'rgba(201,122,80,0.10)' : 'rgba(255,255,255,0.02)';
     const robotCol     = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
     const robotBg      = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
-    const robotSideBg  = isCharging ? 'rgba(151,196,89,0.24)' : hasError ? 'rgba(226,75,74,0.20)' : 'rgba(95,94,90,0.18)';
-    const robotH       = 3.5;
+    const robotSideBg  = isCharging ? 'rgba(151,196,89,0.38)' : hasError ? 'rgba(226,75,74,0.32)' : 'rgba(80,80,78,0.55)';
+    const robotH       = 6;
 
     // ── Fill levels (front-face vertical fills rising from bottom) ───────
     const dirtyLvl = this._getDockLevel('dirty_water_level', 'dirty_water_box', false) / 100;
@@ -2053,11 +2051,9 @@ class RoboVacuumCard extends HTMLElement {
 
         <!-- ── Robot (drawn first — dock overlays upper half) ── -->
         ${isRobotDocked ? `
-        <path d="M ${(robotCX-robotRX).toFixed(1)},${robotCY.toFixed(1)}
-                 A ${robotRX.toFixed(1)},${robotRY.toFixed(1)} 0 0 1 ${(robotCX+robotRX).toFixed(1)},${robotCY.toFixed(1)}
-                 L ${(robotCX+robotRX).toFixed(1)},${(robotCY+robotH).toFixed(1)}
-                 A ${robotRX.toFixed(1)},${robotRY.toFixed(1)} 0 0 0 ${(robotCX-robotRX).toFixed(1)},${(robotCY+robotH).toFixed(1)} Z"
-              fill="${robotSideBg}" stroke="${robotCol}" stroke-width="1.0"/>
+        <ellipse cx="${robotCX.toFixed(1)}" cy="${(robotCY+robotH).toFixed(1)}"
+                 rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
+                 fill="${robotSideBg}" stroke="${robotCol}" stroke-width="1.0"/>
         <ellipse cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}"
                  rx="${robotRX.toFixed(1)}" ry="${robotRY.toFixed(1)}"
                  fill="${robotBg}" stroke="${robotCol}" stroke-width="1.4"
