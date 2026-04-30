@@ -10724,8 +10724,99 @@ customElements.define('log-history-card', class extends AhaLogHistoryCard {});
  *   slim    — compact 64px bar
  *   verbose — full card with stats, dock diagram, consumables, actions
  *
- * Config: type: custom:roborock-vacuum-card
  * Registration: roborock-vacuum-card + alias aha-roborock-vacuum-card
+ *
+ * ─────────────────────────────────────────────────────────────────────
+ * PEŁNA KONFIGURACJA YAML
+ * ─────────────────────────────────────────────────────────────────────
+ *
+ * type: custom:roborock-vacuum-card
+ *
+ * # Wymagane
+ * entity: vacuum.marty_mccleaner
+ *
+ * # Opcjonalne — nazwa wyświetlana (fallback: friendly_name encji)
+ * name: Marty McCleaner
+ *
+ * # Tryb startowy: 'slim' (default) lub 'verbose'
+ * default_mode: slim
+ *
+ * # Encja dokstacji (opcjonalne) — jeśli dok ma osobną encję w HA
+ * dock_entity: vacuum.marty_mccleaner_dock
+ *
+ * # Pokaż/ukryj sekcję doku w trybie verbose (default: true)
+ * # false = sekcja doku nigdy nie jest wyświetlana
+ * # true  = sekcja doku widoczna gdy dock_entity podany LUB gdy
+ * #         robot myje/suszy mop, opróżnia pojemnik lub ładuje się
+ * show_dock: true
+ *
+ * # Podgląd mapy (opcjonalne) — image entity z Roborock integration
+ * map_image: image.marty_mccleaner_salon
+ *
+ * sensors:
+ *   # Poziom baterii robota (unit: %)
+ *   battery:          sensor.marty_mccleaner_battery
+ *
+ *   # Powierzchnia sprzątana w bieżącej sesji (unit: m²)
+ *   area:             sensor.marty_mccleaner_cleaning_area
+ *
+ *   # Czas trwania bieżącej sesji (unit: min)
+ *   time:             sensor.marty_mccleaner_cleaning_time
+ *
+ *   # Postęp sprzątania bieżącej sesji (unit: %)
+ *   progress:         sensor.marty_mccleaner_cleaning_progress
+ *
+ *   # Aktualnie sprzątany pokój
+ *   current_room:     sensor.marty_mccleaner_current_room
+ *
+ *   # Szczegółowy status (washing_the_mop, air_drying_stopping, itp.)
+ *   status:           sensor.marty_mccleaner_status
+ *
+ *   # Kod aktywnego błędu (none gdy brak)
+ *   vacuum_error:     sensor.marty_mccleaner_vacuum_error
+ *
+ *   # Statystyki łączne (życiowe)
+ *   total_area:       sensor.marty_mccleaner_total_cleaning_area
+ *   total_time:       sensor.marty_mccleaner_total_cleaning_time
+ *   total_count:      sensor.marty_mccleaner_total_cleaning_count
+ *
+ *   # Konsumables — czas pozostały do wymiany (unit: h)
+ *   filter_left:      sensor.marty_mccleaner_filter_time_left
+ *   main_brush_left:  sensor.marty_mccleaner_main_brush_time_left
+ *   side_brush_left:  sensor.marty_mccleaner_side_brush_time_left
+ *   sensor_left:      sensor.marty_mccleaner_sensor_time_left
+ *
+ * binary_sensors:
+ *   # Czy robot aktualnie się ładuje
+ *   charging:         binary_sensor.marty_mccleaner_charging
+ *
+ *   # Czy mop jest założony
+ *   mop_attached:     binary_sensor.marty_mccleaner_mop_attached
+ *
+ *   # Czy pojemnik na wodę jest założony
+ *   water_box:        binary_sensor.marty_mccleaner_water_box_attached
+ *
+ *   # Alarm braku wody — pokazuje czerwony alert
+ *   water_shortage:   binary_sensor.marty_mccleaner_water_shortage
+ *
+ * selects:
+ *   # Intensywność mopowania: off, slight, low, medium, moderate, high, extreme
+ *   mop_intensity:    select.marty_mccleaner_mop_intensity
+ *
+ *   # Tryb mopowania: standard, deep, deep_plus, fast, smart_mode, custom
+ *   mop_mode:         select.marty_mccleaner_mop_mode
+ *
+ *   # Wybrana mapa
+ *   selected_map:     select.marty_mccleaner_selected_map
+ *
+ * ─────────────────────────────────────────────────────────────────────
+ * MINIMALNA KONFIGURACJA (tylko encja główna)
+ * ─────────────────────────────────────────────────────────────────────
+ *
+ * type: custom:roborock-vacuum-card
+ * entity: vacuum.marty_mccleaner
+ *
+ * ─────────────────────────────────────────────────────────────────────
  */
 
 // ─────────────────────────────────────────────
@@ -11116,6 +11207,10 @@ const CARD_STYLES = `
     0%, 100% { box-shadow: 0 0 0 0   rgba(201,122,80,0.0); }
     50%       { box-shadow: 0 0 0 5px rgba(201,122,80,0.18); }
   }
+  @keyframes vac-pulse-error {
+    0%, 100% { opacity: 0; }
+    50%       { opacity: 1; }
+  }
   @keyframes vac-dot {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.2; }
@@ -11456,6 +11551,7 @@ class RoboVacuumCard extends HTMLElement {
       selects: config.selects || {},
       dock_entity: config.dock_entity || null,
       map_image: config.map_image || null,
+      show_dock: config.show_dock !== false,   // default: true
     };
     // Apply default entity IDs if not provided
     const base = 'marty_mccleaner';
@@ -11799,8 +11895,10 @@ class RoboVacuumCard extends HTMLElement {
     }
 
     // Show dock section?
-    const showDock = this._config.dock_entity ||
-      ['mop_washing','mop_drying','emptying','charging'].includes(group);
+    const showDock = this._config.show_dock && (
+      this._config.dock_entity ||
+      ['mop_washing','mop_drying','emptying','charging'].includes(group)
+    );
 
     const sections = [];
 
@@ -12056,124 +12154,256 @@ class RoboVacuumCard extends HTMLElement {
   }
 
   _renderDockDiagram(group) {
-    const isMopWashing = group === 'mop_washing';
-    const isMopDrying  = group === 'mop_drying';
-    const isEmptying   = group === 'emptying';
-    const isCharging   = group === 'charging';
-
-    const statusVal = this._getSensorState('status') || '';
-    const dockInfo = DOCK_STATUS_LABELS[statusVal] || null;
-    const mopAttached = this._isBinaryOn('mop_attached');
-    const waterBox    = this._isBinaryOn('water_box');
+    const isMopWashing  = group === 'mop_washing';
+    const isMopDrying   = group === 'mop_drying';
+    const isEmptying    = group === 'emptying';
+    const isCharging    = this._isBinaryOn('charging');
+    const mopAttached   = this._isBinaryOn('mop_attached');
     const waterShortage = this._isBinaryOn('water_shortage');
-    const isCharging2  = this._isBinaryOn('charging');
+    const statusVal     = this._getSensorState('status') || '';
+    const vacError      = this._getSensorState('vacuum_error') || 'none';
+    const hasError      = vacError !== 'none' && vacError !== 'unknown';
 
-    // Robot circle color
-    const robotCol = isCharging2 ? '#97C459' : (isEmptying ? '#EF9F27' : '#5F5E5A');
+    // ── Isometric 30° projection ─────────────────────────────────────────
+    // Saros 10R dock: wide rect box, roughly 1:0.7:1.15 (W:D:H)
+    // We exaggerate depth slightly for readability
+    const W = 72, D = 42, H = 95;
+    const cos30 = 0.866, sin30 = 0.5;
+    const dx  = W * cos30;   // ~62.4  horizontal span of front face
+    const dy  = W * sin30;   // 36     vertical drop of front face
+    const ddx = D * cos30;   // ~36.4  horizontal span of side face
+    const ddy = D * sin30;   // 21     vertical rise of side face
+    const pl  = 8;            // padding left
+    const pt  = ddy + 10;    // padding top (enough room for top face)
 
-    // Dock interior animations
-    let dockAnim = '';
+    // Parametric helpers — coordinates on each face
+    // Front face (u=0..1 left→right, v=0..1 top→bottom)
+    const fp = (u, v) => [pl + u * dx,       pt + u * dy + v * H];
+    // Top face  (u=0..1 left→right, d=0..1 front→back)
+    const tp = (u, d) => [pl + u * dx + d * ddx, pt + u * dy - d * ddy];
+    // Right face (d=0..1 front→back, v=0..1 top→bottom)
+    const rp = (d, v) => [pl + dx + d * ddx, pt + dy - d * ddy + v * H];
+
+    const poly = pts => pts.map(p => p.join(',')).join(' ');
+
+    // Full face outlines
+    const frontPts = poly([fp(0,0), fp(1,0), fp(1,1), fp(0,1)]);
+    const rightPts = poly([rp(0,0), rp(1,0), rp(1,1), rp(0,1)]);
+    const topPts   = poly([tp(0,0), tp(1,0), tp(1,1), tp(0,1)]);
+
+    // ── Component regions on front face ──────────────────────────────────
+    // Mop washing/drying bay  — upper 46% of front
+    const mopBayPts  = poly([fp(0.10,0.05), fp(0.90,0.05), fp(0.90,0.46), fp(0.10,0.46)]);
+    // Dust collector port     — narrow band below mop bay
+    const dustPts    = poly([fp(0.28,0.47), fp(0.72,0.47), fp(0.72,0.60), fp(0.28,0.60)]);
+    // Robot dock slot         — bottom 38% of front face
+    const dockSlotPts= poly([fp(0.20,0.62), fp(0.80,0.62), fp(0.80,0.98), fp(0.20,0.98)]);
+
+    // Top face: clean water tank (left) / dirty water tank (right), split at u=0.5
+    const cleanTankPts = poly([tp(0,0), tp(0.5,0), tp(0.5,1), tp(0,1)]);
+    const dirtyTankPts = poly([tp(0.5,0), tp(1,0), tp(1,1), tp(0.5,1)]);
+    const tankDivPts   = [tp(0.5,0), tp(0.5,1)];
+
+    // Computed positions for robot circle center and mop bay center
+    const robotCX = (fp(0.20,0.80)[0] + fp(0.80,0.80)[0]) / 2;
+    const robotCY = (fp(0.20,0.80)[1] + fp(0.80,0.80)[1]) / 2;
+    const mopCY_lo = fp(0.5, 0.38)[1];  // lower mop bay horizontal
+    const mopCY_mi = fp(0.5, 0.28)[1];
+    const mopCY_hi = fp(0.5, 0.18)[1];
+    const mopX_l   = fp(0.12, 0)[0];    // left x on the mop rows (iso-adjusted per row)
+    const mopX_r   = fp(0.88, 0)[0];
+
+    // Colors derived from state
+    const cleanCol  = waterShortage ? '#E24B4A' : '#97C459';
+    const cleanBg   = waterShortage ? 'rgba(226,75,74,0.22)' : 'rgba(151,196,89,0.18)';
+    const mopBayCol = isMopWashing ? '#7BAED4' : isMopDrying ? '#C97A50' : 'rgba(255,255,255,0.06)';
+    const mopBayBg  = isMopWashing ? 'rgba(123,174,212,0.14)' : isMopDrying ? 'rgba(201,122,80,0.12)' : 'rgba(255,255,255,0.03)';
+    const dustCol   = isEmptying ? '#EF9F27' : 'rgba(255,255,255,0.07)';
+    const dustBg    = isEmptying ? 'rgba(239,159,39,0.16)' : 'rgba(255,255,255,0.02)';
+    const robotCol  = isCharging ? '#97C459' : hasError ? '#E24B4A' : '#5F5E5A';
+    const robotBg   = isCharging ? 'rgba(151,196,89,0.14)' : hasError ? 'rgba(226,75,74,0.12)' : 'rgba(95,94,90,0.10)';
+    const slotCol   = isCharging ? '#97C459' : hasError ? '#E24B4A' : 'rgba(255,255,255,0.06)';
+
+    // ── Animated overlays inside mop bay ────────────────────────────────
+    // Lines are drawn parallel to the isometric x-axis (slanted left→right+down)
+    // so they visually sit on the front face rather than floating.
+    const makeMopLine = (v, delay, col) => {
+      const [x1, y1] = fp(0.12, v), [x2, y2] = fp(0.88, v);
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}"
+                    x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+                    stroke="${col}" stroke-width="1.2" stroke-linecap="round"
+                    style="animation:vac-water-drop 1.2s ${delay}s ease-in-out infinite"/>`;
+    };
+    const makeHeatArc = (uMid, v, delay) => {
+      const [xs, ys] = fp(uMid - 0.14, v + 0.05);
+      const [xe, ye] = fp(uMid + 0.14, v + 0.05);
+      const [xc, yc] = fp(uMid, v - 0.06);
+      return `<path d="M ${xs.toFixed(1)} ${ys.toFixed(1)} Q ${xc.toFixed(1)} ${yc.toFixed(1)} ${xe.toFixed(1)} ${ye.toFixed(1)}"
+                    stroke="#C97A50" stroke-width="1.3" fill="none" stroke-linecap="round"
+                    style="animation:vac-heat 1.5s ${delay}s ease-in-out infinite"/>`;
+    };
+    const makeDustParticle = (u, v, r, delay) => {
+      const [cx, cy] = fp(u, v);
+      return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}"
+                      fill="#EF9F27"
+                      style="animation:vac-water-drop 0.9s ${delay}s ease-in-out infinite"/>`;
+    };
+
+    let activeAnim = '';
     if (isMopWashing) {
-      dockAnim = `
-        <line x1="30" y1="38" x2="70" y2="38" stroke="#7BAED4" stroke-width="1.5" stroke-linecap="round"
-              style="animation:vac-water-drop 1.2s 0.0s ease-in-out infinite"/>
-        <line x1="30" y1="44" x2="70" y2="44" stroke="#7BAED4" stroke-width="1.5" stroke-linecap="round"
-              style="animation:vac-water-drop 1.2s 0.3s ease-in-out infinite"/>
-        <line x1="30" y1="50" x2="70" y2="50" stroke="#7BAED4" stroke-width="1.5" stroke-linecap="round"
-              style="animation:vac-water-drop 1.2s 0.6s ease-in-out infinite"/>
-      `;
+      activeAnim = makeMopLine(0.18, 0.0, '#7BAED4')
+                 + makeMopLine(0.28, 0.35, '#7BAED4')
+                 + makeMopLine(0.38, 0.70, '#7BAED4');
     } else if (isMopDrying) {
-      dockAnim = `
-        <path d="M36 52 Q41 46 46 52" stroke="#C97A50" stroke-width="1.3" fill="none" stroke-linecap="round"
-              style="animation:vac-heat 1.5s 0.0s ease-in-out infinite"/>
-        <path d="M46 52 Q51 46 56 52" stroke="#C97A50" stroke-width="1.3" fill="none" stroke-linecap="round"
-              style="animation:vac-heat 1.5s 0.2s ease-in-out infinite"/>
-        <path d="M56 52 Q61 46 66 52" stroke="#C97A50" stroke-width="1.3" fill="none" stroke-linecap="round"
-              style="animation:vac-heat 1.5s 0.4s ease-in-out infinite"/>
-        <path d="M36 44 Q41 38 46 44" stroke="#C97A50" stroke-width="1.1" fill="none" stroke-linecap="round"
-              opacity="0.6" style="animation:vac-heat 1.5s 0.3s ease-in-out infinite"/>
-        <path d="M46 44 Q51 38 56 44" stroke="#C97A50" stroke-width="1.1" fill="none" stroke-linecap="round"
-              opacity="0.6" style="animation:vac-heat 1.5s 0.5s ease-in-out infinite"/>
-        <path d="M56 44 Q61 38 66 44" stroke="#C97A50" stroke-width="1.1" fill="none" stroke-linecap="round"
-              opacity="0.6" style="animation:vac-heat 1.5s 0.7s ease-in-out infinite"/>
-      `;
+      activeAnim = makeHeatArc(0.28, 0.38, 0.0)
+                 + makeHeatArc(0.50, 0.38, 0.3)
+                 + makeHeatArc(0.72, 0.38, 0.6)
+                 + makeHeatArc(0.28, 0.22, 0.15)
+                 + makeHeatArc(0.50, 0.22, 0.45)
+                 + makeHeatArc(0.72, 0.22, 0.75);
     } else if (isEmptying) {
-      dockAnim = `
-        <line x1="50" y1="36" x2="50" y2="54" stroke="#EF9F27" stroke-width="2" stroke-linecap="round"
-              style="animation:vac-water-drop 0.8s ease-in-out infinite"/>
-        <line x1="43" y1="40" x2="43" y2="50" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"
-              style="animation:vac-water-drop 0.8s 0.2s ease-in-out infinite"/>
-        <line x1="57" y1="40" x2="57" y2="50" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"
-              style="animation:vac-water-drop 0.8s 0.4s ease-in-out infinite"/>
-      `;
+      activeAnim = makeDustParticle(0.38, 0.51, 1.3, 0.00)
+                 + makeDustParticle(0.50, 0.53, 1.6, 0.25)
+                 + makeDustParticle(0.62, 0.51, 1.3, 0.50);
     }
 
-    // Charging bolt
-    const chargeBolt = isCharging2
-      ? `<text x="50" y="30" text-anchor="middle" font-size="10" fill="#97C459">⚡</text>`
+    // Error pulsing overlay on front face
+    const errorOverlay = hasError
+      ? `<polygon points="${frontPts}" fill="rgba(226,75,74,0.07)"
+                  style="animation:vac-pulse-error 2s ease-in-out infinite"/>`
       : '';
 
-    const svgDiagram = `
-      <svg width="100" height="80" viewBox="0 0 100 80" fill="none"
-           style="display:block;margin:0 auto;">
-        <!-- Dock outline -->
-        <rect x="18" y="14" width="64" height="52" rx="5"
-              stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="#1A1A1C"/>
-        <!-- Dock interior -->
-        <rect x="24" y="20" width="52" height="40" rx="3"
-              fill="rgba(255,255,255,0.03)"/>
-        <!-- Dock animations -->
-        ${dockAnim}
-        <!-- Robot circle -->
-        <circle cx="50" cy="64" r="6" stroke="${robotCol}" stroke-width="1.5"
-                fill="rgba(${robotCol==='#97C459'?'151,196,89':'95,94,90'},0.15)"/>
-        <!-- Robot detail lines -->
-        <line x1="47" y1="64" x2="53" y2="64" stroke="${robotCol}" stroke-width="1" stroke-linecap="round"/>
+    // Charging bolt
+    const [bx, by] = fp(0.5, 0.67);
+    const chargeBolt = isCharging
+      ? `<text x="${bx.toFixed(1)}" y="${(by - 4).toFixed(1)}" text-anchor="middle"
+               font-size="9" fill="#97C459"
+               style="animation:vac-dot 1.8s ease-in-out infinite">⚡</text>`
+      : '';
+
+    // Tank indicator dots on top face
+    const [cx, cy] = tp(0.25, 0.5);
+    const [dirtX, dirtY] = tp(0.75, 0.5);
+
+    // ViewBox
+    const vbW = Math.ceil(pl + dx + ddx + 10);
+    const vbH = Math.ceil(pt + dy + H + 6);
+
+    const svg = `
+      <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
+           fill="none" style="display:block;overflow:visible;">
+
+        <!-- Right face — darkest (side light) -->
+        <polygon points="${rightPts}" fill="#161618" stroke="rgba(255,255,255,0.07)" stroke-width="0.8"/>
+
+        <!-- Front face base -->
+        <polygon points="${frontPts}" fill="#1E1E20" stroke="rgba(255,255,255,0.09)" stroke-width="0.8"/>
+        ${errorOverlay}
+
+        <!-- Mop washing/drying bay (upper front) -->
+        <polygon points="${mopBayPts}" fill="${mopBayBg}" stroke="${mopBayCol}" stroke-width="0.9"/>
+        ${activeAnim}
+
+        <!-- Dust collector port (narrow band) -->
+        <polygon points="${dustPts}" fill="${dustBg}" stroke="${dustCol}" stroke-width="0.7"/>
+
+        <!-- Robot dock slot (lower front) -->
+        <polygon points="${dockSlotPts}"
+                 fill="${robotBg}" stroke="${slotCol}"
+                 stroke-width="0.9" stroke-dasharray="${isCharging || hasError ? 'none' : '2.5,2'}"/>
+
+        <!-- Robot circle inside slot -->
+        <circle cx="${robotCX.toFixed(1)}" cy="${robotCY.toFixed(1)}" r="7.5"
+                fill="${robotBg}" stroke="${robotCol}" stroke-width="1.3"/>
+        <!-- Robot bumper arc -->
+        <path d="M ${(robotCX-5).toFixed(1)} ${(robotCY+1).toFixed(1)}
+                 A 5 5 0 0 1 ${(robotCX+5).toFixed(1)} ${(robotCY+1).toFixed(1)}"
+              stroke="${robotCol}" stroke-width="0.9" fill="none" stroke-linecap="round"/>
         ${chargeBolt}
-      </svg>
-    `;
 
-    // Status items below diagram
-    const statusItems = [];
+        <!-- Top face (brightest — light from above) -->
+        <polygon points="${topPts}" fill="#242426" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
 
-    if (dockInfo) {
-      statusItems.push(`
-        <div class="dock-status-item">
-          <span>${dockInfo.icon}</span>
-          <span style="color:${dockInfo.color};font-weight:500;">${dockInfo.text}</span>
-        </div>
-      `);
+        <!-- Clean water tank (left half of top) -->
+        <polygon points="${cleanTankPts}" fill="${cleanBg}" stroke="${cleanCol}"
+                 stroke-width="0.9" opacity="0.9"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="2.8"
+                fill="${cleanCol}" opacity="0.9"
+                ${waterShortage ? 'style="animation:vac-dot 1.8s ease-in-out infinite"' : ''}/>
+
+        <!-- Dirty water tank (right half of top) -->
+        <polygon points="${dirtyTankPts}" fill="rgba(95,94,90,0.15)"
+                 stroke="#5F5E5A" stroke-width="0.8" opacity="0.8"/>
+        <circle cx="${dirtX.toFixed(1)}" cy="${dirtY.toFixed(1)}" r="2.8"
+                fill="#5F5E5A" opacity="0.7"/>
+
+        <!-- Tank divider line -->
+        <line x1="${tankDivPts[0][0].toFixed(1)}" y1="${tankDivPts[0][1].toFixed(1)}"
+              x2="${tankDivPts[1][0].toFixed(1)}" y2="${tankDivPts[1][1].toFixed(1)}"
+              stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
+
+        <!-- Top-front edge highlight -->
+        <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
+              x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
+              stroke="rgba(255,255,255,0.14)" stroke-width="0.6"/>
+      </svg>`;
+
+    // ── Legend rows ──────────────────────────────────────────────────────
+    const dot = (col, anim) =>
+      `<span style="width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0;${anim ? `animation:${anim}` : ''}"></span>`;
+    const row = (dotCol, anim, left, right, rightCol) =>
+      `<div style="display:flex;align-items:center;gap:7px;">
+         ${dot(dotCol, anim)}
+         <span style="color:rgba(255,255,255,0.40);font-size:10px;flex:1;">${left}</span>
+         <span style="color:${rightCol};font-size:10px;">${right}</span>
+       </div>`;
+
+    const rows = [];
+
+    // Clean water
+    rows.push(row(
+      cleanCol,
+      waterShortage ? 'vac-dot 1.8s ease-in-out infinite' : null,
+      'Czysta woda',
+      waterShortage ? '⚠ brak' : 'ok',
+      cleanCol
+    ));
+
+    // Dirty water (no direct sensor — just static)
+    rows.push(row('#5F5E5A', null, 'Brudna woda', '—', '#5F5E5A'));
+
+    // Mop
+    rows.push(row(
+      mopAttached ? '#85B7EB' : '#5F5E5A', null,
+      'Mop',
+      mopAttached ? 'założony' : 'brak',
+      mopAttached ? '#85B7EB' : '#5F5E5A'
+    ));
+
+    // Active dock operation
+    const dockInfo = DOCK_STATUS_LABELS[statusVal] || null;
+    if (dockInfo && ['mop_washing','mop_drying','emptying','returning'].includes(group)) {
+      rows.push(row(dockInfo.color, 'vac-dot 1.8s ease-in-out infinite',
+                    'Status', dockInfo.text, dockInfo.color));
     }
 
-    if (mopAttached !== null) {
-      statusItems.push(`
-        <div class="dock-status-item">
-          <span style="color:rgba(255,255,255,0.28);">Mop:</span>
-          <span style="color:${mopAttached ? '#85B7EB' : '#5F5E5A'};">
-            ${mopAttached ? 'zamontowany' : 'brak'}
-          </span>
-        </div>
-      `);
-    }
-
-    if (waterBox !== null) {
-      statusItems.push(`
-        <div class="dock-status-item">
-          <span style="color:rgba(255,255,255,0.28);">Woda:</span>
-          <span style="color:${waterShortage ? '#E24B4A' : '#97C459'};">
-            ${waterShortage ? '⚠ brak' : 'ok'}
-          </span>
-        </div>
-      `);
+    // Error
+    if (hasError) {
+      const errLabel = ERROR_MAP[vacError] || vacError;
+      rows.push(row('#E24B4A', 'vac-dot 1.8s ease-in-out infinite',
+                    'Błąd', errLabel, '#E24B4A'));
     }
 
     return `
       <div class="dock-section">
         <div class="dock-title">Dok · Saros 10R</div>
-        ${svgDiagram}
-        ${statusItems.length ? `<div class="dock-status-row">${statusItems.join('')}</div>` : ''}
-      </div>
-    `;
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div style="flex-shrink:0;">${svg}</div>
+          <div style="display:flex;flex-direction:column;gap:7px;padding-top:6px;flex:1;min-width:0;">
+            ${rows.join('')}
+          </div>
+        </div>
+      </div>`;
   }
 
   _renderConsumables() {
