@@ -806,6 +806,7 @@ const CARD_STYLES = `
     font-size: 14px;
     font-weight: 600;
     color: #F1EFE8;
+    text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
