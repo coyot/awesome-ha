@@ -12295,22 +12295,25 @@ class RoboVacuumCard extends HTMLElement {
     // ── Isometric 30° projection ─────────────────────────────────────────
     // Saros 10R dock: wide rect box, roughly 1:0.7:1.15 (W:D:H)
     // We exaggerate depth slightly for readability
-    const W = 72, D = 54, H = 95;
+    const W = 72, D = 54, BH = 75, PH = 22; // BH=body height, PH=platform/podest height
     const cos30 = 0.866, sin30 = 0.5;
-    const dx  = W * cos30;   // ~62.4  horizontal span of front face
-    const dy  = W * sin30;   // 36     vertical drop of front face
-    const ddx = D * cos30;   // ~36.4  horizontal span of side face
-    const ddy = D * sin30;   // 21     vertical rise of side face
-    const pl  = 8;            // padding left
-    const pt  = ddy + 10;    // padding top (enough room for top face)
+    const dx  = W * cos30;
+    const dy  = W * sin30;
+    const ddx = D * cos30;
+    const ddy = D * sin30;
+    const pl  = 8;
+    const pt  = ddy + 10;
 
     // Parametric helpers — coordinates on each face
-    // Front face (u=0..1 left→right, v=0..1 top→bottom)
-    const fp = (u, v) => [pl + u * dx,       pt + u * dy + v * H];
+    // Front face (u=0..1 left→right, v=0..1 top→bottom) — dock BODY only (height BH)
+    const fp = (u, v) => [pl + u * dx,       pt + u * dy + v * BH];
     // Top face  (u=0..1 left→right, d=0..1 front→back)
     const tp = (u, d) => [pl + u * dx + d * ddx, pt + u * dy - d * ddy];
-    // Right face (d=0..1 front→back, v=0..1 top→bottom)
-    const rp = (d, v) => [pl + dx + d * ddx, pt + dy - d * ddy + v * H];
+    // Right face (d=0..1 front→back, v=0..1 top→bottom) — dock BODY only (height BH)
+    const rp = (d, v) => [pl + dx + d * ddx, pt + dy - d * ddy + v * BH];
+    // Platform (podest) face helpers — below dock body (height PH)
+    const pFp = (u, v) => [pl + u * dx,       pt + u * dy + BH + v * PH];
+    const pRp = (d, v) => [pl + dx + d * ddx, pt + dy - d * ddy + BH + v * PH];
 
     const poly = pts => pts.map(p => p.join(',')).join(' ');
 
@@ -12332,11 +12335,16 @@ class RoboVacuumCard extends HTMLElement {
     const mopBayPts     = poly([fp(0.40,0.59), fp(0.97,0.59), fp(0.97,0.70), fp(0.40,0.70)]);
     const dockSlotPts   = poly([fp(0.40,0.71), fp(0.97,0.71), fp(0.97,0.97), fp(0.40,0.97)]);
 
-    // Robot docked
+    // Platform (podest) polygons — below dock body
+    const platLeftPts  = poly([pFp(0,0), pFp(0.40,0), pFp(0.40,1), pFp(0,1)]);
+    const platSlotPts  = poly([pFp(0.40,0), pFp(1,0), pFp(1,1), pFp(0.40,1)]);
+    const platRightPts = poly([pRp(0,0), pRp(1,0), pRp(1,1), pRp(0,1)]);
+
+    // Robot docked — floor at BH + PH
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
     const Xr_l = 0.685 * W, Zr_l = 0;
     const robotCX = pl + cos30 * (Xr_l + Zr_l);
-    const robotCY = pt + sin30 * (Xr_l - Zr_l) + H;
+    const robotCY = pt + sin30 * (Xr_l - Zr_l) + BH + PH;
     const robotRX = 26 * cos30 * Math.SQRT2;
     const robotRY = 26 * sin30 * Math.SQRT2;
 
@@ -12418,7 +12426,7 @@ class RoboVacuumCard extends HTMLElement {
     const vbW = Math.ceil(pl + dx + ddx + 10);
     const vbH = isRobotDocked
       ? Math.ceil(robotCY + robotRY + robotH + 4)
-      : Math.ceil(pt + dy + H + 6);
+      : Math.ceil(pt + dy + BH + PH + 6);
 
     const svg = `
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
@@ -12494,6 +12502,12 @@ class RoboVacuumCard extends HTMLElement {
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
               stroke="rgba(255,255,255,0.16)" stroke-width="0.7"/>
+
+        <!-- ── Platform (podest) — below dock body ── -->
+        <polygon points="${platRightPts}" fill="#111113" stroke="rgba(255,255,255,0.06)" stroke-width="0.8"/>
+        <polygon points="${platLeftPts}"  fill="#181819" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+        <polygon points="${platSlotPts}"  fill="rgba(8,8,10,0.75)"
+                 stroke="rgba(255,255,255,0.05)" stroke-width="0.7"/>
       </svg>`;
 
     // ── Legend — compact ─────────────────────────────────────────────────
@@ -12646,15 +12660,17 @@ class RoboVacuumCard extends HTMLElement {
     const hasError        = hasDockError;
 
     // ── Smaller proportions ──────────────────────────────────────────
-    const W = 52, D = 38, H = 68;
+    const W = 52, D = 38, BH = 53, PH = 15; // BH=body, PH=platform
     const cos30 = 0.866, sin30 = 0.5;
     const dx  = W * cos30, dy  = W * sin30;
     const ddx = D * cos30, ddy = D * sin30;
     const pl = 6, pt = ddy + 7;
 
-    const fp = (u, v) => [pl + u*dx,        pt + u*dy + v*H];
-    const tp = (u, d) => [pl + u*dx + d*ddx, pt + u*dy - d*ddy];
-    const rp = (d, v) => [pl + dx + d*ddx,   pt + dy - d*ddy + v*H];
+    const fp  = (u, v) => [pl + u*dx,         pt + u*dy + v*BH];
+    const tp  = (u, d) => [pl + u*dx + d*ddx,  pt + u*dy - d*ddy];
+    const rp  = (d, v) => [pl + dx + d*ddx,    pt + dy - d*ddy + v*BH];
+    const pFp = (u, v) => [pl + u*dx,          pt + u*dy + BH + v*PH];
+    const pRp = (d, v) => [pl + dx + d*ddx,    pt + dy - d*ddy + BH + v*PH];
     const poly = pts => pts.map(p => p.join(',')).join(' ');
 
     // ── Geometry — new layout matching actual Saros 10R dock ────────────
@@ -12676,11 +12692,16 @@ class RoboVacuumCard extends HTMLElement {
     const mopBayPts   = poly([fp(0.40,0.59), fp(0.97,0.59), fp(0.97,0.70), fp(0.40,0.70)]);
     const dockSlotPts = poly([fp(0.40,0.71), fp(0.97,0.71), fp(0.97,0.97), fp(0.40,0.97)]);
 
-    // Robot docked — isometric top-down disc
+    // Platform (podest) polygons
+    const platLeftPts_s  = poly([pFp(0,0), pFp(0.40,0), pFp(0.40,1), pFp(0,1)]);
+    const platSlotPts_s  = poly([pFp(0.40,0), pFp(1,0), pFp(1,1), pFp(0.40,1)]);
+    const platRightPts_s = poly([pRp(0,0), pRp(1,0), pRp(1,1), pRp(0,1)]);
+
+    // Robot docked — floor at BH + PH
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
     const Xr_s = 0.685 * W, Zr_s = 0;
     const robotCX = pl + cos30 * (Xr_s + Zr_s);
-    const robotCY = pt + sin30 * (Xr_s - Zr_s) + H;
+    const robotCY = pt + sin30 * (Xr_s - Zr_s) + BH + PH;
     const robotRX  = 18 * cos30 * Math.SQRT2;
     const robotRY  = 18 * sin30 * Math.SQRT2;
 
@@ -12761,7 +12782,7 @@ class RoboVacuumCard extends HTMLElement {
     const vbW = Math.ceil(pl + dx + ddx + 8);
     const vbH = isRobotDocked
       ? Math.ceil(robotCY + robotRY + robotH + 3)
-      : Math.ceil(pt + dy + H + 5);
+      : Math.ceil(pt + dy + BH + PH + 5);
 
     return `
       <svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}"
@@ -12837,6 +12858,12 @@ class RoboVacuumCard extends HTMLElement {
         <line x1="${tp(0,0)[0].toFixed(1)}" y1="${tp(0,0)[1].toFixed(1)}"
               x2="${tp(1,0)[0].toFixed(1)}" y2="${tp(1,0)[1].toFixed(1)}"
               stroke="rgba(255,255,255,0.16)" stroke-width="0.6"/>
+
+        <!-- ── Platform (podest) — below dock body ── -->
+        <polygon points="${platRightPts_s}" fill="#111113" stroke="rgba(255,255,255,0.06)" stroke-width="0.7"/>
+        <polygon points="${platLeftPts_s}"  fill="#181819" stroke="rgba(255,255,255,0.08)" stroke-width="0.7"/>
+        <polygon points="${platSlotPts_s}"  fill="rgba(8,8,10,0.75)"
+                 stroke="rgba(255,255,255,0.05)" stroke-width="0.6"/>
       </svg>`;
   }
 
