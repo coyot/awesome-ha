@@ -11806,14 +11806,12 @@ class RoboVacuumCard extends HTMLElement {
       });
     });
 
-    // Slim card tap → more-info
-    if (this._mode === 'slim') {
-      this.shadowRoot.querySelector('.card')?.addEventListener('click', () => {
-        const event = new Event('hass-more-info', { bubbles: true, composed: true });
-        event.detail = { entityId: this._config.entity };
-        this.dispatchEvent(event);
-      });
-    }
+    // Tap anywhere on card → more-info (both slim and verbose)
+    this.shadowRoot.querySelector('.card')?.addEventListener('click', () => {
+      const event = new Event('hass-more-info', { bubbles: true, composed: true });
+      event.detail = { entityId: this._config.entity };
+      this.dispatchEvent(event);
+    });
   }
 
   _renderSlim() {
@@ -12085,13 +12083,6 @@ class RoboVacuumCard extends HTMLElement {
     // ── Section 5: Dok + Konsumable (combined) ──
     sections.push('<div class="sep"></div>');
     sections.push('<div class="section">' + this._renderDockAndConsumables(group, showDock) + '</div>');
-
-    // ── Section 7: Actions ──
-    const actionsHtml = this._renderActions(group, vacState);
-    if (actionsHtml) {
-      sections.push('<div class="sep"></div>');
-      sections.push('<div class="section">' + actionsHtml + '</div>');
-    }
 
     return `
       <div class="card verbose" style="${borderStyle}">
