@@ -1419,10 +1419,6 @@ class RoboVacuumCard extends HTMLElement {
             <span class="stat-label">myje mop<br>w doku</span>
           </div>
           <div class="stat-cell">
-            <span class="stat-value" style="color:#7BAED4;">~8 min</span>
-            <span class="stat-label">szac. czas</span>
-          </div>
-          <div class="stat-cell">
             <span class="stat-value" style="font-size:12px;color:#7BAED4;">${mopModeLabel}</span>
             <span class="stat-label">tryb mopa</span>
           </div>
@@ -1432,7 +1428,7 @@ class RoboVacuumCard extends HTMLElement {
 
     if (group === 'mop_drying') {
       const dryingSec = this._getDockSensorNum('mop_drying_time');
-      const dryingStr = fmtDurationSec(dryingSec) || '~20min';
+      const dryingStr = fmtDurationSec(dryingSec) || '—';
       return `
         <div class="stats-grid">
           <div class="stat-cell">
@@ -1459,14 +1455,6 @@ class RoboVacuumCard extends HTMLElement {
           <div class="stat-cell">
             <span class="stat-value" style="color:#EF9F27;font-size:20px;">🌪</span>
             <span class="stat-label">opróżnianie<br>pojemnika</span>
-          </div>
-          <div class="stat-cell">
-            <span class="stat-value" style="color:#EF9F27;">~3 min</span>
-            <span class="stat-label">szac. czas</span>
-          </div>
-          <div class="stat-cell">
-            <span class="stat-value" style="font-size:11px;color:#EF9F27;">ostatni</span>
-            <span class="stat-label">pojemnik</span>
           </div>
         </div>
       `;
