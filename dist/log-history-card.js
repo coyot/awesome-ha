@@ -298,7 +298,7 @@ function titleAndDetail(e, PEOPLE) {
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────────
 
-function fmtTime(ts) {
+function lhcFmtTime(ts) {
   return new Date(ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -505,7 +505,7 @@ class AhaLogHistoryCard extends HTMLElement {
 
         const timeEl = document.createElement('div');
         timeEl.className = 'entry-time';
-        timeEl.textContent = fmtTime(e.ts);
+        timeEl.textContent = lhcFmtTime(e.ts);
         right.appendChild(timeEl);
 
         body.appendChild(right);
