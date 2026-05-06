@@ -1568,7 +1568,7 @@ class RoboVacuumCard extends HTMLElement {
     // ── Isometric 30° projection ─────────────────────────────────────────
     // Saros 10R dock: wide rect box, roughly 1:0.7:1.15 (W:D:H)
     // We exaggerate depth slightly for readability
-    const W = 72, D = 54, BH = 75, PH = 22; // BH=body height, PH=platform/podest height
+    const W = 72, D = 54, BH = 75, PH = 38; // BH=body height, PH=platform/podest height
     const cos30 = 0.866, sin30 = 0.5;
     const dx  = W * cos30;
     const dy  = W * sin30;
@@ -1617,9 +1617,9 @@ class RoboVacuumCard extends HTMLElement {
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
     const Xr_l = 0.685 * W, Zr_l = 0;
     const robotCX = pl + cos30 * (Xr_l + Zr_l);
-    const robotCY = pt + sin30 * (Xr_l - Zr_l) + BH + PH;
     const robotRX = 26 * cos30 * Math.SQRT2;
     const robotRY = 26 * sin30 * Math.SQRT2;
+    const robotCY = pt + sin30 * (Xr_l - Zr_l) + BH + PH + robotRY * 0.3;
 
     // ── Colors ───────────────────────────────────────────────────────────
     const activeDrying  = isMopDrying || dockMopDrying;
@@ -1762,8 +1762,8 @@ class RoboVacuumCard extends HTMLElement {
         ${activeAnim}
 
         <!-- ── Lower: Dock slot ── -->
-        <polygon points="${dockSlotPts}" fill="rgba(255,255,255,0.01)"
-                 stroke="rgba(255,255,255,0.05)" stroke-width="0.7" stroke-dasharray="2.5,2"/>
+        <polygon points="${dockSlotPts}" fill="rgba(0,0,0,0.32)"
+                 stroke="rgba(255,255,255,0.06)" stroke-width="0.7"/>
 
         <!-- ── Top face ── -->
         <polygon points="${topPts}" fill="#212123" stroke="rgba(255,255,255,0.09)" stroke-width="0.8"/>
@@ -1933,7 +1933,7 @@ class RoboVacuumCard extends HTMLElement {
     const hasError        = hasDockError;
 
     // ── Smaller proportions ──────────────────────────────────────────
-    const W = 52, D = 38, BH = 53, PH = 15; // BH=body, PH=platform
+    const W = 52, D = 38, BH = 53, PH = 26; // BH=body, PH=platform
     const cos30 = 0.866, sin30 = 0.5;
     const dx  = W * cos30, dy  = W * sin30;
     const ddx = D * cos30, ddy = D * sin30;
@@ -1974,9 +1974,9 @@ class RoboVacuumCard extends HTMLElement {
     const isRobotDocked = isCharging || ['mop_washing','mop_drying','emptying','charging'].includes(group);
     const Xr_s = 0.685 * W, Zr_s = 0;
     const robotCX = pl + cos30 * (Xr_s + Zr_s);
-    const robotCY = pt + sin30 * (Xr_s - Zr_s) + BH + PH;
     const robotRX  = 18 * cos30 * Math.SQRT2;
     const robotRY  = 18 * sin30 * Math.SQRT2;
+    const robotCY = pt + sin30 * (Xr_s - Zr_s) + BH + PH + robotRY * 0.3;
 
     // ── Colors ───────────────────────────────────────────────────────────
     const dirtyCol   = dirtyBoxProblem ? '#EF9F27' : '#5F5E5A';
@@ -2118,8 +2118,8 @@ class RoboVacuumCard extends HTMLElement {
         ${activeAnim}
 
         <!-- ── Lower: Dock slot ── -->
-        <polygon points="${dockSlotPts}" fill="rgba(255,255,255,0.01)"
-                 stroke="rgba(255,255,255,0.05)" stroke-width="0.6" stroke-dasharray="2,2"/>
+        <polygon points="${dockSlotPts}" fill="rgba(0,0,0,0.32)"
+                 stroke="rgba(255,255,255,0.06)" stroke-width="0.6"/>
 
         <!-- ── Top face ── -->
         <polygon points="${topPts}" fill="#212123" stroke="rgba(255,255,255,0.09)" stroke-width="0.7"/>
