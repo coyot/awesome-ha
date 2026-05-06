@@ -1216,7 +1216,7 @@ class RoboVacuumCard extends HTMLElement {
           <!-- body -->
           <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
 
-            <!-- row 1: icon + name + badge + toggle -->
+            <!-- row 1: icon + name + badge -->
             <div style="display:flex;align-items:center;gap:8px;">
               ${icon}
               <span style="font-size:13px;font-weight:500;color:#F1EFE8;flex:1;min-width:0;
@@ -1226,7 +1226,6 @@ class RoboVacuumCard extends HTMLElement {
                              ${isActive ? 'animation:vac-dot 1.8s ease-in-out infinite;' : ''}"></span>
                 ${badgeLabel}
               </span>
-              <button class="toggle-btn" title="Rozwiń" style="margin-left:2px;">${svgToggleExpand()}</button>
             </div>
 
             <!-- row 2: chips -->
@@ -1246,12 +1245,15 @@ class RoboVacuumCard extends HTMLElement {
 
           </div>
 
-          <!-- right column — 20px/600 jak w vacuum.yaml -->
-          <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
-                      gap:2px;min-width:52px;">
-            <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
-                         color:${rightCol};">${rightVal}</span>
-            <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
+          <!-- right column + toggle — zawsze przy prawej krawędzi -->
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+                        gap:2px;min-width:52px;">
+              <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
+                           color:${rightCol};">${rightVal}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
+            </div>
+            <button class="toggle-btn" title="Rozwiń">${svgToggleExpand()}</button>
           </div>
 
         </div>
