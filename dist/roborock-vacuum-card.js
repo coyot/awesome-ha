@@ -309,6 +309,17 @@ function fmtTime(minutes) {
   return `${n} min`;
 }
 
+function fmtDurationSec(sec) {
+  if (!sec || sec <= 0) return null;
+  const m = Math.ceil(sec / 60);
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm > 0 ? `~${h}h ${rm}min` : `~${h}h`;
+  }
+  return `~${m}min`;
+}
+
 function fmtLastDate(isoStr) {
   if (!isoStr) return '—';
   try {
@@ -1125,7 +1136,7 @@ class RoboVacuumCard extends HTMLElement {
       rightVal = '🫧'; rightLabel = 'myje mop';
     } else if (group === 'mop_drying') {
       const sec = this._getDockSensorNum('mop_drying_time');
-      rightVal = sec && sec > 0 ? `~${Math.ceil(sec/60)}m` : '🌡';
+      rightVal = fmtDurationSec(sec) || '🌡';
       rightLabel = 'suszy mop'; rightCol = '#C97A50';
     } else if (group === 'emptying') {
       rightVal = '🌪'; rightLabel = 'opróżnia';
@@ -1420,6 +1431,8 @@ class RoboVacuumCard extends HTMLElement {
     }
 
     if (group === 'mop_drying') {
+      const dryingSec = this._getDockSensorNum('mop_drying_time');
+      const dryingStr = fmtDurationSec(dryingSec) || '~20min';
       return `
         <div class="stats-grid">
           <div class="stat-cell">
@@ -1429,8 +1442,8 @@ class RoboVacuumCard extends HTMLElement {
             <span class="stat-label">suszy mop<br>w doku</span>
           </div>
           <div class="stat-cell">
-            <span class="stat-value" style="color:#C97A50;">~20 min</span>
-            <span class="stat-label">szac. czas</span>
+            <span class="stat-value" style="color:#C97A50;">${dryingStr}</span>
+            <span class="stat-label">pozostało</span>
           </div>
           <div class="stat-cell">
             <span class="stat-value" style="font-size:11px;color:#C97A50;">gorące</span>
@@ -1842,10 +1855,7 @@ class RoboVacuumCard extends HTMLElement {
     // Active dock operations
     if (activeDrying) {
       let timeStr = '';
-      if (mopDryingTimeSec !== null && mopDryingTimeSec > 0) {
-        const m = Math.ceil(mopDryingTimeSec / 60);
-        timeStr = `~${m} min`;
-      }
+      timeStr = fmtDurationSec(mopDryingTimeSec) || '';
       problemRows.push(activeChip('suszy mop', timeStr, '#C97A50'));
     }
 
@@ -2201,7 +2211,7 @@ class RoboVacuumCard extends HTMLElement {
       border-radius:50%;background:rgba(133,183,235,0.35);flex-shrink:0;"></span>`);
 
     if (activeDrying) {
-      const m = mopDryingTimeSec && mopDryingTimeSec > 0 ? `~${Math.ceil(mopDryingTimeSec/60)} min` : '';
+      const m = fmtDurationSec(mopDryingTimeSec) || '';
       chips.push(activeChip('suszy mop', m, '#C97A50'));
     }
     if (isMopWashing) chips.push(activeChip('myje mop', '', '#7BAED4'));
