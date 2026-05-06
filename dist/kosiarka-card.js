@@ -895,8 +895,6 @@ class KosiarkaCard extends HTMLElement {
 }
 
 customElements.define('aha-kosiarka-card', KosiarkaCard);
-if (!customElements.get('kosiarka-card'))
-  customElements.define('kosiarka-card', class extends KosiarkaCard {});
 
 window.customCards = window.customCards || [];
 window.customCards.push({
