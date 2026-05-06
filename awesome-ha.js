@@ -8687,23 +8687,6 @@ const KOS_STYLES = `
     border-radius: 8px; white-space: nowrap;
   }
 
-  .btns { display: flex; gap: 6px; }
-  .btn {
-    flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-    padding: 10px 4px; border-radius: 10px;
-    font-size: 10px; font-weight: 500;
-    color: rgba(255,255,255,0.45);
-    border: 0.5px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.05);
-    cursor: pointer; transition: color 0.15s, background 0.15s, transform 0.1s;
-    -webkit-tap-highlight-color: transparent;
-    font-family: -apple-system, system-ui, sans-serif;
-  }
-  .btn:active { transform: scale(0.95); }
-  .btn.disabled { opacity: 0.3; pointer-events: none; }
-  .btn.green  { background: rgba(151,196,89,0.12);  color: #97C459;  border-color: rgba(151,196,89,0.22); }
-  .btn.orange { background: rgba(239,159,39,0.10);  color: #EF9F27;  border-color: rgba(239,159,39,0.20); }
-
   .error-box {
     display: flex; align-items: flex-start; gap: 10px;
     background: rgba(226,75,74,0.08); border-radius: 10px;
@@ -9095,9 +9078,6 @@ class KosiarkaCard extends HTMLElement {
         </div>`);
     }
 
-    // Section 6: Buttons
-    sections.push('<div class="sep"></div>');
-    sections.push(`<div class="section">${this._renderButtons(d)}</div>`);
 
     return `<div class="card verbose" style="${borderStyle}">${sections.join('')}</div>`;
   }
@@ -9204,21 +9184,6 @@ class KosiarkaCard extends HTMLElement {
     }).join('')}</div>`;
   }
 
-  _renderButtons(d) {
-    const { isMowing, isDocked, isCharging } = d;
-    const isDockable = isDocked || isCharging;
-
-    const btnSvgPlay  = `<svg width="11" height="11" viewBox="0 0 14 14" fill="currentColor"><polygon points="3 1 13 7 3 13"/></svg>`;
-    const btnSvgPause = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="2" x2="4" y2="12"/><line x1="10" y1="2" x2="10" y2="12"/></svg>`;
-    const btnSvgHome  = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 6L7 1l6 5v6a1 1 0 0 1-1 1H8v-4H6v4H2a1 1 0 0 1-1-1z"/></svg>`;
-
-    return `<div class="btns">
-      <button id="btn-start" class="btn ${isMowing ? 'disabled' : 'green'}">${btnSvgPlay} Start</button>
-      <button id="btn-pause" class="btn ${!isMowing ? 'disabled' : 'orange'}">${btnSvgPause} Pauza</button>
-      <button id="btn-dock"  class="btn ${isDockable ? 'disabled' : ''}">${btnSvgHome} Do bazy</button>
-    </div>`;
-  }
-
   // ── Render + listeners ───────────────────────
 
   _renderCard() {
@@ -9245,19 +9210,6 @@ class KosiarkaCard extends HTMLElement {
     this.shadowRoot.querySelector('.card')?.addEventListener('click', e => {
       if (!e.target.closest('button')) this._moreInfo();
     });
-    this.shadowRoot.querySelector('#btn-start')?.addEventListener('click', e => {
-      e.stopPropagation(); this._callService('start_mowing');
-    });
-    this.shadowRoot.querySelector('#btn-pause')?.addEventListener('click', e => {
-      e.stopPropagation(); this._callService('pause');
-    });
-    this.shadowRoot.querySelector('#btn-dock')?.addEventListener('click', e => {
-      e.stopPropagation(); this._callService('dock');
-    });
-  }
-
-  _callService(service) {
-    this._hass.callService('lawn_mower', service, { entity_id: this._config.entity });
   }
 
   _moreInfo() {
