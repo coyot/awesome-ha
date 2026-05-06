@@ -10645,7 +10645,11 @@ function batteryColor(pct, isCharging) {
 function fmtHours(h) {
   if (h === null || h === undefined || isNaN(h)) return '—';
   const n = parseFloat(h);
-  if (n >= 1) return `${Math.round(n)}h`;
+  if (n >= 1) {
+    const hh = Math.floor(n);
+    const mm = Math.round((n - hh) * 60);
+    return mm > 0 ? `${hh}h ${mm}min` : `${hh}h`;
+  }
   return `${Math.round(n * 60)}min`;
 }
 
