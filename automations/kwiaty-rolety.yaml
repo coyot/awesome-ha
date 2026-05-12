@@ -1,0 +1,141 @@
+# ============================================================
+# AUTOMATYZACJA: Rolety dla kwiatów (1, 2, 9)
+#
+# LOGIKA:
+#   Warunek główny: iphone_tk ORAZ iphone_monika poza domem
+#
+#   OTWARCIE rano — ta sama logika co wyłączanie poreczy:
+#     - pogodnie (weather in sunny/partlycloudy/clear-night) → wschód +10 min
+#     - pochmurno (pozostałe stany)                         → wschód +90 min
+#
+#   ZAMKNIĘCIE wieczorem — ta sama logika co włączanie poreczy:
+#     - trigger: zachód −90 min
+#     - pogodnie (solar_radiation >= 50 W/m²)               → zachód −20 min
+#     - pochmurno                                            → zachód −90 min
+#
+#   Rolety: cover.rollershutter_0001, 0002, 0009
+# ============================================================
+
+
+# ── RANO: otwórz ─────────────────────────────────────────────────────────────
+
+- id: kwiaty_rolety_otworz_rano
+  alias: "Kwiaty — otwórz rolety rano gdy oboje poza domem"
+  trigger:
+    - platform: sun
+      event: sunrise
+      offset: "00:10:00"
+  condition:
+    - condition: state
+      entity_id: device_tracker.iphone_tk
+      state: not_home
+    - condition: state
+      entity_id: device_tracker.iphone_monika
+      state: not_home
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('weather.forecast_home') in ['sunny','partlycloudy','clear-night'] }}
+          sequence:
+            - service: cover.open_cover
+              target:
+                entity_id:
+                  - cover.rollershutter_0001
+                  - cover.rollershutter_0002
+                  - cover.rollershutter_0009
+            - action: logbook.log
+              data:
+                name: "Kwiaty — rolety"
+                message: >
+                  OTWARTO | wschód +10 min | pogodnie |
+                  weather: {{ states('weather.forecast_home') }}
+            - action: script.log_push
+              data:
+                wpis: >
+                  {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kwiaty",
+                  "akcja":"OPEN","info":"pogodnie · {{ states('weather.forecast_home') }} · wschód +10min · rolety 1,2,9"}
+      default:
+        - delay:
+            minutes: 80
+        - service: cover.open_cover
+          target:
+            entity_id:
+              - cover.rollershutter_0001
+              - cover.rollershutter_0002
+              - cover.rollershutter_0009
+        - action: logbook.log
+          data:
+            name: "Kwiaty — rolety"
+            message: >
+              OTWARTO | wschód +90 min | pochmurnie |
+              weather: {{ states('weather.forecast_home') }}
+        - action: script.log_push
+          data:
+            wpis: >
+              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kwiaty",
+              "akcja":"OPEN","info":"pochmurnie · {{ states('weather.forecast_home') }} · wschód +90min · rolety 1,2,9"}
+  mode: single
+
+
+# ── WIECZOREM: zamknij ───────────────────────────────────────────────────────
+
+- id: kwiaty_rolety_zamknij_wieczor
+  alias: "Kwiaty — zamknij rolety wieczorem gdy oboje poza domem"
+  trigger:
+    - platform: sun
+      event: sunset
+      offset: "-01:30:00"
+  condition:
+    - condition: state
+      entity_id: device_tracker.iphone_tk
+      state: not_home
+    - condition: state
+      entity_id: device_tracker.iphone_monika
+      state: not_home
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ states('sensor.stacja_pogodowa_solar_radiation') | float(-1) >= 50 }}
+          sequence:
+            - delay:
+                minutes: 70
+            - service: cover.close_cover
+              target:
+                entity_id:
+                  - cover.rollershutter_0001
+                  - cover.rollershutter_0002
+                  - cover.rollershutter_0009
+            - action: logbook.log
+              data:
+                name: "Kwiaty — rolety"
+                message: >
+                  ZAMKNIĘTO | zachód −20 min | pogodnie |
+                  radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+            - action: script.log_push
+              data:
+                wpis: >
+                  {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kwiaty",
+                  "akcja":"CLOSE","info":"pogodnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −20min · rolety 1,2,9"}
+      default:
+        - service: cover.close_cover
+          target:
+            entity_id:
+              - cover.rollershutter_0001
+              - cover.rollershutter_0002
+              - cover.rollershutter_0009
+        - action: logbook.log
+          data:
+            name: "Kwiaty — rolety"
+            message: >
+              ZAMKNIĘTO | zachód −90 min | pochmurnie |
+              radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+        - action: script.log_push
+          data:
+            wpis: >
+              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kwiaty",
+              "akcja":"CLOSE","info":"pochmurnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −90min · rolety 1,2,9"}
+  mode: single
