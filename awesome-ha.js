@@ -13515,6 +13515,19 @@ class AhaWeatherCard extends HTMLElement {
     return this._particles;
   }
 
+  // ── fertilization done state (localStorage) ───────────────────────────────
+  _fertilDoneKey(f) { return 'aha-fertil-done:' + f.date; }
+  _isFertilDone(f) {
+    try { return localStorage.getItem(this._fertilDoneKey(f)) === '1'; } catch (e) { return false; }
+  }
+  _setFertilDone(f, done) {
+    try {
+      if (done) localStorage.setItem(this._fertilDoneKey(f), '1');
+      else localStorage.removeItem(this._fertilDoneKey(f));
+    } catch (e) {}
+    this._render();
+  }
+
   // ── fertilization banners ─────────────────────────────────────────────────
   _buildFertilBanners() {
     if (!this._fertilizations || !this._fertilizations.length) return '';
@@ -13523,10 +13536,10 @@ class AhaWeatherCard extends HTMLElement {
       .filter(({ days }) => days >= 0 && days <= 30)
       .sort((a, b) => a.days - b.days)
       .slice(0, 1);
-    return upcoming.map(({ f, days }) => this._renderFertilBanner(f, days)).join('');
+    return upcoming.map(({ f, days }) => this._renderFertilBanner(f, days, this._isFertilDone(f))).join('');
   }
 
-  _renderFertilBanner(f, days) {
+  _renderFertilBanner(f, days, done) {
     const isToday    = days === 0;
     const isTomorrow = days === 1;
     const isUrgent   = days <= 7;
@@ -13538,13 +13551,47 @@ class AhaWeatherCard extends HTMLElement {
     else if (isUrgent)   { acR=130; acG=200; acB=80; }
     else                 { acR=100; acG=180; acB=70; }
 
-    const ac   = `rgba(${acR},${acG},${acB},1)`;
+    // ── Done state — muted banner with undo ──────────────────────────────────
+    if (done) {
+      const doneCheckSVG = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="6" stroke="rgba(${acR},${acG},${acB},.45)" stroke-width="1.2" fill="rgba(${acR},${acG},${acB},.12)"/>
+        <path d="M4 7l2 2 4-4" stroke="rgba(${acR},${acG},${acB},.80)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+      return `<div class="banner normal" style="opacity:.45;border-top:1px solid rgba(${acR},${acG},${acB},.20);">
+        <div class="banner-inner">
+          <div class="banner-icon sm" style="background:rgba(${acR},${acG},${acB},.08);border:1px solid rgba(${acR},${acG},${acB},.22);">
+            ${doneCheckSVG}
+          </div>
+          <div class="banner-text">
+            <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.75);text-transform:uppercase;letter-spacing:.06em;text-decoration:line-through;">${f.name}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.30);margin-top:1px;">Wykonano</div>
+          </div>
+          <button class="fertil-undo-btn" data-fertil-date="${f.date}"
+            style="background:none;border:1px solid rgba(255,255,255,.18);border-radius:8px;
+            padding:3px 8px;cursor:pointer;font-size:9px;font-weight:600;
+            color:rgba(255,255,255,.35);font-family:-apple-system,system-ui,sans-serif;
+            flex-shrink:0;white-space:nowrap;">cofnij</button>
+        </div>
+      </div>`;
+    }
+
+    // ── Check button (shared across all active variants) ────────────────────
     const acB2 = `rgba(${acR},${acG},${acB},0.35)`;
     const acL  = `rgba(${acR},${acG},${acB},0.18)`;
     const pillText = isToday?'dziś!':isTomorrow?'jutro':`${days} dni`;
     const iconSVG  = _fertilIconSVG(isToday?20:18, acR, acG, acB);
+    const doneBtn  = `<button class="fertil-done-btn" data-fertil-date="${f.date}"
+      title="Oznacz jako wykonane"
+      style="background:none;border:1.5px solid rgba(${acR},${acG},${acB},.35);border-radius:50%;
+      width:26px;height:26px;cursor:pointer;flex-shrink:0;display:flex;
+      align-items:center;justify-content:center;padding:0;">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M2 6l3 3 5-5" stroke="rgba(${acR},${acG},${acB},.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>`;
 
     if (isToday) {
+      const ac = `rgba(${acR},${acG},${acB},1)`;
       return `<div class="banner today" style="border-top:2px solid ${acB2};">
         <div class="banner-bg" style="background:${acL};"></div>
         <div class="banner-inner">
@@ -13557,10 +13604,12 @@ class AhaWeatherCard extends HTMLElement {
             <div style="font-size:10px;color:rgba(200,240,180,.75);margin-top:2px;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse" style="color:${ac};background:${acL};border:1.5px solid ${acB2};">${pillText}</div>
+          ${doneBtn}
         </div>
       </div>`;
     }
     if (isTomorrow) {
+      const ac = `rgba(${acR},${acG},${acB},1)`;
       return `<div class="banner tomorrow" style="border-top:2px solid ${acB2};background:rgba(${acR},${acG},${acB},.08);">
         <div class="banner-inner">
           <div class="banner-icon" style="background:rgba(${acR},${acG},${acB},.15);border:1.5px solid ${acB2};">
@@ -13571,6 +13620,7 @@ class AhaWeatherCard extends HTMLElement {
             <div style="font-size:10px;color:rgba(255,255,255,.40);margin-top:1px;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse-slow" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
+          ${doneBtn}
         </div>
       </div>`;
     }
@@ -13585,6 +13635,7 @@ class AhaWeatherCard extends HTMLElement {
             <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse-slow" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.14);border:1px solid rgba(${acR},${acG},${acB},.35);">${pillText}</div>
+          ${doneBtn}
         </div>
       </div>`;
     }
@@ -13598,6 +13649,7 @@ class AhaWeatherCard extends HTMLElement {
           <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
         </div>
         <div class="banner-pill" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.25);">${pillText}</div>
+        ${doneBtn}
       </div>
     </div>`;
   }
@@ -13878,6 +13930,22 @@ class AhaWeatherCard extends HTMLElement {
           ${fertilBanners}
         </div>
       </div>`;
+
+    // Attach fertil done/undo buttons (must be after innerHTML set)
+    this.shadowRoot.querySelectorAll('.fertil-done-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const f = this._fertilizations.find(x => x.date === btn.dataset.fertilDate);
+        if (f) this._setFertilDone(f, true);
+      });
+    });
+    this.shadowRoot.querySelectorAll('.fertil-undo-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const f = this._fertilizations.find(x => x.date === btn.dataset.fertilDate);
+        if (f) this._setFertilDone(f, false);
+      });
+    });
   }
 
   getCardSize() { return 4; }
