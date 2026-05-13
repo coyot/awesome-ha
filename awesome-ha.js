@@ -15051,29 +15051,25 @@ if (!customElements.get('weather-card')) {
     return `<svg width="${px}" height="${px}" viewBox="-12 -12 24 24" style="display:block">${inner}</svg>`;
   }
 
-  // ── Smart forecast summary ────────────────────────────────────────────────────
+  // ── Smart forecast summary — returns [{label, text}, ...] per day ────────────
 
-  function buildSummary(fcAll, now) {
-    if (!Array.isArray(fcAll) || !fcAll.length) return null;
+  function buildSummaryParts(fcAll, now) {
+    if (!Array.isArray(fcAll) || !fcAll.length) return [];
 
     const todayStr    = toDateStr(now);
     const tomorrowStr = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 
     function analyzeSlots(slots) {
       if (!slots.length) return null;
-      const temps = slots.map(f => f.temperature).filter(t => typeof t === 'number');
+      const temps  = slots.map(f => f.temperature).filter(t => typeof t === 'number');
       const maxT   = temps.length ? Math.max(...temps) : null;
+      const minT   = temps.length ? Math.min(...temps) : null;
       const precip = slots.reduce((s, f) => s + (f.precipitation || 0), 0);
 
-      // Dominant condition (excluding night-equivalent of sunny)
       const counts = {};
-      for (const f of slots) {
-        const c = f.condition || 'cloudy';
-        counts[c] = (counts[c] || 0) + 1;
-      }
+      for (const f of slots) { const c = f.condition || 'cloudy'; counts[c] = (counts[c] || 0) + 1; }
       const cond = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'cloudy';
 
-      // When does rain start?
       let rainTime = null;
       if (precip >= 0.5) {
         const firstRainy = slots.find(f => (f.precipitation || 0) >= 0.3);
@@ -15082,11 +15078,9 @@ if (!customElements.get('weather-card')) {
           rainTime = h < 6 ? 'w nocy' : h < 12 ? 'rano' : h < 17 ? 'po południu' : 'wieczorem';
         }
       }
-
-      return { cond, maxT, precip, rainTime };
+      return { cond, maxT, minT, precip, rainTime };
     }
 
-    // Bucket by date
     const byDay = {};
     for (const f of fcAll) {
       const ds = toDateStr(new Date(f.datetime));
@@ -15096,24 +15090,19 @@ if (!customElements.get('weather-card')) {
     const parts = [];
     for (const [label, ds] of [['Dziś', todayStr], ['Jutro', tomorrowStr]]) {
       const allSlots = byDay[ds] || [];
-      // For today: only future slots
       const slots = ds === todayStr
         ? allSlots.filter(f => new Date(f.datetime) >= now)
         : allSlots;
       if (!slots.length) continue;
-
       const a = analyzeSlots(slots);
       if (!a) continue;
 
-      let text = label + ': ' + (WX_LABEL[a.cond] || a.cond).toLowerCase();
-      if (a.rainTime && a.precip >= 0.5) {
-        text += `, deszcz ${a.precip.toFixed(1)} mm ${a.rainTime}`;
-      }
+      let text = (WX_LABEL[a.cond] || a.cond).toLowerCase();
+      if (a.rainTime && a.precip >= 0.5) text += `, deszcz ${a.precip.toFixed(1)} mm ${a.rainTime}`;
       if (a.maxT !== null) text += ` · max ${Math.round(a.maxT)}°`;
-      parts.push(text);
+      parts.push({ label, text });
     }
-
-    return parts.length ? parts.join(' · ') : null;
+    return parts;
   }
 
   // ── Waste date extraction from HA entity ─────────────────────────────────────
@@ -15169,6 +15158,7 @@ if (!customElements.get('weather-card')) {
         ],
         days_fertilization: 14,
         days_waste: 3,
+        szambo: { entity: 'sensor.szambo_zuzycie', capacity: 10, warn_pct: 75 },
       };
     }
 
@@ -15176,6 +15166,7 @@ if (!customElements.get('weather-card')) {
       this._config = {
         people: [], fertilizations: [], waste: [],
         days_fertilization: 14, days_waste: 3,
+        szambo: null,   // { entity, capacity, warn_pct }
         ...config,
       };
     }
@@ -15223,7 +15214,35 @@ if (!customElements.get('weather-card')) {
         items.push({ days, name: w.name, color: w.color || '#FF9800', icon: 'waste' });
       }
 
-      items.sort((a, b) => a.days - b.days);
+      // Szambo — show when fill % exceeds threshold (no date, priority by urgency)
+      const sz = this._config.szambo;
+      if (sz && sz.entity && this._hass) {
+        const szVal  = parseFloat(this._hass.states[sz.entity]?.state);
+        const szCap  = sz.capacity || 10;
+        const szWarn = sz.warn_pct || 75;
+        if (!isNaN(szVal)) {
+          const pct = Math.round((szVal / szCap) * 100);
+          if (pct >= szWarn) {
+            const color = pct >= 90 ? '#FF3B30' : '#FF9500';
+            const left  = (szCap - szVal).toFixed(1);
+            items.push({
+              days: -1,  // not date-based — sort to front when critical, after urgent dates
+              pct, name: `Szambo ${pct}%`,
+              sub: `zostało ~${left} m³`,
+              color, icon: 'szambo',
+              urgent: pct >= 90,
+            });
+          }
+        }
+      }
+
+      // Sort: date-based by days asc, szambo by urgency at end (or front if critical)
+      items.sort((a, b) => {
+        if (a.days === -1 && b.days === -1) return b.pct - a.pct;
+        if (a.days === -1) return a.urgent ? -1 : 1;
+        if (b.days === -1) return b.urgent ? 1 : -1;
+        return a.days - b.days;
+      });
       return items;
     }
 
@@ -15260,9 +15279,9 @@ if (!customElements.get('weather-card')) {
       const tempC   = tempColor(temp);
       const tempStr = temp !== null ? Math.round(temp) + '°' : '—';
 
-      // Forecast summary
-      const fcAll   = hass.states[cfg.forecast_entity]?.attributes?.forecast || [];
-      const summary = buildSummary(fcAll, now);
+      // Forecast summary (array of {label, text})
+      const fcAll        = hass.states[cfg.forecast_entity]?.attributes?.forecast || [];
+      const summaryParts = buildSummaryParts(fcAll, now);
 
       // Sun: sunset from sun.sun
       const sun = hass.states['sun.sun'];
@@ -15321,13 +15340,19 @@ if (!customElements.get('weather-card')) {
       }).join('');
 
       const remindersHtml = reminders.map(r => {
-        const urgency  = r.days === 0 ? 'dziś!' : r.days === 1 ? 'jutro' : `za ${r.days} dni`;
-        const isUrgent = r.days <= 1;
-        const iconHtml = r.icon === 'leaf' ? _remIconLeaf(r.color) : _remIconWaste(r.color);
+        const isUrgent = r.days <= 1 || r.urgent;
+        const urgency  = r.days === -1 ? ''
+          : r.days === 0 ? 'dziś!' : r.days === 1 ? 'jutro' : `za ${r.days} dni`;
+        const iconHtml = r.icon === 'leaf' ? _remIconLeaf(r.color)
+          : r.icon === 'szambo' ? _remIconSzambo(r.color)
+          : _remIconWaste(r.color);
         return `<div class="reminder${isUrgent ? ' urgent' : ''}" style="--rc:${r.color}">
           ${iconHtml}
-          <span class="rem-name">${r.name}</span>
-          <span class="rem-when">${urgency}</span>
+          <div class="rem-body">
+            <span class="rem-name">${r.name}</span>
+            ${r.sub ? `<span class="rem-sub">${r.sub}</span>` : ''}
+          </div>
+          ${urgency ? `<span class="rem-when">${urgency}</span>` : ''}
         </div>`;
       }).join('');
 
@@ -15357,8 +15382,15 @@ if (!customElements.get('weather-card')) {
             ${chips.length ? `<div class="chips">${chipsHtml}</div>` : ''}
           </div>
 
-          <!-- Forecast summary -->
-          ${summary ? `<div class="summary">${summary}</div>` : ''}
+          <!-- Forecast summary (animated carousel when 2 parts) -->
+          ${summaryParts.length ? `
+          <div class="summary-wrap${summaryParts.length > 1 ? ' animated' : ''}">
+            ${summaryParts.map((p, i) =>
+              `<div class="sum-slide" style="${summaryParts.length > 1 ? `animation-delay:${i * 5}s` : ''}">
+                <span class="sum-label">${p.label}</span> ${p.text}
+              </div>`
+            ).join('')}
+          </div>` : ''}
 
           <!-- People -->
           ${people.length ? `
@@ -15440,12 +15472,43 @@ if (!customElements.get('weather-card')) {
       .chip svg { flex-shrink: 0; }
       .chip-lbl { font-size: 10.5px; color: rgba(255,255,255,0.52); font-weight: 500; }
 
-      /* Forecast summary */
-      .summary {
+      /* Forecast summary — animated carousel */
+      @keyframes sum-cycle {
+        0%   { opacity: 0; transform: translateY(5px); }
+        8%   { opacity: 1; transform: translateY(0); }
+        42%  { opacity: 1; transform: translateY(0); }
+        50%  { opacity: 0; transform: translateY(-4px); }
+        100% { opacity: 0; }
+      }
+      @keyframes sum-fadein {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .summary-wrap {
         font-size: 11.5px; color: rgba(255,255,255,0.42);
         background: rgba(255,255,255,0.045);
         border-radius: 11px; padding: 8px 11px;
         line-height: 1.5; letter-spacing: .01em;
+        margin-bottom: 0;
+      }
+      /* Static (1 part): simple fade-in */
+      .summary-wrap:not(.animated) .sum-slide {
+        animation: sum-fadein .5s ease both;
+      }
+      /* Animated (2 parts): cross-fade carousel */
+      .summary-wrap.animated {
+        position: relative;
+        height: 2.6em;   /* fixed — prevents layout jump between slides */
+        overflow: hidden;
+      }
+      .summary-wrap.animated .sum-slide {
+        position: absolute; inset: 0;
+        padding: 0; margin: 0;
+        opacity: 0;
+        animation: sum-cycle 10s ease-in-out infinite;
+      }
+      .sum-label {
+        font-weight: 600; color: rgba(255,255,255,0.60);
       }
 
       /* Separator */
@@ -15492,13 +15555,17 @@ if (!customElements.get('weather-card')) {
         background: rgba(255,255,255,0.07);
       }
       .rem-icon { flex-shrink: 0; }
+      .rem-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
       .rem-name {
-        flex: 1; font-size: 11.5px; font-weight: 500;
+        font-size: 11.5px; font-weight: 500;
         color: rgba(255,255,255,0.72);
+      }
+      .rem-sub {
+        font-size: 10px; color: rgba(255,255,255,0.32);
       }
       .rem-when {
         font-size: 10.5px; font-weight: 700;
-        color: var(--rc); opacity: .90;
+        color: var(--rc); opacity: .90; flex-shrink: 0;
       }
       `;
     }
@@ -15537,6 +15604,17 @@ if (!customElements.get('weather-card')) {
       <path d="M2 5h12M6 5V3h4v2" stroke="${col}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
       <line x1="6.5" y1="7" x2="6.5" y2="12" stroke="${col}" stroke-width="1" stroke-linecap="round" opacity=".6"/>
       <line x1="9.5" y1="7" x2="9.5" y2="12" stroke="${col}" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+    </svg>`;
+  }
+
+  function _remIconSzambo(col) {
+    // Stylised underground tank with fill level indicator
+    return `<svg class="rem-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="5" width="12" height="8" rx="2" stroke="${col}" stroke-width="1.2" opacity=".85"/>
+      <rect x="2" y="9" width="12" height="4" rx="0" fill="${col}" opacity=".22"
+        style="clip-path:inset(0 0 0 0 round 0 0 2px 2px)"/>
+      <path d="M6 5V3.5a2 2 0 014 0V5" stroke="${col}" stroke-width="1.2" stroke-linecap="round" opacity=".70"/>
+      <line x1="5" y1="9" x2="11" y2="9" stroke="${col}" stroke-width="1" stroke-linecap="round" opacity=".55"/>
     </svg>`;
   }
 
