@@ -14535,7 +14535,7 @@ if (!customElements.get('weather-card')) {
         fertilizations: [],
         rain_entity: null,
         rain_threshold: 3,
-        months_count: 3,
+        months_count: 2,
         ...config,
       };
       this._rainLoaded = false; // re-fetch if config changes
@@ -14706,7 +14706,7 @@ if (!customElements.get('weather-card')) {
       if (!this._hass) return;
 
       const now    = new Date();
-      const count  = this._config.months_count || 3;
+      const count  = this._config.months_count || 2;
       const thresh = this._config.rain_threshold || 3;
       // Default window: current month is the last shown (so past is visible)
       const firstMonth = count - 1; // months before current
@@ -14801,34 +14801,36 @@ if (!customElements.get('weather-card')) {
         transition: background .12s;
       }
       .nb:active { background: rgba(255,255,255,0.15); }
-      /* Months container */
-      .months { padding: 0 12px 4px; }
-      .month { padding: 10px 0 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-      .month:last-child { border-bottom: none; }
+      /* Months container — side by side */
+      .months {
+        padding: 8px 10px 4px;
+        display: flex; gap: 8px; align-items: flex-start;
+      }
+      .month { flex: 1; min-width: 0; }
       .mhdr {
-        font-size: 12px; font-weight: 600;
-        color: rgba(255,255,255,0.55);
-        margin-bottom: 6px; padding-left: 2px;
+        font-size: 11px; font-weight: 600;
+        color: rgba(255,255,255,0.50);
+        margin-bottom: 5px; padding-left: 1px;
         letter-spacing: .01em;
       }
       /* Grid */
       .mg {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 1px 0;
+        gap: 0;
       }
       .dh {
-        font-size: 8.5px; font-weight: 600;
+        font-size: 7.5px; font-weight: 600;
         color: rgba(255,255,255,0.20);
-        text-align: center; padding-bottom: 5px;
-        letter-spacing: .04em;
+        text-align: center; padding-bottom: 4px;
+        letter-spacing: .02em;
       }
       /* Day cell */
       .dc {
         display: flex; flex-direction: column; align-items: center;
-        padding: 4px 1px 3px;
-        border-radius: 7px;
-        min-height: 34px;
+        padding: 3px 0 2px;
+        border-radius: 6px;
+        min-height: 28px;
         cursor: default;
         transition: background .10s;
       }
@@ -14839,35 +14841,40 @@ if (!customElements.get('weather-card')) {
       .dc.ev { cursor: pointer; }
       .dc.ev:hover, .dc.ev:active { background: rgba(255,255,255,0.08); }
       .dn-num {
-        font-size: 11px; font-weight: 500;
-        color: rgba(255,255,255,0.58);
+        font-size: 10px; font-weight: 500;
+        color: rgba(255,255,255,0.55);
         line-height: 1;
         user-select: none;
       }
+      /* Vertical divider between months */
+      .month + .month {
+        border-left: 1px solid rgba(255,255,255,0.06);
+        padding-left: 8px;
+      }
       /* Dots row */
       .dots {
-        display: flex; gap: 2px; margin-top: 3px;
+        display: flex; gap: 2px; margin-top: 2px;
         flex-wrap: wrap; justify-content: center;
       }
       .dot {
-        width: 5px; height: 5px; border-radius: 50%;
+        width: 4px; height: 4px; border-radius: 50%;
         flex-shrink: 0;
       }
       .dot.dn { background: #50C85A; }
       .dot.pl {
         background: transparent;
         border: 1.5px solid rgba(80,200,90,0.65);
-        width: 4px; height: 4px;
+        width: 3px; height: 3px;
       }
       .dot.rn { background: #4da8ff; }
       /* Legend */
       .legend {
-        display: flex; flex-wrap: wrap; gap: 10px;
-        padding: 8px 14px 14px;
+        display: flex; flex-wrap: wrap; gap: 8px;
+        padding: 6px 12px 12px;
         border-top: 1px solid rgba(255,255,255,0.05);
       }
-      .li { display: flex; align-items: center; gap: 5px; }
-      .li span { font-size: 10px; color: rgba(255,255,255,0.28); }
+      .li { display: flex; align-items: center; gap: 4px; }
+      .li span { font-size: 9.5px; color: rgba(255,255,255,0.25); }
       /* Tooltip (light DOM, styled inline) */
       .tr { display: flex; align-items: center; gap: 6px; }
       .td { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
@@ -14877,10 +14884,7 @@ if (!customElements.get('weather-card')) {
       `;
     }
 
-    getCardSize() {
-      const count = this._config.months_count || 3;
-      return Math.round(count * 3.5);
-    }
+    getCardSize() { return 5; }
   }
 
   // ── Register ───────────────────────────────────────────────────────────────
