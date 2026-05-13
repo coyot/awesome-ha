@@ -75,6 +75,14 @@ waste:
     name: Gabaryty
     color: '#9C27B0'      # fioletowy
 
+# ── Szambo ───────────────────────────────────────────────────
+# Pokaż przypomnienie gdy zbiornik zapełniony w ≥ warn_pct %
+# capacity: pojemność w m³ (sprawdź w integracji szambo)
+szambo:
+  entity: sensor.szambo_zuzycie
+  capacity: 10
+  warn_pct: 75
+
 # ── Progi widoczności przypomnień ────────────────────────────
 # Nawożenia: pokaż jeśli za mniej niż N dni (i nie wykonane)
 days_fertilization: 14
