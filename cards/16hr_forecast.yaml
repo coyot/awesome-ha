@@ -267,7 +267,7 @@ label: |
       }
 
       // Ikona pogody — nad godziną i temperaturą
-      cols += '<g transform="translate(' + x.toFixed(1) + ',' + (ICON_Y + 8).toFixed(1) + ')" opacity="'
+      cols += '<g transform="translate(' + x.toFixed(1) + ',' + (ICON_Y + 2).toFixed(1) + ')" opacity="'
         + (now ? '1' : '0.80') + '">' + icon(s.cond) + '</g>';
 
       // Godzina
