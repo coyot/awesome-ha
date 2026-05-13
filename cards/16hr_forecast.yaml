@@ -295,6 +295,44 @@ label: |
           + s.prec.toFixed(1)
           + '</text>';
       }
+
+      // ── Hover: trigger + tooltip ─────────────────────────────
+      const dotPY = pts[i].y;
+      const hasPrec = s.prec >= 0.05;
+      const TW = 36, TH = hasPrec ? 27 : 16;
+      // tooltip Y — nad kropką, ale nie wychodź poza SVG od góry
+      const tipY = dotPY - TH - 8 < 2 ? dotPY + 10 : dotPY - TH - 8;
+      // tooltip X — nie wychodź poza lewą/prawą krawędź SVG
+      const tipX = Math.max(TW / 2 + 2, Math.min(SVG_PX - TW / 2 - 2, x));
+
+      cols += '<g>'
+        // Transparent trigger — przykrywa całą kolumnę, musi być jako ostatni element (z-order SVG)
+        + '<rect x="' + (x - COL_W / 2).toFixed(1) + '" y="0" width="' + COL_W + '" height="' + SVG_H + '"'
+        + ' fill="transparent" style="cursor:crosshair"'
+        + ' onmouseenter="this.nextElementSibling.style.opacity=1"'
+        + ' onmouseleave="this.nextElementSibling.style.opacity=0"'
+        + ' onclick="var g=this.nextElementSibling;g.style.opacity=+g.style.opacity>0?0:1"'
+        + '/>'
+        // Tooltip group — initially hidden
+        + '<g style="opacity:0;transition:opacity .12s ease" pointer-events="none">'
+        // Pierścień wokół kropki na krzywej
+        + '<circle cx="' + x.toFixed(1) + '" cy="' + dotPY.toFixed(1) + '" r="6" fill="' + tC + '" opacity=".22"/>'
+        + '<circle cx="' + x.toFixed(1) + '" cy="' + dotPY.toFixed(1) + '" r="3" fill="' + tC + '"/>'
+        // Tooltip pill
+        + '<rect x="' + (tipX - TW / 2).toFixed(1) + '" y="' + tipY.toFixed(1) + '" width="' + TW + '" height="' + TH + '" rx="5"'
+        + ' fill="rgba(8,14,30,0.96)" stroke="rgba(255,255,255,0.14)" stroke-width="0.8"/>'
+        // Temperatura w tooltipie
+        + '<text x="' + tipX.toFixed(1) + '" y="' + (tipY + 11).toFixed(1) + '" text-anchor="middle"'
+        + ' font-family="-apple-system,system-ui,sans-serif" font-size="10.5" font-weight="700"'
+        + ' fill="' + tC + '">' + tS + '</text>'
+        // Opady w tooltipie (jeśli są)
+        + (hasPrec
+          ? '<text x="' + tipX.toFixed(1) + '" y="' + (tipY + 22).toFixed(1) + '" text-anchor="middle"'
+            + ' font-family="-apple-system,system-ui,sans-serif" font-size="7.5" font-weight="500"'
+            + ' fill="' + barCol + '">' + s.prec.toFixed(1) + ' mm</text>'
+          : '')
+        + '</g>'
+        + '</g>';
     });
 
     // Dot "teraz"
