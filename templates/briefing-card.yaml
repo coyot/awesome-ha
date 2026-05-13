@@ -1,0 +1,84 @@
+# ============================================================
+# AHA Briefing Card — gotowa konfiguracja
+#
+# Wklej do dashboardu jako:
+#   type: custom:aha-briefing-card
+#   ... (cała reszta poniżej)
+#
+# Wymagane: awesome-ha.js załadowany w Lovelace resources
+# ============================================================
+
+type: custom:aha-briefing-card
+
+# ── Pogoda & stacja ─────────────────────────────────────────
+weather_entity: weather.forecast_home
+temp_entity:    sensor.stacja_pogodowa_outdoor_temperature
+feels_entity:   sensor.stacja_pogodowa_feels_like_temperature
+wind_entity:    sensor.stacja_pogodowa_wind_speed
+forecast_entity: sensor.forecast_hourly_json
+rain_entity:    sensor.stacja_pogodowa_daily_rain_piezo
+
+# ── Obecność domowników ─────────────────────────────────────
+# battery_entity jest opcjonalne — odkomentuj jeśli masz sensor baterii telefonu w HA
+# (np. z integracji iOS Companion App: sensor.iphone_tk_battery_level)
+people:
+  - name: Tomek
+    entity: device_tracker.iphone_tk
+    # battery_entity: sensor.iphone_tk_battery_level
+
+  - name: Monika
+    entity: device_tracker.iphone_monika
+    # battery_entity: sensor.iphone_monika_battery_level
+
+# ── Nawożenia ────────────────────────────────────────────────
+# Stan "wykonane" jest współdzielony z aha-weather-card przez localStorage —
+# jeśli masz tę samą listę w obu kartach, odhaczenie w jednej działa w drugiej.
+#
+# Uzupełnij datami na cały sezon. Wykonane wpisy wygasają automatycznie
+# (znikają gdy oznaczysz jako done w aha-weather-card lub po dacie).
+fertilizations:
+  - date: '2026-04-15'
+    name: Nawóz startowy
+    description: Trawnik — Florovit start, 30g/m²
+  - date: '2026-05-20'
+    name: Nawóz wiosenny
+    description: Trawnik — Florovit, 30g/m²
+  - date: '2026-07-01'
+    name: Nawóz letni
+    description: N-P-K 12-6-18, 25g/m²
+  - date: '2026-09-01'
+    name: Nawóz jesienny
+    description: Trawnik — Florovit jesienny, 25g/m²
+
+# ── Wywóz śmieci ─────────────────────────────────────────────
+# Karta czyta datę następnego odbioru z atrybutów/stanu encji.
+# Obsługiwane formaty stanu encji:
+#   - Liczba całkowita (dni do odbioru): "1", "3", "0"
+#   - Data ISO: "2026-05-14"
+#   - Atrybuty: next_date, next_pickup, next_collection, date
+#
+# Kolory sugestywne — możesz zmienić wg własnego kodowania kolorów gminy.
+waste:
+  - entity: sensor.harmonogram_bio
+    name: Bio
+    color: '#4CAF50'      # zielony
+
+  - entity: sensor.harmonogram_segregowane
+    name: Segregowane
+    color: '#FF9800'      # pomarańczowy (papier/plastik/szkło razem)
+
+  - entity: sensor.harmonogram_zmieszane
+    name: Zmieszane
+    color: '#78909C'      # szary
+
+  - entity: sensor.harmonogram_gabaryty
+    name: Gabaryty
+    color: '#9C27B0'      # fioletowy
+
+# ── Progi widoczności przypomnień ────────────────────────────
+# Nawożenia: pokaż jeśli za mniej niż N dni (i nie wykonane)
+days_fertilization: 14
+
+# Śmieci: pokaż jeśli odbiór za mniej niż N dni
+# 3 = pokaż dziś + jutro + pojutrze
+days_waste: 3
