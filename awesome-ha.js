@@ -13518,12 +13518,20 @@ class AhaWeatherCard extends HTMLElement {
   // ── fertilization done state (localStorage) ───────────────────────────────
   _fertilDoneKey(f) { return 'aha-fertil-done:' + f.date; }
   _isFertilDone(f) {
-    try { return localStorage.getItem(this._fertilDoneKey(f)) === '1'; } catch (e) { return false; }
+    try { return localStorage.getItem(this._fertilDoneKey(f)) !== null; } catch (e) { return false; }
   }
   _setFertilDone(f, done) {
     try {
-      if (done) localStorage.setItem(this._fertilDoneKey(f), '1');
-      else localStorage.removeItem(this._fertilDoneKey(f));
+      if (done) {
+        // Store actual execution date (not just '1'), so garden-calendar can show it
+        const today = new Date();
+        const ds = today.getFullYear() + '-'
+          + String(today.getMonth() + 1).padStart(2, '0') + '-'
+          + String(today.getDate()).padStart(2, '0');
+        localStorage.setItem(this._fertilDoneKey(f), ds);
+      } else {
+        localStorage.removeItem(this._fertilDoneKey(f));
+      }
     } catch (e) {}
     this._render();
   }
@@ -14433,4 +14441,463 @@ if (!customElements.get('weather-card')) {
     });
   }
 
+})();
+/**
+ * aha-garden-calendar-card  — Garden diary: fertilizations + rain history
+ *
+ * Config:
+ *   title:          string   (default 'Ogród · Dziennik')
+ *   fertilizations: [{date:'YYYY-MM-DD', name:'...', description:'...'}]
+ *   rain_entity:    sensor entity with daily accumulating rain (e.g. sensor.stacja_pogodowa_daily_rain_piezo)
+ *   rain_threshold: number   (mm, default 3)
+ *   months_count:   number   (months to show, default 3)
+ *
+ * Registers as: aha-garden-calendar-card  (legacy: garden-calendar-card)
+ */
+(function () {
+  'use strict';
+
+  const MONTHS_PL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
+    'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+  const DAYS_PL = ['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function toDateStr(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  // Monday-first weekday index (0=Mon … 6=Sun)
+  function dowMon(d) { return (d.getDay() + 6) % 7; }
+
+  // ── Tooltip (light-DOM, fixed position — works across shadow DOM) ────────────
+  let _tipEl = null;
+  function _hideTip() {
+    if (_tipEl) { _tipEl.remove(); _tipEl = null; }
+  }
+  function _showTip(anchorEl, html) {
+    _hideTip();
+    const rect = anchorEl.getBoundingClientRect();
+    _tipEl = document.createElement('div');
+    _tipEl.innerHTML = html;
+    // ensure it doesn't go off left/right edge
+    const w = 160;
+    let left = rect.left + rect.width / 2;
+    left = Math.max(w / 2 + 8, Math.min(window.innerWidth - w / 2 - 8, left));
+    _tipEl.style.cssText = [
+      'position:fixed',
+      'z-index:9999',
+      'pointer-events:none',
+      `left:${Math.round(left)}px`,
+      `top:${Math.round(rect.top - 8)}px`,
+      'transform:translate(-50%,-100%)',
+      'background:rgba(8,14,30,0.97)',
+      'border:1px solid rgba(255,255,255,0.15)',
+      'border-radius:11px',
+      'padding:9px 12px',
+      'font-size:11px',
+      'line-height:1.55',
+      'font-family:-apple-system,system-ui,sans-serif',
+      'color:rgba(255,255,255,0.82)',
+      'white-space:nowrap',
+      'box-shadow:0 6px 20px rgba(0,0,0,0.55)',
+    ].join(';');
+    document.body.appendChild(_tipEl);
+  }
+
+  // ── Card ────────────────────────────────────────────────────────────────────
+
+  class GardenCalendarCard extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this._hass       = null;
+      this._config     = {};
+      this._offset     = 0;  // month window offset from default
+      this._rainMap    = new Map(); // YYYY-MM-DD → mm (max daily)
+      this._rainLoaded = false;
+    }
+
+    static getStubConfig() {
+      return {
+        title:          'Ogród · Dziennik',
+        fertilizations: [
+          { date: '2026-05-20', name: 'Nawóz wiosenny', description: 'Florovit Trawnik, 30g/m²' },
+          { date: '2026-07-01', name: 'Nawóz letni',    description: 'N-P-K 12-6-18, 25g/m²' },
+        ],
+        rain_entity:    'sensor.stacja_pogodowa_daily_rain_piezo',
+        rain_threshold: 3,
+        months_count:   3,
+      };
+    }
+
+    setConfig(config) {
+      this._config = {
+        title: 'Ogród · Dziennik',
+        fertilizations: [],
+        rain_entity: null,
+        rain_threshold: 3,
+        months_count: 3,
+        ...config,
+      };
+      this._rainLoaded = false; // re-fetch if config changes
+    }
+
+    set hass(hass) {
+      const first = !this._hass;
+      this._hass = hass;
+      if (first || !this._rainLoaded) this._loadRain();
+      this._render();
+    }
+
+    disconnectedCallback() { _hideTip(); }
+
+    // ── Rain history via HA REST ───────────────────────────────────────────────
+
+    async _loadRain() {
+      if (!this._config.rain_entity) { this._rainLoaded = true; return; }
+      if (this._rainLoaded) return;
+      this._rainLoaded = true;
+
+      const monthsBack = (this._config.months_count || 3) + 1;
+      const start = new Date();
+      start.setMonth(start.getMonth() - monthsBack);
+      start.setDate(1);
+      const startIso = start.toISOString().slice(0, 19);
+
+      try {
+        const resp = await this._hass.callApi('GET',
+          `history/period/${encodeURIComponent(startIso)}` +
+          `?filter_entity_id=${this._config.rain_entity}&minimal_response=true`
+        );
+        if (Array.isArray(resp) && Array.isArray(resp[0])) {
+          this._processRain(resp[0]);
+          this._render();
+        }
+      } catch (e) {
+        console.warn('[garden-calendar] rain load failed:', e);
+      }
+    }
+
+    _processRain(states) {
+      // sensor accumulates during the day, resets at midnight.
+      // max value per calendar day ≈ daily total.
+      const byDay = new Map();
+      for (const s of states) {
+        const v = parseFloat(s.state);
+        if (isNaN(v) || v < 0) continue;
+        const dt = new Date(s.last_changed || s.last_updated);
+        const key = toDateStr(dt);
+        if (!byDay.has(key) || v > byDay.get(key)) byDay.set(key, v);
+      }
+      this._rainMap = byDay;
+    }
+
+    // ── Fertilization state from localStorage ────────────────────────────────
+
+    _doneMap() {
+      // Map<actualDoneDate, [fertilization objects]>
+      const m = new Map();
+      try {
+        for (const f of (this._config.fertilizations || [])) {
+          const v = localStorage.getItem('aha-fertil-done:' + f.date);
+          if (v && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+            if (!m.has(v)) m.set(v, []);
+            m.get(v).push(f);
+          }
+        }
+      } catch (_) {}
+      return m;
+    }
+
+    _plannedMap() {
+      // Map<scheduledDate, [fertilization objects]>
+      const m = new Map();
+      for (const f of (this._config.fertilizations || [])) {
+        if (!m.has(f.date)) m.set(f.date, []);
+        m.get(f.date).push(f);
+      }
+      return m;
+    }
+
+    // ── Month grid HTML ───────────────────────────────────────────────────────
+
+    _monthHtml(year, month, doneMap, plannedMap) {
+      const today    = toDateStr(new Date());
+      const nDays    = new Date(year, month + 1, 0).getDate();
+      const startDow = dowMon(new Date(year, month, 1));
+      const thresh   = this._config.rain_threshold || 3;
+
+      // Day headers
+      let html = '<div class="mg">';
+      for (const d of DAYS_PL) html += `<div class="dh">${d}</div>`;
+
+      // Empty cells before day 1
+      for (let i = 0; i < startDow; i++) html += '<div class="dc"></div>';
+
+      for (let d = 1; d <= nDays; d++) {
+        const ds = `${year}-${pad(month + 1)}-${pad(d)}`;
+        const isToday   = ds === today;
+        const doneFerts = doneMap.get(ds) || [];
+
+        // Planned: only if NOT already done (done stored under scheduledDate)
+        const planned   = (plannedMap.get(ds) || []).filter(f => {
+          // check if this scheduled item was marked done (regardless of actual date)
+          try { return localStorage.getItem('aha-fertil-done:' + f.date) === null; } catch (_) { return true; }
+        });
+
+        const rainMm   = this._rainMap.get(ds) || 0;
+        const hasRain  = rainMm >= thresh;
+        const hasEvent = doneFerts.length > 0 || planned.length > 0 || hasRain;
+
+        // Build dots
+        let dots = '';
+        for (let i = 0; i < Math.min(doneFerts.length, 2); i++)
+          dots += '<div class="dot dn"></div>';
+        for (let i = 0; i < Math.min(planned.length, 2); i++)
+          dots += '<div class="dot pl"></div>';
+        if (hasRain) {
+          const op = Math.min(0.95, 0.35 + (rainMm / 25) * 0.60).toFixed(2);
+          dots += `<div class="dot rn" style="opacity:${op}"></div>`;
+        }
+
+        // Tooltip data (encoded in data attr, built on demand)
+        const tipParts = [];
+        if (doneFerts.length) tipParts.push('D:' + doneFerts.map(f => f.name + (f.description ? ' — ' + f.description : '')).join(';;'));
+        if (planned.length)   tipParts.push('P:' + planned.map(f => f.name + (f.description ? ' — ' + f.description : '')).join(';;'));
+        if (hasRain)          tipParts.push('R:' + rainMm.toFixed(1));
+
+        const cls = ['dc', isToday ? 'td' : '', hasEvent ? 'ev' : ''].filter(Boolean).join(' ');
+        const tip = tipParts.length ? ` data-t="${tipParts.join('|').replace(/"/g, '&quot;')}"` : '';
+
+        html += `<div class="${cls}"${tip}>`
+          + `<span class="dn-num">${d}</span>`
+          + `<div class="dots">${dots}</div>`
+          + '</div>';
+      }
+
+      html += '</div>'; // .mg
+
+      return `<div class="month">
+        <div class="mhdr">${MONTHS_PL[month]} ${year}</div>
+        ${html}
+      </div>`;
+    }
+
+    // ── Tooltip HTML ─────────────────────────────────────────────────────────
+
+    _tipHtml(encoded) {
+      let html = '';
+      for (const part of encoded.split('|')) {
+        if (part.startsWith('D:')) {
+          for (const name of part.slice(2).split(';;'))
+            html += `<div class="tr"><span class="td dn"></span>${name}</div>`;
+        } else if (part.startsWith('P:')) {
+          for (const name of part.slice(2).split(';;'))
+            html += `<div class="tr"><span class="td pl"></span>${name}</div>`;
+        } else if (part.startsWith('R:')) {
+          html += `<div class="tr"><span class="td rn"></span>Deszcz: ${part.slice(2)} mm</div>`;
+        }
+      }
+      return html;
+    }
+
+    // ── Main render ───────────────────────────────────────────────────────────
+
+    _render() {
+      if (!this._hass) return;
+
+      const now    = new Date();
+      const count  = this._config.months_count || 3;
+      const thresh = this._config.rain_threshold || 3;
+      // Default window: current month is the last shown (so past is visible)
+      const firstMonth = count - 1; // months before current
+
+      const doneMap    = this._doneMap();
+      const plannedMap = this._plannedMap();
+
+      let monthsHtml = '';
+      for (let i = 0; i < count; i++) {
+        const dt = new Date(now.getFullYear(), now.getMonth() - firstMonth + i + this._offset, 1);
+        monthsHtml += this._monthHtml(dt.getFullYear(), dt.getMonth(), doneMap, plannedMap);
+      }
+
+      // Legend
+      const hasDone    = doneMap.size > 0 || (this._config.fertilizations || []).some(f => {
+        try { return localStorage.getItem('aha-fertil-done:' + f.date) !== null; } catch (_) { return false; }
+      });
+      const hasPlanned = (this._config.fertilizations || []).length > 0;
+      const hasRain    = !!this._config.rain_entity;
+
+      let legend = '';
+      if (hasDone)    legend += `<div class="li"><div class="dot dn"></div><span>Nawożenie wykonane</span></div>`;
+      if (hasPlanned) legend += `<div class="li"><div class="dot pl"></div><span>Nawożenie planowane</span></div>`;
+      if (hasRain)    legend += `<div class="li"><div class="dot rn" style="opacity:.80"></div><span>Deszcz (≥${thresh} mm)</span></div>`;
+
+      this.shadowRoot.innerHTML = `
+        <style>${this._css()}</style>
+        <div class="card">
+          <div class="hdr">
+            <div class="title">${this._config.title}</div>
+            <div class="navs">
+              <button class="nb" id="prev">&#8249;</button>
+              <button class="nb" id="next">&#8250;</button>
+            </div>
+          </div>
+          <div class="months">${monthsHtml}</div>
+          ${legend ? `<div class="legend">${legend}</div>` : ''}
+        </div>`;
+
+      this.shadowRoot.getElementById('prev').addEventListener('click', () => { this._offset--; this._render(); });
+      this.shadowRoot.getElementById('next').addEventListener('click', () => { this._offset++; this._render(); });
+
+      this._bindTooltips();
+    }
+
+    _bindTooltips() {
+      this.shadowRoot.querySelectorAll('.dc.ev[data-t]').forEach(cell => {
+        const encoded = cell.dataset.t;
+        const html    = this._tipHtml(encoded);
+
+        cell.addEventListener('mouseenter', () => _showTip(cell, html));
+        cell.addEventListener('mouseleave', _hideTip);
+        cell.addEventListener('click', () => {
+          if (_tipEl) _hideTip();
+          else _showTip(cell, html);
+        });
+      });
+
+      // Hide tip when scrolling or clicking elsewhere
+      this.shadowRoot.host.addEventListener('mouseleave', _hideTip, { once: false });
+    }
+
+    // ── CSS ───────────────────────────────────────────────────────────────────
+
+    _css() {
+      return `
+      :host { display: block; font-family: -apple-system, system-ui, sans-serif; }
+      .card {
+        background: linear-gradient(160deg, #0e1a2e 0%, #091220 100%);
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.07);
+        overflow: hidden;
+      }
+      /* Header */
+      .hdr {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 13px 16px 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .title {
+        font-size: 11px; font-weight: 600;
+        color: rgba(255,255,255,0.35);
+        text-transform: uppercase; letter-spacing: .08em;
+      }
+      .navs { display: flex; gap: 5px; }
+      .nb {
+        background: rgba(255,255,255,0.07); border: none;
+        border-radius: 8px; width: 28px; height: 28px;
+        cursor: pointer; color: rgba(255,255,255,0.50);
+        font-size: 18px; line-height: 1; padding: 0;
+        display: flex; align-items: center; justify-content: center;
+        transition: background .12s;
+      }
+      .nb:active { background: rgba(255,255,255,0.15); }
+      /* Months container */
+      .months { padding: 0 12px 4px; }
+      .month { padding: 10px 0 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .month:last-child { border-bottom: none; }
+      .mhdr {
+        font-size: 12px; font-weight: 600;
+        color: rgba(255,255,255,0.55);
+        margin-bottom: 6px; padding-left: 2px;
+        letter-spacing: .01em;
+      }
+      /* Grid */
+      .mg {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px 0;
+      }
+      .dh {
+        font-size: 8.5px; font-weight: 600;
+        color: rgba(255,255,255,0.20);
+        text-align: center; padding-bottom: 5px;
+        letter-spacing: .04em;
+      }
+      /* Day cell */
+      .dc {
+        display: flex; flex-direction: column; align-items: center;
+        padding: 4px 1px 3px;
+        border-radius: 7px;
+        min-height: 34px;
+        cursor: default;
+        transition: background .10s;
+      }
+      .dc.td {
+        background: rgba(255,255,255,0.09);
+      }
+      .dc.td .dn-num { color: #fff; font-weight: 700; }
+      .dc.ev { cursor: pointer; }
+      .dc.ev:hover, .dc.ev:active { background: rgba(255,255,255,0.08); }
+      .dn-num {
+        font-size: 11px; font-weight: 500;
+        color: rgba(255,255,255,0.58);
+        line-height: 1;
+        user-select: none;
+      }
+      /* Dots row */
+      .dots {
+        display: flex; gap: 2px; margin-top: 3px;
+        flex-wrap: wrap; justify-content: center;
+      }
+      .dot {
+        width: 5px; height: 5px; border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dot.dn { background: #50C85A; }
+      .dot.pl {
+        background: transparent;
+        border: 1.5px solid rgba(80,200,90,0.65);
+        width: 4px; height: 4px;
+      }
+      .dot.rn { background: #4da8ff; }
+      /* Legend */
+      .legend {
+        display: flex; flex-wrap: wrap; gap: 10px;
+        padding: 8px 14px 14px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+      }
+      .li { display: flex; align-items: center; gap: 5px; }
+      .li span { font-size: 10px; color: rgba(255,255,255,0.28); }
+      /* Tooltip (light DOM, styled inline) */
+      .tr { display: flex; align-items: center; gap: 6px; }
+      .td { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .td.dn { background: #50C85A; }
+      .td.pl { background: transparent; border: 1.5px solid rgba(80,200,90,0.80); width: 5px; height: 5px; }
+      .td.rn { background: #4da8ff; }
+      `;
+    }
+
+    getCardSize() {
+      const count = this._config.months_count || 3;
+      return Math.round(count * 3.5);
+    }
+  }
+
+  // ── Register ───────────────────────────────────────────────────────────────
+
+  if (!customElements.get('aha-garden-calendar-card')) {
+    customElements.define('aha-garden-calendar-card', GardenCalendarCard);
+  }
+  if (!customElements.get('garden-calendar-card')) {
+    customElements.define('garden-calendar-card', class extends GardenCalendarCard {});
+  }
+
+  window.customCards = window.customCards || [];
+  if (!window.customCards.find(c => c.type === 'aha-garden-calendar-card')) {
+    window.customCards.push({
+      type: 'aha-garden-calendar-card',
+      name: 'AHA Garden Calendar Card',
+      description: 'Garden diary: fertilization tracking + rain history, 3 months',
+    });
+  }
 })();

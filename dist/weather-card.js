@@ -742,12 +742,20 @@ class AhaWeatherCard extends HTMLElement {
   // ── fertilization done state (localStorage) ───────────────────────────────
   _fertilDoneKey(f) { return 'aha-fertil-done:' + f.date; }
   _isFertilDone(f) {
-    try { return localStorage.getItem(this._fertilDoneKey(f)) === '1'; } catch (e) { return false; }
+    try { return localStorage.getItem(this._fertilDoneKey(f)) !== null; } catch (e) { return false; }
   }
   _setFertilDone(f, done) {
     try {
-      if (done) localStorage.setItem(this._fertilDoneKey(f), '1');
-      else localStorage.removeItem(this._fertilDoneKey(f));
+      if (done) {
+        // Store actual execution date (not just '1'), so garden-calendar can show it
+        const today = new Date();
+        const ds = today.getFullYear() + '-'
+          + String(today.getMonth() + 1).padStart(2, '0') + '-'
+          + String(today.getDate()).padStart(2, '0');
+        localStorage.setItem(this._fertilDoneKey(f), ds);
+      } else {
+        localStorage.removeItem(this._fertilDoneKey(f));
+      }
     } catch (e) {}
     this._render();
   }
