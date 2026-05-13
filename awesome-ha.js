@@ -14557,16 +14557,20 @@ if (!customElements.get('weather-card')) {
       if (this._rainLoaded) return;
       this._rainLoaded = true;
 
-      const monthsBack = (this._config.months_count || 3) + 1;
+      const monthsBack = (this._config.months_count || 2) + 1;
       const start = new Date();
       start.setMonth(start.getMonth() - monthsBack);
       start.setDate(1);
-      const startIso = start.toISOString().slice(0, 19);
+      // ISO without encodeURIComponent — colons in URL path are valid and HA requires them unencoded
+      const startIso = start.getFullYear() + '-'
+        + pad(start.getMonth() + 1) + '-'
+        + pad(start.getDate()) + 'T00:00:00';
 
       try {
         const resp = await this._hass.callApi('GET',
-          `history/period/${encodeURIComponent(startIso)}` +
-          `?filter_entity_id=${this._config.rain_entity}&minimal_response=true`
+          `history/period/${startIso}` +
+          `?filter_entity_id=${this._config.rain_entity}` +
+          `&minimal_response=true&significant_changes_only=false&no_attributes=true`
         );
         if (Array.isArray(resp) && Array.isArray(resp[0])) {
           this._processRain(resp[0]);
@@ -14578,17 +14582,33 @@ if (!customElements.get('weather-card')) {
     }
 
     _processRain(states) {
-      // sensor accumulates during the day, resets at midnight.
-      // max value per calendar day ≈ daily total.
+      // Sensor accumulates rain during the day, resets at midnight.
+      // Strategy: max value per calendar day = daily total.
+      // Exception: when value drops (midnight reset), the pre-drop value is the day's total
+      // and the new day starts from 0 — so max-per-day handles this correctly.
       const byDay = new Map();
       for (const s of states) {
         const v = parseFloat(s.state);
         if (isNaN(v) || v < 0) continue;
         const dt = new Date(s.last_changed || s.last_updated);
+        if (isNaN(dt.getTime())) continue;
         const key = toDateStr(dt);
         if (!byDay.has(key) || v > byDay.get(key)) byDay.set(key, v);
       }
       this._rainMap = byDay;
+    }
+
+    // Patch today's rain from live hass state (history can lag behind)
+    _patchTodayRain() {
+      if (!this._config.rain_entity || !this._hass) return;
+      const state = this._hass.states[this._config.rain_entity];
+      if (!state) return;
+      const v = parseFloat(state.state);
+      if (isNaN(v) || v < 0) return;
+      const today = toDateStr(new Date());
+      if (!this._rainMap.has(today) || v > this._rainMap.get(today)) {
+        this._rainMap.set(today, v);
+      }
     }
 
     // ── Fertilization state from localStorage ────────────────────────────────
@@ -14711,6 +14731,7 @@ if (!customElements.get('weather-card')) {
       // Default window: current month is the last shown (so past is visible)
       const firstMonth = count - 1; // months before current
 
+      this._patchTodayRain();
       const doneMap    = this._doneMap();
       const plannedMap = this._plannedMap();
 
