@@ -241,7 +241,8 @@
         if (planned.length)   tipParts.push('P:' + planned.map(f => f.name + (f.description ? ' — ' + f.description : '')).join(';;'));
         if (hasRain)          tipParts.push('R:' + rainMm.toFixed(1));
 
-        const cls = ['dc', isToday ? 'td' : '', hasEvent ? 'ev' : ''].filter(Boolean).join(' ');
+        const isPast = ds < today;
+        const cls = ['dc', isToday ? 'td' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : ''].filter(Boolean).join(' ');
         const tip = tipParts.length ? ` data-t="${tipParts.join('|').replace(/"/g, '&quot;')}"` : '';
 
         html += `<div class="${cls}"${tip}>`
@@ -417,6 +418,8 @@
         outline-offset: -1px;
       }
       .dc.td .dn-num { color: #fff; font-weight: 700; }
+      .dc.ps { opacity: 0.28; }
+      .dc.ps.ev { opacity: 0.38; }
       .dc.ev { cursor: pointer; }
       .dc.ev:hover, .dc.ev:active { background: rgba(255,255,255,0.08); }
       .dn-num {
