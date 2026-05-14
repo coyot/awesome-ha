@@ -414,8 +414,7 @@
       }
       .dc.td {
         background: rgba(255,255,255,0.05);
-        outline: 1.5px solid rgba(255,255,255,0.40);
-        outline-offset: -1px;
+        box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.40);
       }
       .dc.td .dn-num { color: #fff; font-weight: 700; }
       .dc.ps { opacity: 0.28; }
