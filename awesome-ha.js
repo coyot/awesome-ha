@@ -14856,7 +14856,9 @@ if (!customElements.get('weather-card')) {
         transition: background .10s;
       }
       .dc.td {
-        background: rgba(255,255,255,0.09);
+        background: rgba(255,255,255,0.05);
+        border: 1.5px solid rgba(255,255,255,0.40);
+        border-radius: 6px;
       }
       .dc.td .dn-num { color: #fff; font-weight: 700; }
       .dc.ev { cursor: pointer; }
