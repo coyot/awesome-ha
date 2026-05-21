@@ -15402,7 +15402,12 @@ if (!customElements.get('weather-card')) {
         }
         const batRaw = p.battery_entity ? parseFloat(hass.states[p.battery_entity]?.state) : NaN;
         const bat    = !isNaN(batRaw) ? Math.round(batRaw) : null;
-        return { name: p.name, isHome, sinceStr, bat };
+        // Avatar: try picture_entity, then tracker entity_picture
+        const picSrc = p.picture_entity
+          ? (hass.states[p.picture_entity]?.attributes?.entity_picture || null)
+          : (s?.attributes?.entity_picture || null);
+        const initial = (p.name || '?')[0].toUpperCase();
+        return { name: p.name, isHome, sinceStr, bat, img: picSrc, initial };
       });
 
       // Reminders
@@ -15415,15 +15420,22 @@ if (!customElements.get('weather-card')) {
       ).join('');
 
       const peopleHtml = people.map(p => {
-        const homeLabel  = p.isHome ? 'w domu' : (p.sinceStr ? `poza · ${p.sinceStr}` : 'poza');
-        const dotClass   = p.isHome ? 'dot-home' : 'dot-away';
-        const batHtml    = p.bat !== null
+        const homeLabel = p.isHome ? 'w domu' : (p.sinceStr ? `poza · ${p.sinceStr}` : 'poza');
+        const batHtml   = p.bat !== null
           ? `<span class="bat" style="color:${p.bat < 20 ? '#FF6B6B' : 'rgba(255,255,255,0.28)'}">${p.bat}%</span>`
           : '';
+        const avatarInner = p.img
+          ? `<img src="${p.img}" alt="${p.name}">`
+          : `<span class="person-initial">${p.initial}</span>`;
         return `<div class="person">
-          <div class="person-dot ${dotClass}"></div>
-          <span class="person-name">${p.name}</span>
-          <span class="person-status">${homeLabel}</span>
+          <div class="person-avatar">
+            ${avatarInner}
+            <div class="person-presence ${p.isHome ? 'dot-home' : 'dot-away'}"></div>
+          </div>
+          <div class="person-info">
+            <span class="person-name">${p.name}</span>
+            <span class="person-status">${homeLabel}</span>
+          </div>
           ${batHtml}
         </div>`;
       }).join('');
@@ -15563,41 +15575,44 @@ if (!customElements.get('weather-card')) {
 
       /* Forecast summary — animated carousel */
       @keyframes sum-cycle {
-        0%   { opacity: 0; transform: translateY(5px); }
-        8%   { opacity: 1; transform: translateY(0); }
-        42%  { opacity: 1; transform: translateY(0); }
-        50%  { opacity: 0; transform: translateY(-4px); }
+        /* Seamless: each slide covers its half, 0.2s crossfade overlap */
+        0%   { opacity: 0; }
+        2%   { opacity: 1; }
+        50%  { opacity: 1; }
+        52%  { opacity: 0; }
         100% { opacity: 0; }
       }
       @keyframes sum-fadein {
-        from { opacity: 0; transform: translateY(4px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; }
+        to   { opacity: 1; }
       }
       .summary-wrap {
         font-size: 11.5px; color: rgba(255,255,255,0.42);
         background: rgba(255,255,255,0.045);
         border-radius: 11px; padding: 8px 11px;
         line-height: 1.5; letter-spacing: .01em;
-        margin-bottom: 0;
       }
       /* Static (1 part): simple fade-in */
       .summary-wrap:not(.animated) .sum-slide {
-        animation: sum-fadein .5s ease both;
+        animation: sum-fadein .4s ease both;
       }
-      /* Animated (2 parts): cross-fade carousel */
+      /* Animated (2 parts): cross-fade carousel, fixed height, centered text */
       .summary-wrap.animated {
         position: relative;
-        height: 2.6em;   /* fixed — prevents layout jump between slides */
+        height: 36px;   /* fixed px — no box-model surprises */
         overflow: hidden;
+        padding: 0;     /* slides handle their own padding */
       }
       .summary-wrap.animated .sum-slide {
         position: absolute; inset: 0;
-        padding: 0; margin: 0;
+        display: flex; align-items: center;
+        padding: 0 11px;
         opacity: 0;
-        animation: sum-cycle 10s ease-in-out infinite;
+        animation: sum-cycle 10s linear infinite;
       }
       .sum-label {
         font-weight: 600; color: rgba(255,255,255,0.60);
+        margin-right: 3px;
       }
 
       /* Separator */
@@ -15611,24 +15626,43 @@ if (!customElements.get('weather-card')) {
       }
 
       /* People */
-      .people { display: flex; flex-direction: column; gap: 6px; }
-      .person { display: flex; align-items: center; gap: 8px; }
-      .person-dot {
-        width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+      .people { display: flex; flex-direction: column; gap: 8px; }
+      .person { display: flex; align-items: center; gap: 10px; }
+      /* Avatar */
+      .person-avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        position: relative; flex-shrink: 0;
+        background: rgba(255,255,255,0.10);
+        overflow: visible;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .person-avatar img {
+        width: 34px; height: 34px; border-radius: 50%;
+        object-fit: cover; display: block;
+      }
+      .person-initial {
+        font-size: 14px; font-weight: 700;
+        color: rgba(255,255,255,0.65);
+      }
+      /* Presence dot — bottom-right of avatar */
+      .person-presence {
+        position: absolute; bottom: 0; right: 0;
+        width: 10px; height: 10px; border-radius: 50%;
+        border: 2px solid #0d1828;
       }
       .dot-home {
         background: #30D158;
-        box-shadow: 0 0 7px rgba(48,209,88,0.55);
+        box-shadow: 0 0 6px rgba(48,209,88,0.60);
       }
-      .dot-away { background: rgba(255,255,255,0.18); }
+      .dot-away { background: rgba(255,255,255,0.22); }
+      .person-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
       .person-name {
         font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.78);
-        min-width: 54px;
       }
       .person-status {
-        font-size: 11px; color: rgba(255,255,255,0.35); flex: 1;
+        font-size: 11px; color: rgba(255,255,255,0.35);
       }
-      .bat { font-size: 10px; font-weight: 600; }
+      .bat { font-size: 10px; font-weight: 600; flex-shrink: 0; }
 
       /* Reminders */
       .reminders { display: flex; flex-direction: column; gap: 5px; }
