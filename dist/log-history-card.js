@@ -3,7 +3,7 @@
  * Log History Card — Timeline · Ikony · Avatary · Paginacja
  *
  * Czyta wpisy JSON z input_text.log_h1 … input_text.log_hN
- * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22
+ * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty
  *
  * Config:
  *   slots:     (optional) liczba slotów do odczytu, default: 50
@@ -219,6 +219,17 @@ function iconSvg(e) {
       <circle cx="12" cy="9" r="2.5" fill="${c}"/>`);
   }
 
+  if (e.typ === 'kwiaty') {
+    const col = e.akcja === 'OPEN' ? 'rgba(52,199,89,0.88)' : 'rgba(142,142,147,0.55)';
+    return s(col, c => `
+      <path d="M12 21v-8" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M12 13c0 0-3-2-3-5a3 3 0 016 0c0 3-3 5-3 5z"
+        fill="${c.replace(/[\d.]+\)$/, '0.28)')}" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M12 15c0 0 2.5-1.5 4-4" stroke="${c.replace(/[\d.]+\)$/, '0.55)')}" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M12 17c0 0-2.5-1-3.5-3.5" stroke="${c.replace(/[\d.]+\)$/, '0.55)')}" stroke-width="1.3" stroke-linecap="round"/>
+    `);
+  }
+
   return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
     <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
   </svg>`;
@@ -243,6 +254,10 @@ function nodeStyle(e) {
     return e.otwarte > 0
       ? { bg: 'rgba(255,69,58,0.14)',  outline: 'rgba(255,69,58,0.25)' }
       : { bg: 'rgba(52,199,89,0.14)',  outline: 'rgba(52,199,89,0.22)' };
+  if (e.typ === 'kwiaty')
+    return e.akcja === 'OPEN'
+      ? { bg: 'rgba(52,199,89,0.13)',  outline: 'rgba(52,199,89,0.22)' }
+      : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
 
@@ -285,6 +300,15 @@ function titleAndDetail(e, PEOPLE) {
       titleColor: col,
       titleText: txt,
       detail: lista,
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'kwiaty') {
+    const open = e.akcja === 'OPEN';
+    return {
+      titleColor: open ? 'rgba(52,199,89,0.90)' : 'rgba(142,142,147,0.70)',
+      titleText:  open ? 'Kwiaty — rolety otwarte' : 'Kwiaty — rolety zamknięte',
+      detail:     e.info ?? '',
       avatarPeople: null,
     };
   }
