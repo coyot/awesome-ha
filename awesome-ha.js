@@ -6113,8 +6113,19 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     return 'Otwarte';
   }
 
+  // Attach press feedback: instant visual change on pointerdown, revert on pointerup/cancel
+  _bindPress(el, pressedClass) {
+    const on  = () => el.classList.add(pressedClass);
+    const off = () => el.classList.remove(pressedClass);
+    el.addEventListener('pointerdown',   on,  { passive: true });
+    el.addEventListener('pointerup',     off, { passive: true });
+    el.addEventListener('pointercancel', off, { passive: true });
+    el.addEventListener('pointerleave',  off, { passive: true });
+  }
+
   _render() {
     const PRESETS = [0, 33, 66, 100];
+    const PRESET_LABELS = ['Zamknięte', 'Lekko', 'Uchylone', 'Otwarte'];
 
     this.shadowRoot.innerHTML = `
     <style>
@@ -6122,10 +6133,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
       /* ── glow wrapper ── */
-      .glow{
-        border-radius:18px;
-        transition:box-shadow .5s ease;
-      }
+      .glow{ border-radius:18px; transition:box-shadow .5s ease; }
       .glow.on{
         box-shadow:
           0 0 0 1px rgba(255,159,10,.22),
@@ -6182,7 +6190,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       /* ── progress bar ── */
       .track{
         height:3px;background:rgba(255,255,255,.06);
-        border-radius:2px;overflow:hidden;margin-bottom:10px;
+        border-radius:2px;overflow:hidden;margin-bottom:12px;
       }
       .fill{
         height:100%;border-radius:2px;
@@ -6190,21 +6198,42 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       }
 
       /* ── preset pills ── */
-      .pills{display:flex;gap:5px;margin-bottom:10px}
+      .pills{display:flex;gap:5px;margin-bottom:12px}
       .pill{
-        flex:1;padding:5px 4px;text-align:center;
-        border-radius:9px;font-size:10px;font-weight:600;
-        color:rgba(255,255,255,.35);background:rgba(255,255,255,.04);
-        cursor:pointer;border:.5px solid transparent;
-        transition:background .2s,border-color .2s,color .2s,transform .1s;
-        -webkit-tap-highlight-color:transparent;user-select:none;
+        flex:1;
+        min-height:44px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+        border-radius:11px;
+        font-size:10px;font-weight:600;
+        color:rgba(255,255,255,.35);
+        background:rgba(255,255,255,.04);
+        cursor:pointer;
+        border:.5px solid transparent;
+        touch-action:manipulation;
+        -webkit-tap-highlight-color:transparent;
+        user-select:none;
+        transition:background .15s,border-color .15s,color .15s;
+        /* reset button styles */
+        appearance:none;-webkit-appearance:none;
+        font-family:inherit;
+        padding:0;
       }
+      .pill-pct{font-size:11px;font-weight:700;line-height:1}
+      .pill-lbl{font-size:9px;font-weight:500;opacity:.7;line-height:1}
       .pill.on{
-        background:rgba(255,159,10,.14);
+        background:rgba(255,159,10,.16);
         color:#ff9f0a;
-        border-color:rgba(255,159,10,.28);
+        border-color:rgba(255,159,10,.32);
       }
-      .pill:active{transform:scale(.92)}
+      .pill.pressed{
+        background:rgba(255,255,255,.12);
+        color:rgba(255,255,255,.80);
+        transform:scale(.94);
+      }
+      .pill.on.pressed{
+        background:rgba(255,159,10,.28);
+        color:#ff9f0a;
+      }
 
       /* ── action buttons ── */
       .btns{
@@ -6213,17 +6242,41 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         padding-top:10px;
       }
       .btn{
-        flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
-        padding:9px 4px;
-        background:rgba(255,255,255,.05);border-radius:10px;
-        font-size:10px;font-weight:500;color:rgba(255,255,255,.45);
-        cursor:pointer;border:.5px solid rgba(255,255,255,.08);
-        transition:color .15s,background .15s,transform .1s;
-        -webkit-tap-highlight-color:transparent;user-select:none;
+        flex:1;
+        min-height:48px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+        background:rgba(255,255,255,.055);
+        border-radius:12px;
+        font-size:10px;font-weight:600;
+        color:rgba(255,255,255,.50);
+        cursor:pointer;
+        border:.5px solid rgba(255,255,255,.09);
+        touch-action:manipulation;
+        -webkit-tap-highlight-color:transparent;
+        user-select:none;
+        transition:background .12s,color .12s,border-color .12s;
+        /* reset button styles */
+        appearance:none;-webkit-appearance:none;
+        font-family:inherit;
+        padding:0;
       }
-      .btn:active{transform:scale(.95);background:rgba(255,255,255,.09)}
-      .btn:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)}
-      .btn.stop:hover{background:rgba(255,69,58,.12);color:#ff453a;border-color:rgba(255,69,58,.20)}
+      .btn.pressed{
+        background:rgba(255,255,255,.15);
+        color:rgba(255,255,255,.95);
+        border-color:rgba(255,255,255,.22);
+        transform:scale(.96);
+      }
+      .btn.stop.pressed{
+        background:rgba(255,69,58,.20);
+        color:#ff453a;
+        border-color:rgba(255,69,58,.32);
+      }
+      /* hover only on non-touch */
+      @media(hover:hover){
+        .btn:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)}
+        .btn.stop:hover{background:rgba(255,69,58,.12);color:#ff453a;border-color:rgba(255,69,58,.20)}
+        .pill:hover:not(.on){background:rgba(255,255,255,.08);color:rgba(255,255,255,.70)}
+      }
     </style>
 
     <div class="glow" id="glow">
@@ -6246,34 +6299,48 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         </div>
 
         <div class="pills" id="pills">
-          ${PRESETS.map(t => `<div class="pill" data-tilt="${t}">${t}%</div>`).join('')}
+          ${PRESETS.map((t, i) => `<button class="pill" type="button" data-tilt="${t}">
+            <span class="pill-pct">${t}%</span>
+            <span class="pill-lbl">${PRESET_LABELS[i]}</span>
+          </button>`).join('')}
         </div>
 
         <div class="btns">
-          <div class="btn" id="btn-close">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button class="btn" type="button" id="btn-close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3.5 7.5L7 11l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Zamknij
-          </div>
-          <div class="btn stop" id="btn-stop">
-            <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="currentColor"/></svg>
+          </button>
+          <button class="btn stop" type="button" id="btn-stop">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="currentColor"/></svg>
             Stop
-          </div>
-          <div class="btn" id="btn-open">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="btn" type="button" id="btn-open">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Otwórz
-          </div>
+          </button>
         </div>
       </div>
     </div>`;
 
-    // draw initial slat (grey, tilt=0) so icon is never empty
+    // initial slat
     const iconEl = this.shadowRoot.getElementById('icon');
     if (iconEl) iconEl.innerHTML = this._drawSlat(0, 'rgba(142,142,147,.65)');
 
-    this.shadowRoot.getElementById('btn-open').addEventListener('click',  () => this._svc('open_cover'));
-    this.shadowRoot.getElementById('btn-stop').addEventListener('click',  () => this._svc('stop_cover'));
-    this.shadowRoot.getElementById('btn-close').addEventListener('click', () => this._svc('close_cover'));
+    // action buttons
+    const btnOpen  = this.shadowRoot.getElementById('btn-open');
+    const btnStop  = this.shadowRoot.getElementById('btn-stop');
+    const btnClose = this.shadowRoot.getElementById('btn-close');
+
+    this._bindPress(btnOpen,  'pressed');
+    this._bindPress(btnStop,  'pressed');
+    this._bindPress(btnClose, 'pressed');
+
+    btnOpen.addEventListener('click',  () => this._svc('open_cover'));
+    btnStop.addEventListener('click',  () => this._svc('stop_cover'));
+    btnClose.addEventListener('click', () => this._svc('close_cover'));
+
     this.shadowRoot.querySelectorAll('.pill').forEach(btn => {
+      this._bindPress(btn, 'pressed');
       btn.addEventListener('click', () => {
         this._svc('set_cover_tilt_position', { tilt_position: parseInt(btn.dataset.tilt) });
       });
@@ -6305,7 +6372,6 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     const acc = on ? '#ff9f0a' : 'rgba(142,142,147,.8)';
     const slatColor = on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
 
-    // text & fill
     const pctEl    = r.getElementById('pct');
     const statusEl = r.getElementById('status');
     const fillEl   = r.getElementById('fill');
@@ -6315,22 +6381,16 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     if (pctEl)    { pctEl.textContent = tilt; pctEl.style.color = acc; }
     if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366'; }
     if (fillEl)   { fillEl.style.width = tilt + '%'; fillEl.style.background = on ? '#ff9f0a' : 'rgba(142,142,147,.4)'; }
-
-    // glow
-    if (glowEl) glowEl.classList.toggle('on', on);
-
-    // icon box tint
+    if (glowEl)   glowEl.classList.toggle('on', on);
     if (iconbox) {
-      iconbox.style.background   = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
-      iconbox.style.border       = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.style.background = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
+      iconbox.style.border     = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
     }
 
-    // preset pills
     r.querySelectorAll('.pill').forEach(b => {
       b.classList.toggle('on', parseInt(b.dataset.tilt) === tilt);
     });
 
-    // slat animation
     const targetDeg = this._deg(tilt);
     if (Math.abs(targetDeg - this._curDeg) > 0.5) {
       this._animateTo(targetDeg);
@@ -6351,7 +6411,8 @@ window.customCards.push({
   name:        'Teleco Blind Card',
   preview:     false,
   description: 'Sterowanie żaluzjami w stylu Apple Home (pełna karta z presetami).',
-});class TelecoSlimCard extends HTMLElement {
+});
+class TelecoSlimCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
