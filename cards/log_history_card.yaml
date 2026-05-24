@@ -1,0 +1,334 @@
+type: custom:button-card
+entity: input_text.log_h1
+show_name: false
+show_icon: false
+show_state: false
+show_label: true
+tap_action:
+  action: none
+styles:
+  card:
+    - padding: "0"
+    - background: transparent
+    - border-radius: 20px
+    - box-shadow: none
+    - overflow: hidden
+  label:
+    - padding: "0"
+    - margin: "0"
+    - width: 100%
+    - white-space: normal
+    - line-height: "1"
+label: |
+  [[[
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  LOG HISTORY CARD — Timeline · Ikony · Avatary · Paginacja      ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    // ── KONFIGURACJA ──────────────────────────────────────────────────
+    const SLOTS     = 50;
+    const PAGE_SIZE = 10;
+
+    // Encje person — do avatarów (entity_picture)
+    const PERSON_TK = 'person.tk';
+    const PERSON_MK = 'person.mk';
+
+    // ── STAN (przeżywa re-render w window) ───────────────────────────
+    if (window._logRange === undefined) window._logRange = 'week';
+    if (window._logPage  === undefined) window._logPage  = 1;
+
+    // ── CZYTANIE SLOTÓW ───────────────────────────────────────────────
+    const entries = [];
+    for (let i = 1; i <= SLOTS; i++) {
+      const raw = states[`input_text.log_h${i}`]?.state ?? '';
+      if (!raw || raw === 'unknown' || raw === 'unavailable' || !raw.startsWith('{')) continue;
+      try {
+        const e = JSON.parse(raw);
+        if (e.ts) entries.push(e);
+      } catch(err) {}
+    }
+
+    // ── OSOBY ─────────────────────────────────────────────────────────
+    const imgTK = states['person.tk']?.attributes?.entity_picture ?? null;
+    const imgMK = states['person.mk']?.attributes?.entity_picture ?? null;
+
+    const PEOPLE = {
+      tk: { name: 'Tomek',  initials: 'TK', bg: '#1a3a5c', text: '#5ac8fa', img: imgTK },
+      mk: { name: 'Monika', initials: 'MK', bg: '#3a1a5c', text: '#bf5af2', img: imgMK },
+    };
+
+    // ── POMOCNICZE ────────────────────────────────────────────────────
+    function fmtTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function fmtDate(ts) {
+      const d   = new Date(ts);
+      const now = new Date();
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const yest  = new Date(today); yest.setDate(yest.getDate() - 1);
+      if (d >= today) return 'Dziś';
+      if (d >= yest)  return 'Wczoraj';
+      return d.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function dateKey(ts) {
+      return new Date(ts).toDateString();
+    }
+
+    // ── AVATAR HTML ───────────────────────────────────────────────────
+    function avatarHtml(personKey) {
+      const p = PEOPLE[personKey];
+      if (!p) return '';
+      const inner = p.img
+        ? `<img src="${p.img}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+        : `<span style="color:${p.text};font-size:7px;font-weight:700;">${p.initials}</span>`;
+      return `<div style="width:18px;height:18px;border-radius:50%;border:1.5px solid #1c1c1e;
+        margin-left:-5px;overflow:hidden;display:flex;align-items:center;justify-content:center;
+        background:${p.bg};flex-shrink:0;">
+        ${inner}
+      </div>`;
+    }
+
+    function avatarsHtml(people) {
+      return `<div style="display:flex;align-items:center;">
+        ${people.map((p, i) => {
+          const av = PEOPLE[p];
+          if (!av) return '';
+          const ml = i === 0 ? '0' : '-5px';
+          const inner = av.img
+            ? `<img src="${av.img}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+            : `<span style="color:${av.text};font-size:7px;font-weight:700;">${av.initials}</span>`;
+          return `<div style="width:18px;height:18px;border-radius:50%;border:1.5px solid #1c1c1e;
+            margin-left:${ml};overflow:hidden;display:flex;align-items:center;justify-content:center;
+            background:${av.bg};flex-shrink:0;">
+            ${inner}
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    // ── IKONY SVG ─────────────────────────────────────────────────────
+    function iconSvg(e) {
+      if (e.typ === 'porecz' && e.akcja === 'ON') return `
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+          <circle cx="12" cy="12" r="4" fill="rgba(255,214,10,0.9)"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+            stroke="rgba(255,214,10,0.75)" stroke-width="2" stroke-linecap="round"/>
+        </svg>`;
+      if (e.typ === 'porecz' && e.akcja === 'OFF') return `
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+          <circle cx="12" cy="12" r="5" stroke="rgba(150,150,155,0.50)" stroke-width="1.8"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2"
+            stroke="rgba(150,150,155,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`;
+      if (e.typ === 'szambo') return `
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+          <rect x="3" y="11" width="18" height="8" rx="2" fill="rgba(255,159,10,0.45)"/>
+          <path d="M7 11V8a5 5 0 0110 0v3"
+            stroke="rgba(255,159,10,0.85)" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="8"  cy="15" r="1" fill="rgba(255,159,10,0.9)"/>
+          <circle cx="16" cy="15" r="1" fill="rgba(255,159,10,0.9)"/>
+        </svg>`;
+      if (e.typ === 'wjazd') {
+        const people = Array.isArray(e.kto) ? e.kto : [e.kto];
+        const both   = people.length > 1;
+        const single = people[0];
+        const col    = both         ? 'rgba(191,90,242,0.85)'
+                     : single==='mk' ? 'rgba(191,90,242,0.85)'
+                     :                 'rgba(10,132,255,0.85)';
+        return `
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              stroke="${col}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+      }
+      if (e.typ === 'wiatrak_biuro') {
+        const col = e.akcja === 'ON' ? 'rgba(255,59,48,0.90)' : 'rgba(150,150,155,0.50)';
+        const hub = e.akcja === 'ON' ? 'rgba(255,59,48,1.00)' : 'rgba(150,150,155,0.65)';
+        return `
+          <svg viewBox="0 0 24 24" width="13" height="13">
+            <ellipse cx="12" cy="7.5" rx="2.8" ry="4.5" fill="${col}" transform="rotate(0 12 12)"/>
+            <ellipse cx="12" cy="7.5" rx="2.8" ry="4.5" fill="${col}" transform="rotate(120 12 12)"/>
+            <ellipse cx="12" cy="7.5" rx="2.8" ry="4.5" fill="${col}" transform="rotate(240 12 12)"/>
+            <circle cx="12" cy="12" r="2" fill="${hub}"/>
+          </svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+        <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+      </svg>`;
+    }
+
+    // ── STYL WĘZŁA ────────────────────────────────────────────────────
+    function nodeStyle(e) {
+      if (e.typ === 'porecz')
+        return e.akcja === 'ON'
+          ? { bg: 'rgba(255,214,10,0.14)', outline: 'rgba(255,214,10,0.25)' }
+          : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
+      if (e.typ === 'szambo')
+        return { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' };
+      if (e.typ === 'wjazd') {
+        const people = Array.isArray(e.kto) ? e.kto : [e.kto];
+        const both   = people.length > 1;
+        const single = people[0];
+        if (both)           return { bg: 'rgba(191,90,242,0.14)', outline: 'rgba(191,90,242,0.22)' };
+        if (single === 'mk') return { bg: 'rgba(191,90,242,0.14)', outline: 'rgba(191,90,242,0.22)' };
+        return { bg: 'rgba(10,132,255,0.14)', outline: 'rgba(10,132,255,0.22)' };
+      }
+      if (e.typ === 'wiatrak_biuro')
+        return e.akcja === 'ON'
+          ? { bg: 'rgba(255,59,48,0.14)', outline: 'rgba(255,59,48,0.25)' }
+          : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
+      return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
+    }
+
+    // ── TYTUŁ I DETAL ─────────────────────────────────────────────────
+    function titleAndDetail(e) {
+      if (e.typ === 'porecz') {
+        const col = e.akcja === 'ON' ? 'rgba(255,214,10,0.90)' : 'rgba(150,150,155,0.55)';
+        return {
+          title:   `<span style="color:${col};">Poręcz — ${e.akcja === 'ON' ? 'włączono' : 'wyłączono'}</span>`,
+          detail:  e.info ?? '',
+          avatars: null,
+        };
+      }
+      if (e.typ === 'szambo') return {
+        title:   `<span style="color:rgba(255,159,10,0.90);">Wywóz szamba</span>`,
+        detail:  `Dom1: ${e.d1m}m³ = ${e.d1z}zł · Dom2: ${e.d2m}m³ = ${e.d2z}zł · Razem: ${e.lm}m³`,
+        avatars: null,
+      };
+      if (e.typ === 'wjazd') {
+        const people = Array.isArray(e.kto) ? e.kto : [e.kto];
+        const names  = people.map(p => PEOPLE[p]?.name ?? p).join(' & ');
+        const both   = people.length > 1;
+        const single = people[0];
+        const col    = both          ? 'rgba(191,90,242,0.90)'
+                     : single==='mk'  ? 'rgba(191,90,242,0.90)'
+                     :                  'rgba(10,132,255,0.90)';
+        return {
+          title:   `<span style="color:${col};">Wjazd — ${names}</span>`,
+          detail:  'brama otwarta automatycznie',
+          avatars: people,
+        };
+      }
+      if (e.typ === 'wiatrak_biuro') {
+        const col = e.akcja === 'ON' ? 'rgba(255,59,48,0.90)' : 'rgba(150,150,155,0.60)';
+        const label = e.akcja === 'ON' ? 'włączono' : 'wyłączono';
+        return {
+          title:   `<span style="color:${col};">Wiatrak biuro — ${label}</span>`,
+          detail:  e.info ?? '',
+          avatars: null,
+        };
+      }
+      return { title: `<span style="color:rgba(255,255,255,0.6);">${e.typ}</span>`, detail: '', avatars: null };
+    }
+
+    // ── FILTROWANIE ───────────────────────────────────────────────────
+    const now = new Date();
+    const rangeMs = { today: 86400000, week: 7*86400000, month: 30*86400000 }[window._logRange] ?? 7*86400000;
+    const visible = entries.filter(e => (now - new Date(e.ts)) <= rangeMs);
+    const shown   = visible.slice(0, window._logPage * PAGE_SIZE);
+    const hasMore = visible.length > shown.length;
+    const remaining = visible.length - shown.length;
+
+    // ── RENDER RANGE BUTTONS ──────────────────────────────────────────
+    function rangeBtn(key, label) {
+      const active = window._logRange === key;
+      return `<div
+        onclick="window._logRange='${key}';window._logPage=1;this.closest('hui-card').dispatchEvent(new Event('ll-rebuild',{bubbles:true,composed:true}))"
+        style="padding:4px 11px;border-radius:20px;cursor:pointer;user-select:none;
+          border:0.5px solid ${active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.10)'};
+          background:${active ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.04)'};
+          font-size:11px;font-weight:${active ? '600' : '500'};
+          color:${active ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.30)'};">
+        ${label}
+      </div>`;
+    }
+
+    // ── RENDER WPISÓW ─────────────────────────────────────────────────
+    let lastDate = null;
+    let timelineHtml = '';
+
+    shown.forEach(e => {
+      const dk  = dateKey(e.ts);
+      if (dk !== lastDate) {
+        timelineHtml += `
+          <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+            color:rgba(255,255,255,0.18);padding:${lastDate === null ? '0' : '10px'} 0 8px;margin-left:-36px;">
+            ${fmtDate(e.ts)}
+          </div>`;
+        lastDate = dk;
+      }
+
+      const ns = nodeStyle(e);
+      const td = titleAndDetail(e);
+
+      timelineHtml += `
+        <div style="position:relative;padding-bottom:12px;">
+          <!-- Węzeł ikona -->
+          <div style="position:absolute;left:-36px;top:0;width:26px;height:26px;border-radius:8px;
+            background:${ns.bg};outline:1px solid ${ns.outline};
+            display:flex;align-items:center;justify-content:center;">
+            ${iconSvg(e)}
+          </div>
+          <!-- Treść -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding-top:3px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:600;line-height:1.25;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${td.title}
+              </div>
+              ${td.detail ? `
+              <div style="font-size:11px;color:rgba(255,255,255,0.30);margin-top:2px;line-height:1.3;">
+                ${td.detail}
+              </div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+              ${td.avatars ? avatarsHtml(td.avatars) : ''}
+              <div style="font-size:10px;color:rgba(255,255,255,0.22);font-weight:500;white-space:nowrap;">
+                ${fmtTime(e.ts)}
+              </div>
+            </div>
+          </div>
+        </div>`;
+    });
+
+    // ── RENDER KOŃCOWY ────────────────────────────────────────────────
+    return `
+      <div style="background:#1c1c1e;border-radius:20px;padding:16px;
+        font-family:-apple-system,system-ui,sans-serif;">
+
+        <!-- Zakres dat -->
+        <div style="display:flex;gap:5px;margin-bottom:14px;">
+          ${rangeBtn('today', 'Dziś')}
+          ${rangeBtn('week',  'Tydzień')}
+          ${rangeBtn('month', 'Miesiąc')}
+        </div>
+
+        <!-- Linia czasu -->
+        <div style="position:relative;padding-left:36px;">
+
+          <!-- Pionowa kreska -->
+          <div style="position:absolute;left:13px;top:6px;bottom:6px;width:1px;
+            background:rgba(255,255,255,0.07);"></div>
+
+          ${visible.length === 0
+            ? `<div style="text-align:center;padding:28px 0;font-size:12px;
+                color:rgba(255,255,255,0.22);">Brak zdarzeń w tym zakresie</div>`
+            : timelineHtml
+          }
+        </div>
+
+        <!-- Pokaż więcej -->
+        ${hasMore ? `
+        <div
+          onclick="window._logPage=${window._logPage + 1};this.closest('hui-card').dispatchEvent(new Event('ll-rebuild',{bubbles:true,composed:true}))"
+          style="margin-top:12px;width:100%;padding:8px;border-radius:10px;cursor:pointer;
+            border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);
+            font-size:11px;font-weight:500;color:rgba(255,255,255,0.30);text-align:center;">
+          Pokaż więcej (${remaining})
+        </div>` : ''}
+
+      </div>`;
+  ]]]

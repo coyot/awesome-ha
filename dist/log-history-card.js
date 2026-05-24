@@ -3,7 +3,7 @@
  * Log History Card — Timeline · Ikony · Avatary · Paginacja
  *
  * Czyta wpisy JSON z input_text.log_h1 … input_text.log_hN
- * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty
+ * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty | wiatrak_biuro
  *
  * Config:
  *   slots:     (optional) liczba slotów do odczytu, default: 50
@@ -230,6 +230,17 @@ function iconSvg(e) {
     `);
   }
 
+  if (e.typ === 'wiatrak_biuro') {
+    const col = e.akcja === 'ON' ? 'rgba(255,59,48,0.90)' : 'rgba(150,150,155,0.50)';
+    const hub = e.akcja === 'ON' ? 'rgba(255,59,48,1.00)' : 'rgba(150,150,155,0.65)';
+    return `<svg viewBox="0 0 24 24" width="13" height="13">
+      <ellipse cx="12" cy="7.5" rx="2.8" ry="4.5" fill="${col}" transform="rotate(0 12 12)"/>
+      <ellipse cx="12" cy="7.5" rx="2.8" ry="4.5" fill="${col}" transform="rotate(120 12 12)"/>
+      <ellipse cx="12" cy="7.5" rx="2.8" ry="4.5" fill="${col}" transform="rotate(240 12 12)"/>
+      <circle cx="12" cy="12" r="2" fill="${hub}"/>
+    </svg>`;
+  }
+
   return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
     <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
   </svg>`;
@@ -258,6 +269,10 @@ function nodeStyle(e) {
     return e.akcja === 'OPEN'
       ? { bg: 'rgba(52,199,89,0.13)',  outline: 'rgba(52,199,89,0.22)' }
       : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
+  if (e.typ === 'wiatrak_biuro')
+    return e.akcja === 'ON'
+      ? { bg: 'rgba(255,59,48,0.14)', outline: 'rgba(255,59,48,0.25)' }
+      : { bg: 'rgba(99,99,102,0.18)', outline: 'rgba(99,99,102,0.20)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
 
@@ -308,6 +323,15 @@ function titleAndDetail(e, PEOPLE) {
     return {
       titleColor: open ? 'rgba(52,199,89,0.90)' : 'rgba(142,142,147,0.70)',
       titleText:  open ? 'Kwiaty — rolety otwarte' : 'Kwiaty — rolety zamknięte',
+      detail:     e.info ?? '',
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'wiatrak_biuro') {
+    const on = e.akcja === 'ON';
+    return {
+      titleColor: on ? 'rgba(255,59,48,0.90)' : 'rgba(150,150,155,0.60)',
+      titleText:  `Wiatrak biuro — ${on ? 'włączono' : 'wyłączono'}`,
       detail:     e.info ?? '',
       avatarPeople: null,
     };
