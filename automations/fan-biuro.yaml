@@ -39,22 +39,43 @@
 
   mode: single
 
-- alias: "Wiatrak biuro – wyłącz (temperatura OK lub 22:00)"
+- alias: "Wiatrak biuro – wyłącz (temperatura OK lub godzina)"
   description: >
     Wyłącz wiatrak gdy temperatura w biurze spadnie do 22°C lub poniżej,
-    albo gdy wybije 22:00.
+    albo gdy wybije 22:00 (pn–pt) lub 20:00 (sob–nd).
 
   trigger:
     - platform: numeric_state
+      id: temp_ok
       entity_id: sensor.biuro_temperature
       below: 22.1
     - platform: time
+      id: time_weekday
       at: "22:00:00"
+    - platform: time
+      id: time_weekend
+      at: "20:00:00"
 
   condition:
     - condition: state
       entity_id: switch.biuro_wiatrak
       state: "on"
+    - condition: or
+      conditions:
+        - condition: trigger
+          id: temp_ok
+        - condition: and
+          conditions:
+            - condition: trigger
+              id: time_weekday
+            - condition: time
+              weekday: [mon, tue, wed, thu, fri]
+        - condition: and
+          conditions:
+            - condition: trigger
+              id: time_weekend
+            - condition: time
+              weekday: [sat, sun]
 
   action:
     - service: switch.turn_off
@@ -66,12 +87,14 @@
         name: "Wiatrak biuro"
         entity_id: switch.biuro_wiatrak
         message: >
-          WYŁĄCZONO | {% if trigger.platform == 'time' %}22:00{% else %}temp {{ states('sensor.biuro_temperature') | round(1) }}°C ≤ 22°C{% endif %}
+          WYŁĄCZONO | {% if trigger.id == 'time_weekday' %}22:00 (dzień roboczy)
+          {% elif trigger.id == 'time_weekend' %}20:00 (weekend)
+          {% else %}temp {{ states('sensor.biuro_temperature') | round(1) }}°C ≤ 22°C{% endif %}
 
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"wiatrak_biuro",
-          "akcja":"OFF","info":"{% if trigger.platform == 'time' %}22:00{% else %}temp {{ states('sensor.biuro_temperature') | float(0) | round(1) }}°C{% endif %}"}
+          "akcja":"OFF","info":"{% if trigger.id == 'time_weekday' %}22:00{% elif trigger.id == 'time_weekend' %}20:00{% else %}temp {{ states('sensor.biuro_temperature') | float(0) | round(1) }}°C{% endif %}"}
 
   mode: single
