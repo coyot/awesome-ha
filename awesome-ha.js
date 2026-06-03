@@ -13400,22 +13400,20 @@ window.customCards.push({
       ).join('');
 
       const peopleHtml = people.map(p => {
-        const homeLabel = p.isHome ? 'w domu' : (p.sinceStr ? `poza · ${p.sinceStr}` : 'poza');
-        const batHtml   = p.bat !== null
-          ? `<span class="bat" style="color:${p.bat < 20 ? '#FF6B6B' : 'rgba(255,255,255,0.28)'}">${p.bat}%</span>`
-          : '';
+        const homeLabel   = p.isHome ? 'w domu' : (p.sinceStr ? `poza · ${p.sinceStr}` : 'poza');
         const avatarInner = p.img
           ? `<img src="${p.img}" alt="${p.name}">`
           : `<span class="person-initial">${p.initial}</span>`;
+        const batHtml = p.bat !== null
+          ? `<span class="person-bat" style="color:${p.bat < 20 ? '#FF6B6B' : 'rgba(255,255,255,0.25)'}">${p.bat}%</span>`
+          : '';
         return `<div class="person">
           <div class="person-avatar">
             ${avatarInner}
             <div class="person-presence ${p.isHome ? 'dot-home' : 'dot-away'}"></div>
           </div>
-          <div class="person-info">
-            <span class="person-name">${p.name}</span>
-            <span class="person-status">${homeLabel}</span>
-          </div>
+          <span class="person-name">${p.name}</span>
+          <span class="person-status">${homeLabel}</span>
           ${batHtml}
         </div>`;
       }).join('');
@@ -13473,26 +13471,14 @@ window.customCards.push({
             ).join('')}
           </div>` : ''}
 
-          <!-- People -->
-          ${people.length ? `
-            <div class="sep"></div>
-            <div class="sect-label">Obecność</div>
-            <div class="people">${peopleHtml}</div>` : ''}
-
-          <!-- Reminders -->
-          ${remindersHtml ? `
-            <div class="sep"></div>
-            <div class="sect-label">Przypomnienia</div>
-            <div class="reminders">${remindersHtml}</div>` : ''}
-
-          <!-- AI Briefing -->
+          <!-- AI Briefing (in weather area, after forecast) -->
           ${cfg.ai_task?.prompt ? `
-            <div class="sep"></div>
-            <div class="ai-header">
-              <div class="sect-label">AI Briefing</div>
+          <div class="ai-box">
+            <div class="ai-box-top">
+              <span class="ai-box-label">✦ briefing</span>
               <button class="ai-refresh" title="Odśwież">↻</button>
             </div>
-            <div class="ai-msg${this._aiLoading ? ' ai-loading' : this._aiError ? ' ai-error' : ''}">
+            <div class="ai-text${this._aiLoading ? ' ai-loading' : this._aiError ? ' ai-error' : ''}">
               ${this._aiLoading
                 ? 'Generuję…'
                 : this._aiError
@@ -13500,7 +13486,19 @@ window.customCards.push({
                   : this._aiMessage
                     ? escHtml(this._aiMessage)
                     : 'Oczekiwanie…'}
-            </div>` : ''}
+            </div>
+          </div>` : ''}
+
+          <!-- People (horizontal) -->
+          ${people.length ? `
+            <div class="sep"></div>
+            <div class="people">${peopleHtml}</div>` : ''}
+
+          <!-- Reminders -->
+          ${remindersHtml ? `
+            <div class="sep"></div>
+            <div class="sect-label">Przypomnienia</div>
+            <div class="reminders">${remindersHtml}</div>` : ''}
         </div>`;
 
       // Re-attach refresh button listener (innerHTML replaces DOM each render)
@@ -13632,19 +13630,21 @@ window.customCards.push({
         margin-bottom: 7px;
       }
 
-      /* People */
-      .people { display: flex; flex-direction: column; gap: 8px; }
-      .person { display: flex; align-items: center; gap: 10px; }
+      /* People — horizontal row */
+      .people { display: flex; flex-direction: row; gap: 18px; }
+      .person {
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+      }
       /* Avatar */
       .person-avatar {
-        width: 34px; height: 34px; border-radius: 50%;
+        width: 36px; height: 36px; border-radius: 50%;
         position: relative; flex-shrink: 0;
         background: rgba(255,255,255,0.10);
         overflow: visible;
         display: flex; align-items: center; justify-content: center;
       }
       .person-avatar img {
-        width: 34px; height: 34px; border-radius: 50%;
+        width: 36px; height: 36px; border-radius: 50%;
         object-fit: cover; display: block;
       }
       .person-initial {
@@ -13662,14 +13662,15 @@ window.customCards.push({
         box-shadow: 0 0 6px rgba(48,209,88,0.60);
       }
       .dot-away { background: rgba(255,255,255,0.22); }
-      .person-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
       .person-name {
-        font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.78);
+        font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.72);
+        text-align: center;
       }
       .person-status {
-        font-size: 11px; color: rgba(255,255,255,0.35);
+        font-size: 10px; color: rgba(255,255,255,0.30);
+        text-align: center;
       }
-      .bat { font-size: 10px; font-weight: 600; flex-shrink: 0; }
+      .person-bat { font-size: 9.5px; font-weight: 600; }
 
       /* Reminders */
       .reminders { display: flex; flex-direction: column; gap: 5px; }
@@ -13698,30 +13699,40 @@ window.customCards.push({
         color: var(--rc); opacity: .90; flex-shrink: 0;
       }
 
-      /* AI Briefing */
-      .ai-header {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 6px;
+      /* AI Briefing box — styled like summary-wrap */
+      .ai-box {
+        background: rgba(255,255,255,0.045);
+        border-radius: 11px;
+        padding: 8px 11px 10px;
+        margin-top: 8px;
+      }
+      .ai-box-top {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 5px;
+      }
+      .ai-box-label {
+        font-size: 9px; font-weight: 700; letter-spacing: .10em;
+        color: rgba(255,255,255,0.22); text-transform: uppercase;
       }
       .ai-refresh {
         background: none; border: none; cursor: pointer;
-        color: rgba(255,255,255,0.22); font-size: 14px;
-        padding: 0 2px; line-height: 1;
-        transition: color .2s; border-radius: 4px;
+        color: rgba(255,255,255,0.20); font-size: 13px;
+        padding: 0; line-height: 1;
+        transition: color .2s;
       }
-      .ai-refresh:hover { color: rgba(255,255,255,0.55); }
+      .ai-refresh:hover { color: rgba(255,255,255,0.50); }
       .ai-refresh:active { transform: scale(0.88) rotate(-30deg); }
-      .ai-msg {
+      .ai-text {
         font-size: 12px; line-height: 1.6;
-        color: rgba(255,255,255,0.58);
-        font-style: italic;
+        color: rgba(255,255,255,0.60);
         white-space: pre-wrap;
       }
-      .ai-msg.ai-loading {
-        color: rgba(255,255,255,0.22); font-style: normal;
+      .ai-text.ai-loading {
+        color: rgba(255,255,255,0.22);
+        font-style: italic;
         animation: ai-blink 1.4s ease-in-out infinite;
       }
-      .ai-msg.ai-error { color: #FF6B6B; font-style: normal; font-size: 11px; }
+      .ai-text.ai-error { color: #FF6B6B; font-size: 11px; }
       @keyframes ai-blink {
         0%, 100% { opacity: 1; }
         50%       { opacity: 0.4; }
