@@ -12934,12 +12934,15 @@ window.customCards.push({
  *   days_fertilization: 14   (show fertil reminders up to N days ahead, default 14)
  *   days_waste: 3            (show waste reminders up to N days ahead, default 3)
  *   ai_task:
- *     task_id: ai_task.google_ai_task  ← entity_id of the HA AI task
- *     refresh_interval: 3600           (seconds between auto-refresh, default 3600)
- *     variables:                       (optional extra vars passed to the task template)
- *       extra: value
+ *     agent_id: conversation.google_generative_ai  (optional, uses HA default if omitted)
+ *     refresh_interval: 3600                        (seconds between auto-refresh, default 3600)
+ *     prompt: |
+ *       Dzisiaj jest {{day_name}}, {{date}}.
+ *       Pogoda: {{weather_label}}, {{temperature}}°C, wiatr {{wind}} km/h.
+ *       W domu: {{people_home}}.
+ *       ...
  *
- *   Context vars auto-passed to the task: date, day_name, time, weather_condition,
+ *   Available {{variables}} in prompt: date, day_name, time, weather_condition,
  *   weather_label, temperature, feels_like, wind, people_home, people_away, reminders
  *
  * Registers as: aha-briefing-card  (legacy: briefing-card)
@@ -13155,7 +13158,11 @@ window.customCards.push({
         days_fertilization: 14,
         days_waste: 3,
         szambo: { entity: 'sensor.szambo_zuzycie', capacity: 10, warn_pct: 75 },
-        ai_task: { task_id: 'ai_task.google_ai_task', refresh_interval: 3600 },
+        ai_task: {
+          agent_id: 'conversation.google_ai_conversation',
+          refresh_interval: 3600,
+          prompt: 'Dzisiaj jest {{day_name}}, {{date}}. Pogoda: {{weather_label}}, {{temperature}}°C. Napisz krótkie poranne podsumowanie po polsku.',
+        },
       };
     }
 
@@ -13164,7 +13171,7 @@ window.customCards.push({
         people: [], fertilizations: [], waste: [],
         days_fertilization: 14, days_waste: 3,
         szambo: null,    // { entity, capacity, warn_pct }
-        ai_task: null,   // { task_id, refresh_interval, variables }
+        ai_task: null,   // { agent_id, prompt, refresh_interval }
         ...config,
       };
     }
@@ -13252,7 +13259,7 @@ window.customCards.push({
 
     async _maybeRefreshAI() {
       const cfg = this._config.ai_task;
-      if (!cfg?.task_id || this._aiLoading) return;
+      if (!cfg?.prompt || this._aiLoading) return;
       const interval = (cfg.refresh_interval || 3600) * 1000;
       if (this._aiMessage && (Date.now() - this._aiLastFetch) < interval) return;
 
@@ -13262,7 +13269,7 @@ window.customCards.push({
       try {
         const now = new Date();
         const reminders = this._reminders();
-        const variables = {
+        const vars = {
           date:              toDateStr(now),
           day_name:          DAYS_PL[now.getDay()],
           time:              `${pad(now.getHours())}:${pad(now.getMinutes())}`,
@@ -13273,32 +13280,35 @@ window.customCards.push({
           wind:              this._hass.states[this._config.wind_entity]?.state || '',
           people_home:       (this._config.people || [])
             .filter(p => this._hass.states[p.entity]?.state === 'home')
-            .map(p => p.name).join(', '),
+            .map(p => p.name).join(', ') || 'nikt',
           people_away:       (this._config.people || [])
             .filter(p => this._hass.states[p.entity]?.state !== 'home')
-            .map(p => p.name).join(', '),
+            .map(p => p.name).join(', ') || 'nikt',
           reminders:         reminders.length
             ? reminders.map(r => r.name + (r.days >= 0 ? ` (za ${r.days} dni)` : '')).join(', ')
             : 'brak',
-          ...(cfg.variables || {}),
         };
 
+        // Substitute {{variable}} placeholders in prompt
+        const prompt = cfg.prompt.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? '');
+
+        const serviceData = { text: prompt };
+        if (cfg.agent_id) serviceData.agent_id = cfg.agent_id;
+
         const resp = await this._hass.callService(
-          'ai_task', 'generate_data',
-          { task_id: cfg.task_id, variables },
+          'conversation', 'process',
+          serviceData,
           undefined, false, true
         );
 
-        // Extract text — handle multiple possible response shapes
-        const data = resp?.response?.data ?? resp?.data ?? resp;
-        this._aiMessage = typeof data === 'string'
-          ? data
-          : (data?.message ?? data?.text ?? data?.briefing ?? data?.answer ?? data?.content ?? JSON.stringify(data));
+        this._aiMessage = resp?.response?.speech?.plain?.speech
+          ?? resp?.response?.response?.speech?.plain?.speech
+          ?? '';
         this._aiLastFetch = Date.now();
         this._aiError = null;
       } catch (e) {
-        console.error('[briefing-card] AI task error:', e);
-        this._aiError = e?.message || 'Błąd generowania AI';
+        console.error('[briefing-card] AI error:', e);
+        this._aiError = e?.message || 'Błąd AI';
       } finally {
         this._aiLoading = false;
         this._render();
@@ -13476,7 +13486,7 @@ window.customCards.push({
             <div class="reminders">${remindersHtml}</div>` : ''}
 
           <!-- AI Briefing -->
-          ${cfg.ai_task?.task_id ? `
+          ${cfg.ai_task?.prompt ? `
             <div class="sep"></div>
             <div class="ai-header">
               <div class="sect-label">AI Briefing</div>
