@@ -12933,6 +12933,14 @@ window.customCards.push({
  *       color: '#FF9800'
  *   days_fertilization: 14   (show fertil reminders up to N days ahead, default 14)
  *   days_waste: 3            (show waste reminders up to N days ahead, default 3)
+ *   ai_task:
+ *     task_id: ai_task.google_ai_task  ← entity_id of the HA AI task
+ *     refresh_interval: 3600           (seconds between auto-refresh, default 3600)
+ *     variables:                       (optional extra vars passed to the task template)
+ *       extra: value
+ *
+ *   Context vars auto-passed to the task: date, day_name, time, weather_condition,
+ *   weather_label, temperature, feels_like, wind, people_home, people_away, reminders
  *
  * Registers as: aha-briefing-card  (legacy: briefing-card)
  */
@@ -12958,6 +12966,10 @@ window.customCards.push({
   // ── Small utilities ───────────────────────────────────────────────────────────
 
   function pad(n) { return String(n).padStart(2, '0'); }
+
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 
   function toDateStr(d) {
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -13110,9 +13122,13 @@ window.customCards.push({
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
-      this._hass   = null;
-      this._config = {};
-      this._tick   = null;
+      this._hass        = null;
+      this._config      = {};
+      this._tick        = null;
+      this._aiMessage   = null;
+      this._aiLoading   = false;
+      this._aiError     = null;
+      this._aiLastFetch = 0;
     }
 
     static getStubConfig() {
@@ -13139,6 +13155,7 @@ window.customCards.push({
         days_fertilization: 14,
         days_waste: 3,
         szambo: { entity: 'sensor.szambo_zuzycie', capacity: 10, warn_pct: 75 },
+        ai_task: { task_id: 'ai_task.google_ai_task', refresh_interval: 3600 },
       };
     }
 
@@ -13146,7 +13163,8 @@ window.customCards.push({
       this._config = {
         people: [], fertilizations: [], waste: [],
         days_fertilization: 14, days_waste: 3,
-        szambo: null,   // { entity, capacity, warn_pct }
+        szambo: null,    // { entity, capacity, warn_pct }
+        ai_task: null,   // { task_id, refresh_interval, variables }
         ...config,
       };
     }
@@ -13156,8 +13174,12 @@ window.customCards.push({
       this._hass = hass;
       this._render();
       if (first) {
-        // Re-render every minute so clock/greeting stays fresh
-        this._tick = setInterval(() => this._render(), 60000);
+        // Re-render every minute so clock/greeting stays fresh; also poll AI refresh
+        this._tick = setInterval(() => {
+          this._render();
+          this._maybeRefreshAI();
+        }, 60000);
+        this._maybeRefreshAI();
       }
     }
 
@@ -13224,6 +13246,63 @@ window.customCards.push({
         return a.days - b.days;
       });
       return items;
+    }
+
+    // ── AI Briefing ───────────────────────────────────────────────────────────
+
+    async _maybeRefreshAI() {
+      const cfg = this._config.ai_task;
+      if (!cfg?.task_id || this._aiLoading) return;
+      const interval = (cfg.refresh_interval || 3600) * 1000;
+      if (this._aiMessage && (Date.now() - this._aiLastFetch) < interval) return;
+
+      this._aiLoading = true;
+      this._render();
+
+      try {
+        const now = new Date();
+        const reminders = this._reminders();
+        const variables = {
+          date:              toDateStr(now),
+          day_name:          DAYS_PL[now.getDay()],
+          time:              `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+          weather_condition: this._hass.states[this._config.weather_entity]?.state || '',
+          weather_label:     WX_LABEL[this._hass.states[this._config.weather_entity]?.state] || '',
+          temperature:       this._hass.states[this._config.temp_entity]?.state || '',
+          feels_like:        this._hass.states[this._config.feels_entity]?.state || '',
+          wind:              this._hass.states[this._config.wind_entity]?.state || '',
+          people_home:       (this._config.people || [])
+            .filter(p => this._hass.states[p.entity]?.state === 'home')
+            .map(p => p.name).join(', '),
+          people_away:       (this._config.people || [])
+            .filter(p => this._hass.states[p.entity]?.state !== 'home')
+            .map(p => p.name).join(', '),
+          reminders:         reminders.length
+            ? reminders.map(r => r.name + (r.days >= 0 ? ` (za ${r.days} dni)` : '')).join(', ')
+            : 'brak',
+          ...(cfg.variables || {}),
+        };
+
+        const resp = await this._hass.callService(
+          'ai_task', 'generate_data',
+          { task_id: cfg.task_id, variables },
+          undefined, false, true
+        );
+
+        // Extract text — handle multiple possible response shapes
+        const data = resp?.response?.data ?? resp?.data ?? resp;
+        this._aiMessage = typeof data === 'string'
+          ? data
+          : (data?.message ?? data?.text ?? data?.briefing ?? data?.answer ?? data?.content ?? JSON.stringify(data));
+        this._aiLastFetch = Date.now();
+        this._aiError = null;
+      } catch (e) {
+        console.error('[briefing-card] AI task error:', e);
+        this._aiError = e?.message || 'Błąd generowania AI';
+      } finally {
+        this._aiLoading = false;
+        this._render();
+      }
     }
 
     // ── Main render ───────────────────────────────────────────────────────────
@@ -13395,7 +13474,34 @@ window.customCards.push({
             <div class="sep"></div>
             <div class="sect-label">Przypomnienia</div>
             <div class="reminders">${remindersHtml}</div>` : ''}
+
+          <!-- AI Briefing -->
+          ${cfg.ai_task?.task_id ? `
+            <div class="sep"></div>
+            <div class="ai-header">
+              <div class="sect-label">AI Briefing</div>
+              <button class="ai-refresh" title="Odśwież">↻</button>
+            </div>
+            <div class="ai-msg${this._aiLoading ? ' ai-loading' : this._aiError ? ' ai-error' : ''}">
+              ${this._aiLoading
+                ? 'Generuję…'
+                : this._aiError
+                  ? escHtml(this._aiError)
+                  : this._aiMessage
+                    ? escHtml(this._aiMessage)
+                    : 'Oczekiwanie…'}
+            </div>` : ''}
         </div>`;
+
+      // Re-attach refresh button listener (innerHTML replaces DOM each render)
+      const refreshBtn = this.shadowRoot.querySelector('.ai-refresh');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+          this._aiLastFetch = 0;
+          this._aiMessage   = null;
+          this._maybeRefreshAI();
+        });
+      }
     }
 
     // ── CSS ───────────────────────────────────────────────────────────────────
@@ -13580,6 +13686,35 @@ window.customCards.push({
       .rem-when {
         font-size: 10.5px; font-weight: 700;
         color: var(--rc); opacity: .90; flex-shrink: 0;
+      }
+
+      /* AI Briefing */
+      .ai-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .ai-refresh {
+        background: none; border: none; cursor: pointer;
+        color: rgba(255,255,255,0.22); font-size: 14px;
+        padding: 0 2px; line-height: 1;
+        transition: color .2s; border-radius: 4px;
+      }
+      .ai-refresh:hover { color: rgba(255,255,255,0.55); }
+      .ai-refresh:active { transform: scale(0.88) rotate(-30deg); }
+      .ai-msg {
+        font-size: 12px; line-height: 1.6;
+        color: rgba(255,255,255,0.58);
+        font-style: italic;
+        white-space: pre-wrap;
+      }
+      .ai-msg.ai-loading {
+        color: rgba(255,255,255,0.22); font-style: normal;
+        animation: ai-blink 1.4s ease-in-out infinite;
+      }
+      .ai-msg.ai-error { color: #FF6B6B; font-style: normal; font-size: 11px; }
+      @keyframes ai-blink {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
       }
       `;
     }
