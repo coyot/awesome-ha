@@ -9883,7 +9883,7 @@ window.customCards.push({
  * Log History Card — Timeline · Ikony · Avatary · Paginacja
  *
  * Czyta wpisy JSON z input_text.log_h1 … input_text.log_hN
- * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty | wiatrak_biuro
+ * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty | wiatrak_biuro | biuro_prad
  *
  * Config:
  *   slots:     (optional) liczba slotów do odczytu, default: 50
@@ -10121,6 +10121,16 @@ function iconSvg(e) {
     </svg>`;
   }
 
+  if (e.typ === 'biuro_prad') {
+    const col = e.akcja === 'WARN' ? 'rgba(255,159,10,0.90)' : 'rgba(150,150,155,0.50)';
+    return s(col, c => `
+      <rect x="7" y="11" width="10" height="8" rx="2"
+        fill="${c.replace(/[\d.]+\)$/, '0.22)')}" stroke="${c}" stroke-width="1.6"/>
+      <path d="M9 11V8a3 3 0 016 0v3" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>
+      <line x1="10" y1="15" x2="14" y2="15" stroke="${c}" stroke-width="1.4" stroke-linecap="round"/>
+    `);
+  }
+
   return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
     <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
   </svg>`;
@@ -10153,6 +10163,10 @@ function nodeStyle(e) {
     return e.akcja === 'ON'
       ? { bg: 'rgba(255,59,48,0.14)', outline: 'rgba(255,59,48,0.25)' }
       : { bg: 'rgba(99,99,102,0.18)', outline: 'rgba(99,99,102,0.20)' };
+  if (e.typ === 'biuro_prad')
+    return e.akcja === 'WARN'
+      ? { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' }
+      : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
 
@@ -10212,6 +10226,15 @@ function titleAndDetail(e, PEOPLE) {
     return {
       titleColor: on ? 'rgba(255,59,48,0.90)' : 'rgba(150,150,155,0.60)',
       titleText:  `Wiatrak biuro — ${on ? 'włączono' : 'wyłączono'}`,
+      detail:     e.info ?? '',
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'biuro_prad') {
+    const warn = e.akcja === 'WARN';
+    return {
+      titleColor: warn ? 'rgba(255,159,10,0.90)' : 'rgba(150,150,155,0.60)',
+      titleText:  warn ? 'Biuro prąd — wyłączenie za 1h' : 'Biuro prąd — wyłączono',
       detail:     e.info ?? '',
       avatarPeople: null,
     };
