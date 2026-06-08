@@ -1,0 +1,92 @@
+# ============================================================
+# AUTOMATYZACJA: Ogród 2 — auto-aktualizacja zużycia nawodnienia
+#
+# PROBLEM:
+#   sensor.water_2_total mierzy ŁĄCZNE zużycie dom_2 (dom + ogród).
+#   Szambo domowe obliczane jest bez ogrodu, więc trzeba osobno
+#   śledzić ile wody poszło na nawodnienie (input_number.ogrod_2).
+#   Dotychczas: ręczny wpis. Teraz: automatyczny na podstawie
+#   różnicy odczytu licznika przed i po nawodnieniu.
+#
+# LOGIKA:
+#   03:00 — snapshot licznika (przed nawodnieniem)
+#   06:30 — oblicz delta (po - przed) → dodaj do input_number.ogrod_2
+#
+# WYMAGANY HELPER (utwórz raz przez UI lub configuration.yaml):
+#   input_number.water_2_snapshot
+#     name: "Ogród 2 — snapshot licznika przed nawodnieniem"
+#     min: 0
+#     max: 99999
+#     step: 0.001
+#     unit_of_measurement: m³
+# ============================================================
+
+
+- id: ogrod2_snapshot_przed_nawodnieniem
+  alias: "Ogród 2 — snapshot licznika przed nawodnieniem (03:00)"
+  description: >
+    Zapisuje stan sensor.water_2_total o 3:00 rano
+    jako punkt odniesienia do pomiaru zużycia nawodnienia.
+  triggers:
+    - trigger: time
+      at: "03:00:00"
+  actions:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.water_2_snapshot
+      data:
+        value: "{{ states('sensor.water_2_total') | float(0) }}"
+    - action: logbook.log
+      data:
+        name: "Ogród 2 nawodnienie"
+        entity_id: input_number.water_2_snapshot
+        message: >
+          Snapshot licznika przed nawodnieniem: {{ states('sensor.water_2_total') }} m³
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"nawodnienie_ogrod2",
+          "akcja":"snapshot","licznik":{{ states('sensor.water_2_total') | float(0) | round(3) }}}
+  mode: single
+
+
+- id: ogrod2_aktualizacja_po_nawodnieniu
+  alias: "Ogród 2 — aktualizacja zużycia po nawodnieniu (06:30)"
+  description: >
+    Oblicza różnicę water_2_total między 03:00 a 06:30
+    i dodaje ją do input_number.ogrod_2.
+    Ignoruje dzień jeśli delta < 1 litr (nawodnienie nie zadziałało).
+  triggers:
+    - trigger: time
+      at: "06:30:00"
+  actions:
+    - variables:
+        przed: "{{ states('input_number.water_2_snapshot') | float(0) }}"
+        po: "{{ states('sensor.water_2_total') | float(0) }}"
+        delta: "{{ [po - przed, 0] | max | round(3) }}"
+        ogrod2_nowe: "{{ (states('input_number.ogrod_2') | float(0) + [po - przed, 0] | max) | round(3) }}"
+    - condition: template
+      value_template: "{{ delta > 0.001 }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.ogrod_2
+      data:
+        value: "{{ ogrod2_nowe }}"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.ogrod_2_ostatnia_aktualizacja
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - action: logbook.log
+      data:
+        name: "Ogród 2 nawodnienie"
+        entity_id: input_number.ogrod_2
+        message: >
+          Automatyczna aktualizacja: +{{ delta }} m³
+          (licznik: {{ przed }} → {{ po }} m³ | ogród_2 łącznie: {{ ogrod2_nowe }} m³)
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"nawodnienie_ogrod2",
+          "akcja":"update","delta":{{ delta }},"ogrod2":{{ ogrod2_nowe }}}
+  mode: single
