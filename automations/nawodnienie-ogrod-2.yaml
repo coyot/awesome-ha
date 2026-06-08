@@ -42,11 +42,6 @@
         entity_id: input_number.water_2_snapshot
         message: >
           Snapshot licznika przed nawodnieniem: {{ states('sensor.water_2_total') }} m³
-    - action: script.log_push
-      data:
-        wpis: >
-          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"nawodnienie_ogrod2",
-          "akcja":"snapshot","licznik":{{ states('sensor.water_2_total') | float(0) | round(3) }}}
   mode: single
 
 

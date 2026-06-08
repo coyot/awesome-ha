@@ -402,6 +402,15 @@
     - platform: sun
       event: sunrise
       offset: "00:10:00"
+  condition:
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
   action:
     - choose:
         - conditions:
@@ -494,6 +503,14 @@
     - condition: state
       entity_id: switch.porecz_klatka_schodowa_socket_1
       state: "on"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
   action:
     - service: switch.turn_off
       target:

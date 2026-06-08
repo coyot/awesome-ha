@@ -9883,7 +9883,7 @@ window.customCards.push({
  * Log History Card — Timeline · Ikony · Avatary · Paginacja
  *
  * Czyta wpisy JSON z input_text.log_h1 … input_text.log_hN
- * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty | wiatrak_biuro | biuro_prad
+ * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty | wiatrak_biuro | biuro_prad | nawodnienie_ogrod2
  *
  * Config:
  *   slots:     (optional) liczba slotów do odczytu, default: 50
@@ -10131,6 +10131,15 @@ function iconSvg(e) {
     `);
   }
 
+  if (e.typ === 'nawodnienie_ogrod2') {
+    return s('rgba(48,176,255,0.88)', c => `
+      <path d="M12 3C12 3 7 10 7 14a5 5 0 0010 0C17 10 12 3 12 3z"
+        fill="${c.replace(/[\d.]+\)$/, '0.25)')}" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M10 15.5 Q9.5 13.5 11 12.5"
+        stroke="rgba(255,255,255,0.30)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    `);
+  }
+
   return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
     <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
   </svg>`;
@@ -10167,6 +10176,8 @@ function nodeStyle(e) {
     return e.akcja === 'WARN'
       ? { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' }
       : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
+  if (e.typ === 'nawodnienie_ogrod2')
+    return { bg: 'rgba(48,176,255,0.13)', outline: 'rgba(48,176,255,0.25)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
 
@@ -10236,6 +10247,16 @@ function titleAndDetail(e, PEOPLE) {
       titleColor: warn ? 'rgba(255,159,10,0.90)' : 'rgba(150,150,155,0.60)',
       titleText:  warn ? 'Biuro prąd — wyłączenie za 1h' : 'Biuro prąd — wyłączono',
       detail:     e.info ?? '',
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'nawodnienie_ogrod2') {
+    const delta = typeof e.delta === 'number' ? e.delta.toFixed(3) : e.delta;
+    const ogrod = typeof e.ogrod2 === 'number' ? e.ogrod2.toFixed(3) : e.ogrod2;
+    return {
+      titleColor: 'rgba(48,176,255,0.90)',
+      titleText:  `Nawodnienie ogród 2 — +${delta} m³`,
+      detail:     `licznik ogrodu: ${ogrod} m³`,
       avatarPeople: null,
     };
   }
