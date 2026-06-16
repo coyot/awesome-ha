@@ -10140,6 +10140,15 @@ function iconSvg(e) {
     `);
   }
 
+  if (e.typ === 'ac_pokoj_dzieci') {
+    const col = e.akcja === 'ON' ? 'rgba(90,200,250,0.90)' : 'rgba(150,150,155,0.50)';
+    return s(col, c => `
+      <path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1"
+        stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="12" cy="12" r="2.5" fill="${c.replace(/[\d.]+\)$/, '0.30)')}" stroke="${c}" stroke-width="1.3"/>
+    `);
+  }
+
   if (e.typ === 'strychowy_roleta') {
     return s('rgba(255,100,10,0.90)', c => `
       <path d="M12 3v10.27" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>
@@ -10186,6 +10195,10 @@ function nodeStyle(e) {
       : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'nawodnienie_ogrod2')
     return { bg: 'rgba(48,176,255,0.13)', outline: 'rgba(48,176,255,0.25)' };
+  if (e.typ === 'ac_pokoj_dzieci')
+    return e.akcja === 'ON'
+      ? { bg: 'rgba(90,200,250,0.13)', outline: 'rgba(90,200,250,0.25)' }
+      : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'strychowy_roleta')
     return { bg: 'rgba(255,100,10,0.13)', outline: 'rgba(255,100,10,0.28)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
@@ -10267,6 +10280,15 @@ function titleAndDetail(e, PEOPLE) {
       titleColor: 'rgba(48,176,255,0.90)',
       titleText:  `Nawodnienie ogród 2 — +${delta} m³`,
       detail:     `licznik ogrodu: ${ogrod} m³`,
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'ac_pokoj_dzieci') {
+    const on = e.akcja === 'ON';
+    return {
+      titleColor: on ? 'rgba(90,200,250,0.90)' : 'rgba(150,150,155,0.60)',
+      titleText:  `Pokój dzieci — chłodzenie ${on ? 'włączone' : 'wyłączone'}`,
+      detail:     e.info ?? '',
       avatarPeople: null,
     };
   }
