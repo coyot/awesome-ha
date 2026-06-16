@@ -1,0 +1,38 @@
+# ============================================================
+# AUTOMATYZACJA: Strych — zamknij roletę przy upale
+#
+# LOGIKA:
+#   Trigger: temperatura strychu (sensor.termometr_strychowy_temperature)
+#            przekroczy 25°C w ciągu dnia (między wschodem a zachodem słońca)
+#
+#   Akcja: zamknij cover.rollershutter_0009
+#
+#   Mode: single — nie powtarza jeśli już wykonane, cooldown 4h
+# ============================================================
+
+- id: strych_roleta_upał
+  alias: "Strych — zamknij roletę przy temp. ≥ 25°C"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.termometr_strychowy_temperature
+      above: 25
+  condition:
+    - condition: sun
+      after: sunrise
+      before: sunset
+  action:
+    - service: cover.close_cover
+      target:
+        entity_id: cover.rollershutter_0009
+    - action: logbook.log
+      data:
+        name: "Strych — roleta"
+        message: >
+          ZAMKNIĘTO | temperatura strychu {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"strych_roleta",
+          "akcja":"CLOSE","temp":{{ states('sensor.termometr_strychowy_temperature') | round(1) }},
+          "info":"temp. strychu {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C ≥ 25°C · zamknięto roletę 9"}
+  mode: single
