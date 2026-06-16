@@ -260,7 +260,7 @@ function iconSvg(e) {
     `);
   }
 
-  if (e.typ === 'strych_roleta') {
+  if (e.typ === 'strychowy_roleta') {
     return s('rgba(255,100,10,0.90)', c => `
       <path d="M12 3v10.27" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>
       <circle cx="12" cy="16" r="3" fill="${c.replace(/[\d.]+\)$/, '0.30)')}" stroke="${c}" stroke-width="1.5"/>
@@ -306,7 +306,7 @@ function nodeStyle(e) {
       : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'nawodnienie_ogrod2')
     return { bg: 'rgba(48,176,255,0.13)', outline: 'rgba(48,176,255,0.25)' };
-  if (e.typ === 'strych_roleta')
+  if (e.typ === 'strychowy_roleta')
     return { bg: 'rgba(255,100,10,0.13)', outline: 'rgba(255,100,10,0.28)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
@@ -390,12 +390,12 @@ function titleAndDetail(e, PEOPLE) {
       avatarPeople: null,
     };
   }
-  if (e.typ === 'strych_roleta') {
+  if (e.typ === 'strychowy_roleta') {
     const temp = e.temp != null ? `${e.temp}°C` : '';
     return {
       titleColor: 'rgba(255,100,10,0.90)',
-      titleText:  'Strych — roleta zamknięta (upał)',
-      detail:     temp ? `temperatura strychu: ${temp}` : (e.info ?? ''),
+      titleText:  'Strychowy — roleta zamknięta (upał)',
+      detail:     temp ? `temperatura strychowego: ${temp}` : (e.info ?? ''),
       avatarPeople: null,
     };
   }

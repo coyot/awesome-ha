@@ -1,17 +1,17 @@
 # ============================================================
-# AUTOMATYZACJA: Strych — zamknij roletę przy upale
+# AUTOMATYZACJA: Strychowy — zamknij roletę przy upale
 #
 # LOGIKA:
-#   Trigger: temperatura strychu (sensor.termometr_strychowy_temperature)
+#   Trigger: temperatura strychowego (sensor.termometr_strychowy_temperature)
 #            przekroczy 25°C w ciągu dnia (między wschodem a zachodem słońca)
 #
 #   Akcja: zamknij cover.rollershutter_0009
 #
-#   Mode: single — nie powtarza jeśli już wykonane, cooldown 4h
+#   Mode: single — nie powtarza jeśli już wykonane
 # ============================================================
 
-- id: strych_roleta_upał
-  alias: "Strych — zamknij roletę przy temp. ≥ 25°C"
+- id: strychowy_roleta_upał
+  alias: "Strychowy — zamknij roletę przy temp. ≥ 25°C"
   trigger:
     - platform: numeric_state
       entity_id: sensor.termometr_strychowy_temperature
@@ -26,13 +26,13 @@
         entity_id: cover.rollershutter_0009
     - action: logbook.log
       data:
-        name: "Strych — roleta"
+        name: "Strychowy — roleta"
         message: >
-          ZAMKNIĘTO | temperatura strychu {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
+          ZAMKNIĘTO | temperatura strychowego {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
     - action: script.log_push
       data:
         wpis: >
-          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"strych_roleta",
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"strychowy_roleta",
           "akcja":"CLOSE","temp":{{ states('sensor.termometr_strychowy_temperature') | round(1) }},
-          "info":"temp. strychu {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C ≥ 25°C · zamknięto roletę 9"}
+          "info":"temp. strychowego {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C ≥ 25°C · zamknięto roletę 9"}
   mode: single
