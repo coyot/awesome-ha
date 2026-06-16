@@ -76,11 +76,9 @@
       at: "18:30:00"
 
   condition:
-    - condition: not
-      conditions:
-        - condition: state
-          entity_id: climate.pokoj_leona
-          state: "off"
+    - condition: state
+      entity_id: climate.pokoj_leona
+      state: "cool"
 
   action:
     - service: climate.turn_off
