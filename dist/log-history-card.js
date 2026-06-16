@@ -391,11 +391,13 @@ function titleAndDetail(e, PEOPLE) {
     };
   }
   if (e.typ === 'strychowy_roleta') {
-    const temp = e.temp != null ? `${e.temp}°C` : '';
+    const temp = e.temp != null ? `${e.temp}°C` : null;
+    const hum  = e.hum  != null ? `${e.hum}%`   : null;
+    const parts = [temp, hum].filter(Boolean);
     return {
       titleColor: 'rgba(255,100,10,0.90)',
       titleText:  'Strychowy — roleta zamknięta (upał)',
-      detail:     temp ? `temperatura strychowego: ${temp}` : (e.info ?? ''),
+      detail:     parts.length ? parts.join(' · ') : (e.info ?? ''),
       avatarPeople: null,
     };
   }

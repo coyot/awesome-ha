@@ -28,11 +28,13 @@
       data:
         name: "Strychowy — roleta"
         message: >
-          ZAMKNIĘTO | temperatura strychowego {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
+          ZAMKNIĘTO | {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
+          · {{ states('sensor.termometr_strychowy_humidity') | round(0) }}% wilg.
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"strychowy_roleta",
           "akcja":"CLOSE","temp":{{ states('sensor.termometr_strychowy_temperature') | round(1) }},
-          "info":"temp. strychowego {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C ≥ 25°C · zamknięto roletę 9"}
+          "hum":{{ states('sensor.termometr_strychowy_humidity') | round(0) }},
+          "info":"{{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C · {{ states('sensor.termometr_strychowy_humidity') | round(0) }}% · zamknięto roletę 9"}
   mode: single
