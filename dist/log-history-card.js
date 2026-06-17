@@ -449,6 +449,7 @@ function titleAndDetail(e, PEOPLE) {
       CLOSE_DESZCZ: { col: 'rgba(10,132,255,0.90)', txt: 'Pergola — zamknięto (deszcz)' },
       CLOSE_TEMP:   { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — zamknięto (norma)' },
       CLOSE_30MIN:  { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — koniec przewietrzenia' },
+      CLOSE_NOC:    { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — zamknięto (22:00)' },
     };
     const t = titles[e.akcja] ?? { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — lamele' };
     return {
