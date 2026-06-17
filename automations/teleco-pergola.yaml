@@ -1,0 +1,229 @@
+# ============================================================
+# AUTOMATYZACJA: Pergola — lamele teleco
+#
+# LOGIKA:
+#   Trigger otwarcia: temp > 26°C LUB wilgotność > 75%
+#                     (stabilne przez 2 min, by unikać skoków)
+#   Warunki otwarcia: 08:00–22:00, miesiące 4–9, nie pada,
+#                     lamela jeszcze nie otwarta
+#
+#   Ktoś w domu → otwórz na stałe, zamknij gdy:
+#     - zacznie padać (binary_sensor piezo → ON)
+#     - temp < 23°C I wilg < 70% (przez 5 min)
+#
+#   Nikogo w domu → otwórz na 30 min, potem zamknij
+#                   (deszcz przerwie wcześniej)
+#
+#   Godziny: 08:00–22:00
+#   Sezon:   kwiecień–wrzesień (miesiące 4–9)
+# ============================================================
+
+
+# ── 1. OTWÓRZ — ktoś w domu ──────────────────────────────────────────────────
+
+- id: teleco_pergola_otworz_dom
+  alias: "Pergola — otwórz lamele przy upale/wilgoci (ktoś w domu)"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_temperature
+      above: 26
+      for:
+        minutes: 2
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_humidity
+      above: 75
+      for:
+        minutes: 2
+  condition:
+    - condition: time
+      after: "08:00:00"
+      before: "22:00:00"
+    - condition: template
+      value_template: "{{ now().month in range(4, 10) }}"
+    - condition: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: cover.teleco_leds2
+          state: "open"
+  action:
+    - service: cover.set_cover_position
+      target:
+        entity_id: cover.teleco_leds2
+      data:
+        position: 100
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          OTWARTO | temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"OPEN_DOM","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
+
+
+# ── 2. OTWÓRZ — nikogo w domu (30 min przewietrzenie) ────────────────────────
+
+- id: teleco_pergola_otworz_poza
+  alias: "Pergola — otwórz lamele na 30 min przy upale/wilgoci (poza domem)"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_temperature
+      above: 26
+      for:
+        minutes: 2
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_humidity
+      above: 75
+      for:
+        minutes: 2
+  condition:
+    - condition: time
+      after: "08:00:00"
+      before: "22:00:00"
+    - condition: template
+      value_template: "{{ now().month in range(4, 10) }}"
+    - condition: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      state: "off"
+    - condition: state
+      entity_id: device_tracker.iphone_tk
+      state: not_home
+    - condition: state
+      entity_id: device_tracker.iphone_monika
+      state: not_home
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: cover.teleco_leds2
+          state: "open"
+  action:
+    - service: cover.set_cover_position
+      target:
+        entity_id: cover.teleco_leds2
+      data:
+        position: 100
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          OTWARTO na 30 min | nikt w domu |
+          temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+    - delay:
+        minutes: 30
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: "ZAMKNIĘTO | po 30 min przewietrzeniu | nikt w domu"
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
+
+
+# ── 3. ZAMKNIJ — zaczął padać ────────────────────────────────────────────────
+
+- id: teleco_pergola_zamknij_deszcz
+  alias: "Pergola — zamknij lamele gdy zaczął padać"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: cover.teleco_leds2
+      state: "open"
+  action:
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          ZAMKNIĘTO | deszcz |
+          temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_DESZCZ","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"deszcz · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
+
+
+# ── 4. ZAMKNIJ — temperatura i wilgotność wróciły do normy ───────────────────
+
+- id: teleco_pergola_zamknij_temp_ok
+  alias: "Pergola — zamknij lamele gdy temp i wilg w normie"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.pergola_new_temperature') | float(99) < 23
+           and states('sensor.pergola_new_humidity') | float(99) < 70 }}
+      for:
+        minutes: 5
+  condition:
+    - condition: state
+      entity_id: cover.teleco_leds2
+      state: "open"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
+  action:
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          ZAMKNIĘTO | temp i wilg w normie |
+          temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_TEMP","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"temp OK {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg OK {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
