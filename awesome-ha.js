@@ -10143,7 +10143,7 @@ function iconSvg(e) {
   if (e.typ === 'teleco_pergola') {
     const open = e.akcja?.startsWith('OPEN');
     const rain = e.akcja === 'CLOSE_DESZCZ';
-    const col  = open ? 'rgba(52,199,89,0.88)'
+    const col  = open ? 'rgba(255,100,10,0.90)'
                : rain ? 'rgba(10,132,255,0.85)'
                :        'rgba(150,150,155,0.50)';
     return open
@@ -10217,9 +10217,9 @@ function nodeStyle(e) {
   if (e.typ === 'teleco_pergola') {
     const open = e.akcja?.startsWith('OPEN');
     const rain = e.akcja === 'CLOSE_DESZCZ';
-    return open ? { bg: 'rgba(52,199,89,0.12)',   outline: 'rgba(52,199,89,0.22)' }
-         : rain ? { bg: 'rgba(10,132,255,0.12)',   outline: 'rgba(10,132,255,0.22)' }
-         :        { bg: 'rgba(99,99,102,0.14)',     outline: 'rgba(99,99,102,0.20)' };
+    return open ? { bg: 'rgba(255,100,10,0.13)',  outline: 'rgba(255,100,10,0.28)' }
+         : rain ? { bg: 'rgba(10,132,255,0.12)',  outline: 'rgba(10,132,255,0.22)' }
+         :        { bg: 'rgba(99,99,102,0.14)',    outline: 'rgba(99,99,102,0.20)' };
   }
   if (e.typ === 'ac_pokoj_dzieci')
     return e.akcja === 'ON'
@@ -10231,6 +10231,12 @@ function nodeStyle(e) {
 }
 
 // ── TITLE + DETAIL ────────────────────────────────────────────────────────────
+
+const FIRE_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+  <path d="M12 2C12 2 9 7 9 10.5c0 .8.2 1.5.5 2-.3-.1-.5-.4-.5-.8C9 10 10 8 10 8s-3 3-3 6a5 5 0 0010 0c0-3-2-5-2-5s0 2-1.5 2.5C12.5 9 12 2 12 2z"
+    fill="rgba(255,100,10,0.90)"/>
+  <path d="M12 17c0 1-.7 1.8-1.5 1.5" stroke="rgba(255,200,80,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+</svg>`;
 
 function titleAndDetail(e, PEOPLE) {
   if (e.typ === 'porecz') {
@@ -10323,9 +10329,10 @@ function titleAndDetail(e, PEOPLE) {
       e.temp != null ? `${e.temp}°C` : null,
       e.hum  != null ? `${e.hum}%`   : null,
     ].filter(Boolean).join(' · ');
+    const open = e.akcja?.startsWith('OPEN');
     const titles = {
-      OPEN_DOM:     { col: 'rgba(52,199,89,0.90)',  txt: 'Pergola — lamele otwarte' },
-      OPEN_POZA:    { col: 'rgba(52,199,89,0.75)',  txt: 'Pergola — przewietrzenie 30 min' },
+      OPEN_DOM:     { col: 'rgba(255,100,10,0.90)', txt: 'Pergola — lamele otwarte (upał)' },
+      OPEN_POZA:    { col: 'rgba(255,100,10,0.80)', txt: 'Pergola — przewietrzenie 30 min (upał)' },
       CLOSE_DESZCZ: { col: 'rgba(10,132,255,0.90)', txt: 'Pergola — zamknięto (deszcz)' },
       CLOSE_TEMP:   { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — zamknięto (norma)' },
       CLOSE_30MIN:  { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — koniec przewietrzenia' },
@@ -10337,6 +10344,7 @@ function titleAndDetail(e, PEOPLE) {
       titleText:    t.txt,
       detail:       stats || (e.info ?? ''),
       avatarPeople: null,
+      rightSvg:     open ? FIRE_SVG : null,
     };
   }
   if (e.typ === 'strychowy_roleta') {
@@ -10344,10 +10352,11 @@ function titleAndDetail(e, PEOPLE) {
     const hum  = e.hum  != null ? `${e.hum}%`   : null;
     const parts = [temp, hum].filter(Boolean);
     return {
-      titleColor: 'rgba(255,100,10,0.90)',
-      titleText:  'Strychowy — roleta zamknięta (upał)',
-      detail:     parts.length ? parts.join(' · ') : (e.info ?? ''),
+      titleColor:   'rgba(255,100,10,0.90)',
+      titleText:    'Strychowy — roleta zamknięta (upał)',
+      detail:       parts.length ? parts.join(' · ') : (e.info ?? ''),
       avatarPeople: null,
+      rightSvg:     FIRE_SVG,
     };
   }
   return {
@@ -10563,6 +10572,12 @@ class AhaLogHistoryCard extends HTMLElement {
             avatarsEl.appendChild(av);
           });
           right.appendChild(avatarsEl);
+        }
+
+        if (td.rightSvg) {
+          const iconWrap = document.createElement('div');
+          iconWrap.innerHTML = td.rightSvg;
+          right.appendChild(iconWrap);
         }
 
         const timeEl = document.createElement('div');
