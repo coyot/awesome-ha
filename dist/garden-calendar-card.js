@@ -235,10 +235,14 @@
         const isToday   = ds === today;
         const doneFerts = doneMap.get(ds) || [];
 
-        // Planned: only if NOT already done (done stored under scheduledDate)
+        // Planned: only if NOT already done AND (future OR today)
+        // Past unconfirmed plans are hidden — only completed ones appear via doneFerts
         const planned   = (plannedMap.get(ds) || []).filter(f => {
-          // check if this scheduled item was marked done (regardless of actual date)
-          try { return localStorage.getItem('aha-fertil-done:' + f.date) === null; } catch (_) { return true; }
+          try {
+            if (localStorage.getItem('aha-fertil-done:' + f.date) !== null) return false; // already in doneFerts
+            if (ds < today) return false; // past + unconfirmed = hide
+            return true;
+          } catch (_) { return ds >= today; }
         });
 
         const rainMm    = this._rainMap.get(ds) || 0;
