@@ -16321,10 +16321,12 @@ const IB_STYLES = `
   .ib-name {
     font-size: 13px;
     font-weight: 700;
-    color: rgba(255,255,255,0.90);
+    color: rgba(255,255,255,0.38);
     line-height: 1.25;
     word-break: break-word;
+    transition: color 0.35s ease;
   }
+  .ib-tile.on .ib-name { color: rgba(255,255,255,0.92); }
   .ib-status {
     font-size: 11px;
     font-weight: 400;
