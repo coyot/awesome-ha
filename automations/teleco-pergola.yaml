@@ -198,14 +198,6 @@
     - condition: state
       entity_id: cover.teleco_leds2
       state: "open"
-    - condition: or
-      conditions:
-        - condition: state
-          entity_id: device_tracker.iphone_tk
-          state: home
-        - condition: state
-          entity_id: device_tracker.iphone_monika
-          state: home
   action:
     - service: cover.close_cover
       target:
