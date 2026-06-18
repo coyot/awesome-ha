@@ -215,9 +215,49 @@
       return m;
     }
 
+    // ── Watering prediction for next 10 days ─────────────────────────────────
+
+    _buildWateringPredMap(wateringMap) {
+      // Look at last 8 weeks, group by day-of-week, find active days + avg liters
+      const today   = new Date();
+      const cutoff  = new Date(today);
+      cutoff.setDate(cutoff.getDate() - 56);
+
+      const byDow = new Map(); // 0=Mon…6=Sun → [liters]
+      for (const [dateStr, m3] of wateringMap) {
+        const d = new Date(dateStr);
+        if (d < cutoff) continue;
+        const dow = (d.getDay() + 6) % 7;
+        if (!byDow.has(dow)) byDow.set(dow, []);
+        byDow.get(dow).push(Math.round(m3 * 1000));
+      }
+
+      // Active day: appeared ≥ 2 times in last 8 weeks
+      const activeDow = new Map(); // dow → avg liters (rounded)
+      for (const [dow, amounts] of byDow) {
+        if (amounts.length < 2) continue;
+        activeDow.set(dow, Math.round(amounts.reduce((a, b) => a + b, 0) / amounts.length));
+      }
+
+      if (activeDow.size === 0) return new Map();
+
+      // Project next 10 days (skip today, skip days with confirmed watering)
+      const predMap = new Map();
+      for (let i = 1; i <= 10; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + i);
+        const ds  = toDateStr(d);
+        const dow = (d.getDay() + 6) % 7;
+        if (activeDow.has(dow) && !wateringMap.has(ds)) {
+          predMap.set(ds, activeDow.get(dow));
+        }
+      }
+      return predMap;
+    }
+
     // ── Month grid HTML ───────────────────────────────────────────────────────
 
-    _monthHtml(year, month, doneMap, plannedMap, wateringMap) {
+    _monthHtml(year, month, doneMap, plannedMap, wateringMap, wateringPredMap) {
       const today    = toDateStr(new Date());
       const nDays    = new Date(year, month + 1, 0).getDate();
       const startDow = dowMon(new Date(year, month, 1));
@@ -249,7 +289,9 @@
         const hasRain   = rainMm >= thresh;
         const waterM3   = wateringMap.get(ds) || 0;
         const hasWater  = waterM3 > 0;
-        const hasEvent  = doneFerts.length > 0 || planned.length > 0 || hasRain || hasWater;
+        const predL     = wateringPredMap.get(ds) || 0;
+        const hasPred   = predL > 0 && !hasWater;
+        const hasEvent  = doneFerts.length > 0 || planned.length > 0 || hasRain || hasWater || hasPred;
 
         // Build dots
         let dots = '';
@@ -268,9 +310,10 @@
         if (planned.length)   tipParts.push('P:' + planned.map(f => f.name + (f.description ? ' — ' + f.description : '')).join(';;'));
         if (hasRain)          tipParts.push('R:' + rainMm.toFixed(1));
         if (hasWater)         tipParts.push('W:' + Math.round(waterM3 * 1000));
+        if (hasPred)          tipParts.push('WP:' + predL);
 
         const isPast = ds < today;
-        const cls = ['dc', isToday ? 'today' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : '', hasWater ? 'wt' : ''].filter(Boolean).join(' ');
+        const cls = ['dc', isToday ? 'today' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : '', hasWater ? 'wt' : '', hasPred ? 'wt-pred' : ''].filter(Boolean).join(' ');
         const tip = tipParts.length ? ` data-t="${tipParts.join('|').replace(/"/g, '&quot;')}"` : '';
 
         html += `<div class="${cls}"${tip}>`
@@ -310,6 +353,9 @@
         <path d="M12 3C12 3 6 11 6 15a6 6 0 0012 0C18 11 12 3 12 3z" fill="rgba(48,176,255,0.85)"/>
         <path d="M10 16.5Q9.5 14.5 11 13.5" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round"/>
       </svg>`;
+      const iconWaterPred = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+        <path d="M12 3C12 3 6 11 6 15a6 6 0 0012 0C18 11 12 3 12 3z" stroke="rgba(48,176,255,0.70)" stroke-width="1.8" stroke-linejoin="round" stroke-dasharray="3 2"/>
+      </svg>`;
 
       let html = '';
       for (const part of encoded.split('|')) {
@@ -321,6 +367,8 @@
             html += row(iconPlan, name);
         } else if (part.startsWith('R:')) {
           html += row(iconRain, `Deszcz: ${part.slice(2)} mm`);
+        } else if (part.startsWith('WP:')) {
+          html += row(iconWaterPred, `Szacowane podlanie: ~${part.slice(3)} L`);
         } else if (part.startsWith('W:')) {
           html += row(iconWater, `Podlano: ${part.slice(2)} L`);
         }
@@ -342,12 +390,13 @@
       this._patchTodayRain();
       const doneMap    = this._doneMap();
       const plannedMap = this._plannedMap();
-      const wateringMap = this._buildWateringMap();
+      const wateringMap     = this._buildWateringMap();
+      const wateringPredMap = this._buildWateringPredMap(wateringMap);
 
       let monthsHtml = '';
       for (let i = 0; i < count; i++) {
         const dt = new Date(now.getFullYear(), now.getMonth() - firstMonth + i + this._offset, 1);
-        monthsHtml += this._monthHtml(dt.getFullYear(), dt.getMonth(), doneMap, plannedMap, wateringMap);
+        monthsHtml += this._monthHtml(dt.getFullYear(), dt.getMonth(), doneMap, plannedMap, wateringMap, wateringPredMap);
       }
 
       // Legend
@@ -363,6 +412,7 @@
       if (hasPlanned)   legend += `<div class="li"><div class="dot pl"></div><span>Nawożenie planowane</span></div>`;
       if (hasRain)      legend += `<div class="li"><div class="dot rn" style="opacity:.80"></div><span>Deszcz (≥${thresh} mm)</span></div>`;
       if (hasWatLegend) legend += `<div class="li"><div class="li-wt"></div><span>Podlewanie</span></div>`;
+      if (hasWatLegend) legend += `<div class="li"><div class="li-wt-pred"></div><span>Prognoza podlewania</span></div>`;
 
       this.shadowRoot.innerHTML = `
         <style>${this._css()}</style>
@@ -479,6 +529,10 @@
         outline: 1.5px solid rgba(48,176,255,0.55);
         outline-offset: -1px;
       }
+      .dc.wt-pred {
+        outline: 1.5px dashed rgba(48,176,255,0.38);
+        outline-offset: -1px;
+      }
       .dn-num {
         font-size: 10px; font-weight: 500;
         color: rgba(255,255,255,0.55);
@@ -506,10 +560,15 @@
         width: 3px; height: 3px;
       }
       .dot.rn { background: #4da8ff; }
-      /* Legend watering indicator — small framed square */
+      /* Legend watering indicators */
       .li-wt {
         width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
         outline: 1.5px solid rgba(48,176,255,0.55);
+        outline-offset: -1px;
+      }
+      .li-wt-pred {
+        width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+        outline: 1.5px dashed rgba(48,176,255,0.38);
         outline-offset: -1px;
       }
       /* Legend */
