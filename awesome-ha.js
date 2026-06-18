@@ -16209,16 +16209,16 @@ if (!customElements.get('weather-card')) {
 /**
  * aha-input-boolean-card.js
  *
- * Prosta karta dla input_boolean — poziomy wiersz, 110px.
- * Nazwa i ikona pobierane z atrybutów encji HA.
+ * Kafelek dla input_boolean — ikona góra-lewo, toggle góra-prawo (iOS pill),
+ * nazwa + status na dole. Nazwa i ikona z atrybutów encji HA.
  *
- * Config (jedna encja):
+ * Config (jeden kafelek):
  *   entity: input_boolean.xxx
  *   color:  "#30B0FF"   (optional, default niebieski)
  *   name:   "override"  (optional)
  *   icon:   "mdi:xxx"   (optional)
  *
- * Config (wiele encji — lista):
+ * Config (wiele kafelków w gridzie 2 kolumny):
  *   entities:
  *     - entity: input_boolean.xxx
  *       color: "#34C759"
@@ -16229,33 +16229,42 @@ const IB_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :host { display: block; }
 
-  .ib-card {
+  .ib-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .ib-tile {
     background: #1C1C1E;
     border-radius: 16px;
     border: 0.5px solid rgba(255,255,255,0.08);
-    overflow: hidden;
-    font-family: -apple-system, system-ui, sans-serif;
-  }
-
-  .ib-row {
+    padding: 14px;
     display: flex;
-    align-items: center;
-    gap: 14px;
-    height: 110px;
-    padding: 0 18px;
+    flex-direction: column;
+    min-height: 110px;
     cursor: pointer;
+    font-family: -apple-system, system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    border-top: 0.5px solid rgba(255,255,255,0.05);
-    transition: background 0.2s ease;
+    transition: transform 0.15s ease, border-color 0.35s ease, background 0.35s ease;
   }
-  .ib-row:first-child { border-top: none; }
-  .ib-row:active { background: rgba(255,255,255,0.03); }
+  .ib-tile:active { transform: scale(0.96); }
+  .ib-tile.on {
+    border-color: var(--c-border);
+    background: var(--c-bg);
+  }
 
-  /* Ikona */
+  /* ── Górny rząd: ikona + toggle ── */
+  .ib-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
   .ib-icon {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -16264,44 +16273,20 @@ const IB_STYLES = `
     background: rgba(255,255,255,0.07);
     transition: background 0.35s ease;
   }
-  .ib-row.on .ib-icon { background: var(--c-icon-bg); }
+  .ib-tile.on .ib-icon { background: var(--c-icon-bg); }
 
   ha-icon {
-    --mdc-icon-size: 20px;
+    --mdc-icon-size: 19px;
     color: rgba(255,255,255,0.28);
     transition: color 0.35s ease;
   }
-  .ib-row.on ha-icon { color: var(--c); }
+  .ib-tile.on ha-icon { color: var(--c); }
 
-  /* Tekst */
-  .ib-text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .ib-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.90);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .ib-status {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(255,255,255,0.35);
-    transition: color 0.3s ease;
-  }
-  .ib-row.on .ib-status { color: var(--c-status); }
-
-  /* Toggle — krępy, prawie kwadratowy */
+  /* ── iOS pill toggle ── */
   .ib-toggle {
-    width: 40px;
-    height: 28px;
-    border-radius: 9px;
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
     background: rgba(255,255,255,0.12);
     border: none;
     position: relative;
@@ -16310,25 +16295,44 @@ const IB_STYLES = `
     flex-shrink: 0;
     transition: background 0.25s ease, box-shadow 0.25s ease;
   }
-  .ib-row.on .ib-toggle {
+  .ib-tile.on .ib-toggle {
     background: #34C759;
     box-shadow: 0 0 10px rgba(52,199,89,0.40);
   }
   .ib-dot {
     position: absolute;
-    top: 4px;
-    left: 4px;
+    top: 3px;
+    left: 3px;
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.50);
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     transition: transform 0.25s ease, background 0.25s ease;
   }
-  .ib-row.on .ib-dot {
-    transform: translateX(12px);
+  .ib-tile.on .ib-dot {
+    transform: translateX(18px);
     background: #fff;
   }
+
+  /* ── Dół: nazwa + status ── */
+  .ib-bottom { margin-top: auto; padding-top: 10px; }
+
+  .ib-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.90);
+    line-height: 1.25;
+    word-break: break-word;
+  }
+  .ib-status {
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.35);
+    margin-top: 3px;
+    transition: color 0.3s ease;
+  }
+  .ib-tile.on .ib-status { color: var(--c-status); }
 `;
 
 class AhaInputBooleanCard extends HTMLElement {
@@ -16354,7 +16358,7 @@ class AhaInputBooleanCard extends HTMLElement {
       const s = hass.states[item.entity];
       return s && s.state !== this._prevStates[item.entity];
     });
-    if (changed || !this.shadowRoot.querySelector('.ib-card')) {
+    if (changed || !this.shadowRoot.querySelector('.ib-tile')) {
       this._items.forEach(item => {
         const s = hass.states[item.entity];
         if (s) this._prevStates[item.entity] = s.state;
@@ -16372,51 +16376,68 @@ class AhaInputBooleanCard extends HTMLElement {
     ];
   }
 
-  _render() {
-    if (!this._hass) return;
+  _buildTile(item) {
+    const stateObj = this._hass.states[item.entity];
+    if (!stateObj) return null;
 
-    this.shadowRoot.innerHTML = `<style>${IB_STYLES}</style><div class="ib-card"></div>`;
-    const card = this.shadowRoot.querySelector('.ib-card');
+    const isOn = stateObj.state === 'on';
+    const name = item.name || stateObj.attributes.friendly_name || item.entity;
+    const icon = item.icon || stateObj.attributes.icon || 'mdi:toggle-switch';
+    const color = item.color || this._config.color || '#30B0FF';
+    const [r, g, b] = this._hexToRgb(color);
 
-    this._items.forEach(item => {
-      const stateObj = this._hass.states[item.entity];
-      if (!stateObj) return;
+    const tile = document.createElement('div');
+    tile.className = `ib-tile${isOn ? ' on' : ''}`;
+    tile.style.cssText = `
+      --c: rgb(${r},${g},${b});
+      --c-border: rgba(${r},${g},${b},0.30);
+      --c-bg: rgba(${r},${g},${b},0.07);
+      --c-icon-bg: rgba(${r},${g},${b},0.22);
+      --c-status: rgba(${r},${g},${b},0.85);
+    `;
 
-      const isOn = stateObj.state === 'on';
-      const name = item.name || stateObj.attributes.friendly_name || item.entity;
-      const icon = item.icon || stateObj.attributes.icon || 'mdi:toggle-switch';
-      const color = item.color || this._config.color || '#30B0FF';
-      const [r, g, b] = this._hexToRgb(color);
-
-      const row = document.createElement('div');
-      row.className = `ib-row${isOn ? ' on' : ''}`;
-      row.style.cssText = `
-        --c: rgb(${r},${g},${b});
-        --c-icon-bg: rgba(${r},${g},${b},0.20);
-        --c-status: rgba(${r},${g},${b},0.85);
-      `;
-
-      row.innerHTML = `
+    tile.innerHTML = `
+      <div class="ib-top">
         <div class="ib-icon">
           <ha-icon icon="${icon}"></ha-icon>
-        </div>
-        <div class="ib-text">
-          <span class="ib-name">${name}</span>
-          <span class="ib-status">${isOn ? 'Włączony' : 'Wyłączony'}</span>
         </div>
         <button class="ib-toggle" aria-label="Toggle ${name}">
           <span class="ib-dot"></span>
         </button>
-      `;
+      </div>
+      <div class="ib-bottom">
+        <div class="ib-name">${name}</div>
+        <div class="ib-status">${isOn ? 'Włączony' : 'Wyłączony'}</div>
+      </div>
+    `;
 
-      row.querySelector('.ib-toggle').addEventListener('click', e => {
-        e.stopPropagation();
-        this._toggle(item.entity);
-      });
-      row.addEventListener('click', () => this._toggle(item.entity));
-
-      card.appendChild(row);
+    tile.querySelector('.ib-toggle').addEventListener('click', e => {
+      e.stopPropagation();
+      this._toggle(item.entity);
     });
+    tile.addEventListener('click', () => this._toggle(item.entity));
+
+    return tile;
+  }
+
+  _render() {
+    if (!this._hass) return;
+
+    const isSingle = this._items.length === 1;
+    this.shadowRoot.innerHTML = `<style>${IB_STYLES}</style>`;
+
+    if (isSingle) {
+      const tile = this._buildTile(this._items[0]);
+      if (tile) this.shadowRoot.appendChild(tile);
+    } else {
+      const grid = document.createElement('div');
+      grid.className = 'ib-grid';
+      this._items.forEach(item => {
+        const tile = this._buildTile(item);
+        if (tile) grid.appendChild(tile);
+      });
+      this.shadowRoot.appendChild(grid);
+    }
   }
 
   _toggle(entityId) {
@@ -16424,7 +16445,8 @@ class AhaInputBooleanCard extends HTMLElement {
   }
 
   getCardSize() {
-    return this._items ? this._items.length * 2 : 2;
+    const rows = Math.ceil((this._items ? this._items.length : 1) / 2);
+    return rows * 2;
   }
 
   static getStubConfig() {
@@ -16437,5 +16459,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'aha-input-boolean-card',
   name: 'AHA Input Boolean Card',
-  description: 'Simple toggle card for input_boolean entities',
+  description: 'Toggle tile card for input_boolean entities',
 });
