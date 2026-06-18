@@ -14152,24 +14152,17 @@ window.customCards.push({
     // ── Watering prediction for next 10 days ─────────────────────────────────
 
     _buildWateringPredMap(wateringMap) {
-      // Look at last 8 weeks, group by day-of-week, find active days + avg liters
-      const today   = new Date();
-      const cutoff  = new Date(today);
-      cutoff.setDate(cutoff.getDate() - 56);
-
+      // Look at all available history (no cutoff — slots are limited anyway)
       const byDow = new Map(); // 0=Mon…6=Sun → [liters]
       for (const [dateStr, m3] of wateringMap) {
-        const d = new Date(dateStr);
-        if (d < cutoff) continue;
-        const dow = (d.getDay() + 6) % 7;
+        const dow = (new Date(dateStr).getDay() + 6) % 7;
         if (!byDow.has(dow)) byDow.set(dow, []);
         byDow.get(dow).push(Math.round(m3 * 1000));
       }
 
-      // Active day: appeared ≥ 2 times in last 8 weeks
+      // Active day: ≥ 1 occurrence is enough (slots are limited, 1 entry per dow is valid signal)
       const activeDow = new Map(); // dow → avg liters (rounded)
       for (const [dow, amounts] of byDow) {
-        if (amounts.length < 2) continue;
         activeDow.set(dow, Math.round(amounts.reduce((a, b) => a + b, 0) / amounts.length));
       }
 
