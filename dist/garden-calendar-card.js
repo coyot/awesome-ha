@@ -92,6 +92,8 @@
         rain_entity: null,
         rain_threshold: 3,
         months_count: 2,
+        log_slots: 50,
+        show_watering: true,
         ...config,
       };
       this._rainLoaded = false; // re-fetch if config changes
@@ -102,6 +104,25 @@
       this._hass = hass;
       if (first || !this._rainLoaded) this._loadRain();
       this._render();
+    }
+
+    // ── Watering map from log_push input_text entities ────────────────────────
+
+    _buildWateringMap() {
+      const map = new Map(); // YYYY-MM-DD → liters (sum)
+      if (!this._config.show_watering || !this._hass) return map;
+      const slots = this._config.log_slots || 50;
+      for (let i = 1; i <= slots; i++) {
+        const raw = this._hass.states[`input_text.log_h${i}`]?.state ?? '';
+        if (!raw || raw === 'unknown' || raw === 'unavailable' || !raw.startsWith('{')) continue;
+        try {
+          const e = JSON.parse(raw);
+          if (e.typ !== 'nawodnienie_ogrod2' || !e.ts || typeof e.delta !== 'number') continue;
+          const day = e.ts.slice(0, 10);
+          map.set(day, (map.get(day) || 0) + e.delta);
+        } catch (_) {}
+      }
+      return map;
     }
 
     disconnectedCallback() { _hideTip(); }
@@ -196,7 +217,7 @@
 
     // ── Month grid HTML ───────────────────────────────────────────────────────
 
-    _monthHtml(year, month, doneMap, plannedMap) {
+    _monthHtml(year, month, doneMap, plannedMap, wateringMap) {
       const today    = toDateStr(new Date());
       const nDays    = new Date(year, month + 1, 0).getDate();
       const startDow = dowMon(new Date(year, month, 1));
@@ -220,9 +241,11 @@
           try { return localStorage.getItem('aha-fertil-done:' + f.date) === null; } catch (_) { return true; }
         });
 
-        const rainMm   = this._rainMap.get(ds) || 0;
-        const hasRain  = rainMm >= thresh;
-        const hasEvent = doneFerts.length > 0 || planned.length > 0 || hasRain;
+        const rainMm    = this._rainMap.get(ds) || 0;
+        const hasRain   = rainMm >= thresh;
+        const waterM3   = wateringMap.get(ds) || 0;
+        const hasWater  = waterM3 > 0;
+        const hasEvent  = doneFerts.length > 0 || planned.length > 0 || hasRain || hasWater;
 
         // Build dots
         let dots = '';
@@ -240,9 +263,10 @@
         if (doneFerts.length) tipParts.push('D:' + doneFerts.map(f => f.name + (f.description ? ' — ' + f.description : '')).join(';;'));
         if (planned.length)   tipParts.push('P:' + planned.map(f => f.name + (f.description ? ' — ' + f.description : '')).join(';;'));
         if (hasRain)          tipParts.push('R:' + rainMm.toFixed(1));
+        if (hasWater)         tipParts.push('W:' + Math.round(waterM3 * 1000));
 
         const isPast = ds < today;
-        const cls = ['dc', isToday ? 'today' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : ''].filter(Boolean).join(' ');
+        const cls = ['dc', isToday ? 'today' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : '', hasWater ? 'wt' : ''].filter(Boolean).join(' ');
         const tip = tipParts.length ? ` data-t="${tipParts.join('|').replace(/"/g, '&quot;')}"` : '';
 
         html += `<div class="${cls}"${tip}>`
@@ -272,6 +296,8 @@
             html += `<div class="tr"><span class="td pl"></span>${name}</div>`;
         } else if (part.startsWith('R:')) {
           html += `<div class="tr"><span class="td rn"></span>Deszcz: ${part.slice(2)} mm</div>`;
+        } else if (part.startsWith('W:')) {
+          html += `<div class="tr"><span class="td wt"></span>Podlano: ${part.slice(2)} L</div>`;
         }
       }
       return html;
@@ -291,11 +317,12 @@
       this._patchTodayRain();
       const doneMap    = this._doneMap();
       const plannedMap = this._plannedMap();
+      const wateringMap = this._buildWateringMap();
 
       let monthsHtml = '';
       for (let i = 0; i < count; i++) {
         const dt = new Date(now.getFullYear(), now.getMonth() - firstMonth + i + this._offset, 1);
-        monthsHtml += this._monthHtml(dt.getFullYear(), dt.getMonth(), doneMap, plannedMap);
+        monthsHtml += this._monthHtml(dt.getFullYear(), dt.getMonth(), doneMap, plannedMap, wateringMap);
       }
 
       // Legend
@@ -303,12 +330,14 @@
         try { return localStorage.getItem('aha-fertil-done:' + f.date) !== null; } catch (_) { return false; }
       });
       const hasPlanned = (this._config.fertilizations || []).length > 0;
-      const hasRain    = !!this._config.rain_entity;
+      const hasRain     = !!this._config.rain_entity;
+      const hasWatLegend = this._config.show_watering;
 
       let legend = '';
-      if (hasDone)    legend += `<div class="li"><div class="dot dn"></div><span>Nawożenie wykonane</span></div>`;
-      if (hasPlanned) legend += `<div class="li"><div class="dot pl"></div><span>Nawożenie planowane</span></div>`;
-      if (hasRain)    legend += `<div class="li"><div class="dot rn" style="opacity:.80"></div><span>Deszcz (≥${thresh} mm)</span></div>`;
+      if (hasDone)      legend += `<div class="li"><div class="dot dn"></div><span>Nawożenie wykonane</span></div>`;
+      if (hasPlanned)   legend += `<div class="li"><div class="dot pl"></div><span>Nawożenie planowane</span></div>`;
+      if (hasRain)      legend += `<div class="li"><div class="dot rn" style="opacity:.80"></div><span>Deszcz (≥${thresh} mm)</span></div>`;
+      if (hasWatLegend) legend += `<div class="li"><div class="li-wt"></div><span>Podlewanie</span></div>`;
 
       this.shadowRoot.innerHTML = `
         <style>${this._css()}</style>
@@ -421,6 +450,10 @@
       .dc.ps.ev { opacity: 0.38; }
       .dc.ev { cursor: pointer; }
       .dc.ev:hover, .dc.ev:active { background: rgba(255,255,255,0.08); }
+      .dc.wt {
+        outline: 1.5px solid rgba(48,176,255,0.55);
+        outline-offset: -1px;
+      }
       .dn-num {
         font-size: 10px; font-weight: 500;
         color: rgba(255,255,255,0.55);
@@ -448,6 +481,12 @@
         width: 3px; height: 3px;
       }
       .dot.rn { background: #4da8ff; }
+      /* Legend watering indicator — small framed square */
+      .li-wt {
+        width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+        outline: 1.5px solid rgba(48,176,255,0.55);
+        outline-offset: -1px;
+      }
       /* Legend */
       .legend {
         display: flex; flex-wrap: wrap; gap: 8px;
@@ -462,6 +501,7 @@
       .td.dn { background: #50C85A; }
       .td.pl { background: transparent; border: 1.5px solid rgba(80,200,90,0.80); width: 5px; height: 5px; }
       .td.rn { background: #4da8ff; }
+      .td.wt { background: transparent; outline: 1.5px solid rgba(48,176,255,0.70); outline-offset: -1px; border-radius: 2px; }
       `;
     }
 
