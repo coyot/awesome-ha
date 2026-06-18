@@ -36,7 +36,7 @@ const IB_STYLES = `
     padding: 12px;
     display: flex;
     flex-direction: column;
-    aspect-ratio: 1 / 1;
+    min-height: 100px;
     cursor: pointer;
     position: relative;
     font-family: -apple-system, system-ui, sans-serif;
