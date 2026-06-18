@@ -14169,6 +14169,7 @@ window.customCards.push({
       if (activeDow.size === 0) return new Map();
 
       // Project next 10 days (skip today, skip days with confirmed watering)
+      const today   = new Date();
       const predMap = new Map();
       for (let i = 1; i <= 10; i++) {
         const d = new Date(today);
