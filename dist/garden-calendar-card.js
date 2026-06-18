@@ -242,7 +242,7 @@
         if (hasRain)          tipParts.push('R:' + rainMm.toFixed(1));
 
         const isPast = ds < today;
-        const cls = ['dc', isToday ? 'td' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : ''].filter(Boolean).join(' ');
+        const cls = ['dc', isToday ? 'today' : '', isPast ? 'ps' : '', hasEvent ? 'ev' : ''].filter(Boolean).join(' ');
         const tip = tipParts.length ? ` data-t="${tipParts.join('|').replace(/"/g, '&quot;')}"` : '';
 
         html += `<div class="${cls}"${tip}>`
@@ -412,11 +412,11 @@
         cursor: default;
         transition: background .10s;
       }
-      .dc.td {
+      .dc.today {
         background: rgba(255,255,255,0.05);
         box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.40);
       }
-      .dc.td .dn-num { color: #fff; font-weight: 700; }
+      .dc.today .dn-num { color: #fff; font-weight: 700; }
       .dc.ps { opacity: 0.28; }
       .dc.ps.ev { opacity: 0.38; }
       .dc.ev { cursor: pointer; }
