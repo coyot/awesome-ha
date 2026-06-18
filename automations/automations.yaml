@@ -1,5 +1,5 @@
-- id: '1773306989018'
-  alias: akcja wywoz szamba
+- id: szambo_wywoz_akcja
+  alias: "Szambo: wywóz — loguj i resetuj"
   description: ''
   triggers:
   - trigger: state
@@ -9,27 +9,32 @@
   actions:
   - action: logbook.log
     data:
-      name: "Wywóz szamba 🚛"
-      message: >
-        Dom 1: {{ states('sensor.szambo_dom_1_zuzycie') }} m³ = {{ states('sensor.szambo_dom_1_do_zaplaty') }} zł |
-        Dom 2: {{ states('sensor.szambo_dom_2_zuzycie') }} m³ = {{ states('sensor.szambo_dom_2_do_zaplaty') }} zł |
-        Łącznie: {{ states('sensor.szambo_zuzycie') }} m³ = 320 zł
+      name: "Wywóz szamba \U0001F69B"
+      message: 'Dom 1: {{ states(''sensor.szambo_dom_1_zuzycie'') }} m³ = {{ states(''sensor.szambo_dom_1_do_zaplaty'')
+        }} zł | Dom 2: {{ states(''sensor.szambo_dom_2_zuzycie'') }} m³ = {{ states(''sensor.szambo_dom_2_do_zaplaty'')
+        }} zł | Łącznie: {{ states(''sensor.szambo_zuzycie'') }} m³ = 320 zł
+
+        '
   - action: rest_command.szambo_google_sheets
     data:
-      dom1_m3: '{{ states(''sensor.szambo_dom_1_zuzycie'') }}'
-      dom1_zl: '{{ states(''sensor.szambo_dom_1_do_zaplaty'') }}'
-      dom2_m3: '{{ states(''sensor.szambo_dom_2_zuzycie'') }}'
-      dom2_zl: '{{ states(''sensor.szambo_dom_2_do_zaplaty'') }}'
-      lacznie_m3: '{{ states(''sensor.szambo_zuzycie'') }}'
+      dom1_m3: '{{ states(''sensor.szambo_dom_1_zuzycie'') | replace(".", ",") }}'
+      dom1_zl: '{{ states(''sensor.szambo_dom_1_do_zaplaty'') | replace(".", ",")
+        }}'
+      dom2_m3: '{{ states(''sensor.szambo_dom_2_zuzycie'') | replace(".", ",") }}'
+      dom2_zl: '{{ states(''sensor.szambo_dom_2_do_zaplaty'') | replace(".", ",")
+        }}'
+      lacznie_m3: '{{ states(''sensor.szambo_zuzycie'') | replace(".", ",") }}'
   - action: script.log_push
     data:
-      wpis: >
-        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"szambo",
-        "d1m":{{ states('sensor.szambo_dom_1_zuzycie') | float(0) | round(2) }},
-        "d1z":{{ states('sensor.szambo_dom_1_do_zaplaty') | float(0) | round(0) | int }},
-        "d2m":{{ states('sensor.szambo_dom_2_zuzycie') | float(0) | round(2) }},
-        "d2z":{{ states('sensor.szambo_dom_2_do_zaplaty') | float(0) | round(0) | int }},
-        "lm":{{ states('sensor.szambo_zuzycie') | float(0) | round(2) }}}
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"szambo", "d1m":{{
+        states(''sensor.szambo_dom_1_zuzycie'') | float(0) | round(2) }}, "d1z":{{
+        states(''sensor.szambo_dom_1_do_zaplaty'') | float(0) | round(0) | int }},
+        "d2m":{{ states(''sensor.szambo_dom_2_zuzycie'') | float(0) | round(2) }},
+        "d2z":{{ states(''sensor.szambo_dom_2_do_zaplaty'') | float(0) | round(0)
+        | int }}, "lm":{{ states(''sensor.szambo_zuzycie'') | float(0) | round(2)
+        }}}
+
+        '
   - delay:
       hours: 0
       minutes: 0
@@ -39,7 +44,8 @@
     target:
       entity_id: input_number.szambo_wywoz
     data:
-      value: '{{ states(''sensor.water_1_total_2'') | float(0) + states(''sensor.water_2_total'') | float(0) }}'
+      value: '{{ states(''sensor.water_1_total_2'') | float(0) + states(''sensor.water_2_total'')
+        | float(0) }}'
   - action: input_number.set_value
     target:
       entity_id: input_number.szambo_wywoz_dom_1
@@ -99,23 +105,22 @@
   - action: input_text.set_value
     data:
       entity_id: input_text.szambo_h1
-      value: >
-        {"d":"{{ now().strftime('%Y-%m-%d') }}",
-        "d1m":{{ states('sensor.szambo_dom_1_zuzycie') | float(0) | round(2) }},
-        "d1z":{{ states('sensor.szambo_dom_1_do_zaplaty') | float(0) | round(0) | int }},
-        "d2m":{{ states('sensor.szambo_dom_2_zuzycie') | float(0) | round(2) }},
-        "d2z":{{ states('sensor.szambo_dom_2_do_zaplaty') | float(0) | round(0) | int }},
-        "lm":{{ states('sensor.szambo_zuzycie') | float(0) | round(2) }}}
+      value: '{"d":"{{ now().strftime(''%Y-%m-%d'') }}", "d1m":{{ states(''sensor.szambo_dom_1_zuzycie'')
+        | float(0) | round(2) }}, "d1z":{{ states(''sensor.szambo_dom_1_do_zaplaty'')
+        | float(0) | round(0) | int }}, "d2m":{{ states(''sensor.szambo_dom_2_zuzycie'')
+        | float(0) | round(2) }}, "d2z":{{ states(''sensor.szambo_dom_2_do_zaplaty'')
+        | float(0) | round(0) | int }}, "lm":{{ states(''sensor.szambo_zuzycie'')
+        | float(0) | round(2) }}}
+
+        '
   - target:
       entity_id: input_datetime.ostatni_wywoz_szamba
     data:
       datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
     action: input_datetime.set_datetime
   mode: single
-
-
-- id: '1773346567560'
-  alias: Ogród - potwierdź dane
+- id: ogrod_potwierdz_dane
+  alias: "Ogród: potwierdź dane"
   description: ''
   triggers:
   - trigger: state
@@ -126,10 +131,8 @@
       entity_id: input_datetime.ogrod_ostatnia_aktualizacja
     data:
       datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
-
-
-- id: '1773672846823'
-  alias: Szambo - dzienny alert poziomu o 7:00
+- id: szambo_alert_poranny
+  alias: "Szambo: alert poranny (07:00)"
   description: Sprawdza poziom szamba i wysyła powiadomienie raz dziennie
   triggers:
   - at: 07:00:00
@@ -142,14 +145,18 @@
         above: 9
       sequence:
       - data:
-          title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
-          message: >
-            Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz.
+          title: "\U0001F6A8\U0001F6A8\U0001F6A8 Szambo na granicy! \U0001F6A8\U0001F6A8\U0001F6A8"
+          message: 'Poziom szamba przekroczył 9 m³! Aktualnie: {{ states(''sensor.szambo_zuzycie'')
+            }} m³. Pilnie zamów wywóz.
+
+            '
         action: notify.mobile_app_iphone_tk
       - data:
-          title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
-          message: >
-            Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz.
+          title: "\U0001F6A8\U0001F6A8\U0001F6A8 Szambo na granicy! \U0001F6A8\U0001F6A8\U0001F6A8"
+          message: 'Poziom szamba przekroczył 9 m³! Aktualnie: {{ states(''sensor.szambo_zuzycie'')
+            }} m³. Pilnie zamów wywóz.
+
+            '
         action: notify.mobile_app_iphone_monika
     - conditions:
       - condition: numeric_state
@@ -158,13 +165,17 @@
       sequence:
       - data:
           title: ⚠️ Szambo blisko pełnego
-          message: >
-            Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz.
+          message: 'Szambo przekroczyło 8 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
+            }} m³. Warto zamówić wywóz.
+
+            '
         action: notify.mobile_app_iphone_tk
       - data:
           title: ⚠️ Szambo blisko pełnego
-          message: >
-            Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz.
+          message: 'Szambo przekroczyło 8 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
+            }} m³. Warto zamówić wywóz.
+
+            '
         action: notify.mobile_app_iphone_monika
     - conditions:
       - condition: numeric_state
@@ -173,19 +184,21 @@
       sequence:
       - data:
           title: ℹ️ Szambo zaczyna się zapełniać
-          message: >
-            Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj.
+          message: 'Szambo przekroczyło 7 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
+            }} m³. Kontroluj.
+
+            '
         action: notify.mobile_app_iphone_tk
       - data:
           title: ℹ️ Szambo zaczyna się zapełniać
-          message: >
-            Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj.
+          message: 'Szambo przekroczyło 7 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
+            }} m³. Kontroluj.
+
+            '
         action: notify.mobile_app_iphone_monika
   mode: single
-
-
-- id: '1773775004210'
-  alias: Otwórz bramę gdy ktoś wraca do domu
+- id: brama_otworz_powrot
+  alias: "Brama: otwórz przy powrocie"
   triggers:
   - trigger: zone
     entity_id: device_tracker.iphone_tk
@@ -198,14 +211,9 @@
   actions:
   - action: rest_command.blynk_open_gate
   - variables:
-      kto: >
-        {% if trigger.entity_id == 'device_tracker.iphone_tk' %}
-          tk
-        {% elif trigger.entity_id == 'device_tracker.iphone_monika' %}
-          mk
-        {% else %}
-          unknown
-        {% endif %}
+      kto: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  tk\n{% elif
+        trigger.entity_id == 'device_tracker.iphone_monika' %}\n  mk\n{% else %}\n
+        \ unknown\n{% endif %}\n"
       czas: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
       wpis: '{{ kto }}|{{ czas }}'
   - target:
@@ -225,29 +233,23 @@
     action: input_text.set_value
   - action: script.log_push
     data:
-      wpis: >
-        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"wjazd",
-        "kto":"{% if trigger.entity_id == 'device_tracker.iphone_tk' %}tk{% else %}mk{% endif %}"}
-  - action: >
-      {% if trigger.entity_id == 'device_tracker.iphone_tk' %}
-        notify.mobile_app_iphone_tk
-      {% elif trigger.entity_id == 'device_tracker.iphone_monika' %}
-        notify.mobile_app_iphone_monika
-      {% endif %}
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"wjazd", "kto":"{%
+        if trigger.entity_id == ''device_tracker.iphone_tk'' %}tk{% else %}mk{% endif
+        %}"}
+
+        '
+  - action: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  notify.mobile_app_iphone_tk\n{%
+      elif trigger.entity_id == 'device_tracker.iphone_monika' %}\n  notify.mobile_app_iphone_monika\n{%
+      endif %}\n"
     data:
-      title: "🏠 Witaj w domu!"
-      message: >
-        {% if trigger.entity_id == 'device_tracker.iphone_tk' %}
-          🙋 Cześć Tomek, brama otwarta!
-        {% elif trigger.entity_id == 'device_tracker.iphone_monika' %}
-          🙋 Cześć Monika, brama otwarta!
-        {% endif %}
+      title: "\U0001F3E0 Witaj w domu!"
+      message: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  \U0001F64B
+        Cześć Tomek, brama otwarta!\n{% elif trigger.entity_id == 'device_tracker.iphone_monika'
+        %}\n  \U0001F64B Cześć Monika, brama otwarta!\n{% endif %}\n"
   mode: queued
   max: 2
-
-
-- alias: Ogród 1 – ustaw datę potwierdzenia
-  id: 26aea2f2de354af88438f3b51f91a172
+- alias: "Ogród 1: potwierdź"
+  id: ogrod_1_potwierdz
   trigger:
   - platform: state
     entity_id: input_button.ogrod_1_potwierdz
@@ -257,10 +259,8 @@
       entity_id: input_datetime.ogrod_1_ostatnia_aktualizacja
     data:
       datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
-
-
-- alias: Ogród 2 – ustaw datę potwierdzenia
-  id: fa06e85fe1a84251bcff5bc09129bbf6
+- alias: "Ogród 2: potwierdź"
+  id: ogrod_2_potwierdz
   trigger:
   - platform: state
     entity_id: input_button.ogrod_2_potwierdz
@@ -270,10 +270,8 @@
       entity_id: input_datetime.ogrod_2_ostatnia_aktualizacja
     data:
       datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
-
-
-- id: '1775157994830'
-  alias: 'Powiadomienie o wywozie śmieci (Logic: Monika & Tomek)'
+- id: smieciarnia_alert_wieczor
+  alias: "Śmieciarnia: alert wieczorny (17:30)"
   description: Wysyła powiadomienia o 17:30 na dzień przed wywozem do osób w domu.
   triggers:
   - at: '17:30:00'
@@ -282,19 +280,16 @@
   - variables:
       sensors:
       - entity: sensor.harmonogram_bio
-        name: "🌿 Bio"
+        name: "\U0001F33F Bio"
       - entity: sensor.harmonogram_segregowane
-        name: "♻️ Segregowane (Papier/Plastik/Szkło)"
+        name: ♻️ Segregowane (Papier/Plastik/Szkło)
       - entity: sensor.harmonogram_zmieszane
-        name: "🗑️ Zmieszane"
+        name: "\U0001F5D1️ Zmieszane"
       - entity: sensor.harmonogram_gabaryty
-        name: "🛋️ Gabaryty"
-      items_tomorrow: >
-        {% set found = ns(types=[]) %}
-        {% for s in sensors if states(s.entity) == '1' %}
-          {% set found.types = found.types + [s.name] %}
-        {% endfor %}
-        {{ found.types | join(', ') }}
+        name: "\U0001F6CB️ Gabaryty"
+      items_tomorrow: "{% set found = ns(types=[]) %} {% for s in sensors if states(s.entity)
+        == '1' %}\n  {% set found.types = found.types + [s.name] %}\n{% endfor %}
+        {{ found.types | join(', ') }}\n"
       monika_home: '{{ is_state(''device_tracker.iphone_monika'', ''home'') }}'
       tomek_home: '{{ is_state(''device_tracker.iphone_tk'', ''home'') }}'
   - condition: template
@@ -304,205 +299,825 @@
       value_template: '{{ monika_home }}'
     then:
     - data:
-        title: "🚛 Jutro wywóz śmieci!"
-        message: >
-          Witaj Monika, jutro wywozimy: {{ items_tomorrow }}.
-          {% if tomek_home %} 📢 Powiedz Tomkowi, żeby wystawił kubły przed dom!
-          {% else %} ⚠️ Pamiętaj o wystawieniu kubłów przed dom. {% endif %}
+        title: "\U0001F69B Jutro wywóz śmieci!"
+        message: "Witaj Monika, jutro wywozimy: {{ items_tomorrow }}. {% if tomek_home
+          %} \U0001F4E2 Powiedz Tomkowi, żeby wystawił kubły przed dom! {% else %}
+          ⚠️ Pamiętaj o wystawieniu kubłów przed dom. {% endif %}\n"
       action: notify.mobile_app_iphone_monika
   - if:
     - condition: template
       value_template: '{{ tomek_home }}'
     then:
     - data:
-        title: "🚛 Jutro wywóz śmieci!"
-        message: >
-          Witaj Tomek, jutro wywozimy: {{ items_tomorrow }}. ⚠️ Nie zapomnij wystawić kubłów przed dom!
+        title: "\U0001F69B Jutro wywóz śmieci!"
+        message: 'Witaj Tomek, jutro wywozimy: {{ items_tomorrow }}. ⚠️ Nie zapomnij
+          wystawić kubłów przed dom!
+
+          '
       action: notify.mobile_app_iphone_tk
   mode: restart
-
-
-# ============================================================
-# AUTOMATYZACJA: Poręcz klatka schodowa — oświetlenie
-# switch.porecz_klatka_schodowa_socket_1
-#
-# LOGIKA:
-#   WŁĄCZENIE wieczorem:
-#     - pogodnie  (solar_radiation >= 50 W/m²) → 20 min przed zachodem słońca
-#     - pochmurno (solar_radiation <  50 W/m²) → 90 min przed zachodem słońca
-#
-#   WYŁĄCZENIE rano:
-#     - pogodnie  (weather in sunny/partlycloudy) → 10 min po wschodzie słońca
-#     - pochmurno (pozostałe stany weather)       → 90 min po wschodzie słońca
-#
-#   WARUNEK WIECZÓR: iphone_tk LUB iphone_monika musi być w zone.home
-# ============================================================
-
 - id: porecz_wlacz_wieczor
-  alias: "Poręcz klatka — włącz wieczorem"
+  alias: "Poręcz: włącz wieczorem"
   trigger:
-    - platform: sun
-      event: sunset
-      offset: "-01:30:00"
+  - platform: sun
+    event: sunset
+    offset: -01:30:00
   condition:
-    - condition: or
-      conditions:
-        - condition: state
-          entity_id: device_tracker.iphone_tk
-          state: home
-        - condition: state
-          entity_id: device_tracker.iphone_monika
-          state: home
-  action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('sensor.stacja_pogodowa_solar_radiation') | float(-1) >= 50 }}
-          sequence:
-            - delay:
-                minutes: 70
-            - service: switch.turn_on
-              target:
-                entity_id: switch.porecz_klatka_schodowa_socket_1
-            - action: logbook.log
-              data:
-                name: "Poręcz klatka"
-                entity_id: switch.porecz_klatka_schodowa_socket_1
-                message: >
-                  WŁĄCZONO | zachód −20 min | pogodnie |
-                  radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
-            - action: script.log_push
-              data:
-                wpis: >
-                  {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
-                  "akcja":"ON","info":"pogodnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −20min"}
-      default:
-        - service: switch.turn_on
-          target:
-            entity_id: switch.porecz_klatka_schodowa_socket_1
-        - action: logbook.log
-          data:
-            name: "Poręcz klatka"
-            entity_id: switch.porecz_klatka_schodowa_socket_1
-            message: >
-              WŁĄCZONO | zachód −90 min | pochmurnie |
-              radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
-        - action: script.log_push
-          data:
-            wpis: >
-              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
-              "akcja":"ON","info":"pochmurnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −90min"}
-  mode: single
-
-
-- id: porecz_wylacz_rano
-  alias: "Poręcz klatka — wyłącz rano"
-  trigger:
-    - platform: sun
-      event: sunrise
-      offset: "00:10:00"
-  condition:
-    - condition: or
-      conditions:
-        - condition: state
-          entity_id: device_tracker.iphone_tk
-          state: home
-        - condition: state
-          entity_id: device_tracker.iphone_monika
-          state: home
-  action:
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ states('weather.forecast_home') in ['sunny','partlycloudy','clear-night'] }}
-          sequence:
-            - service: switch.turn_off
-              target:
-                entity_id: switch.porecz_klatka_schodowa_socket_1
-            - action: logbook.log
-              data:
-                name: "Poręcz klatka"
-                entity_id: switch.porecz_klatka_schodowa_socket_1
-                message: >
-                  WYŁĄCZONO | wschód +10 min | pogodnie |
-                  weather: {{ states('weather.forecast_home') }}
-            - action: script.log_push
-              data:
-                wpis: >
-                  {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
-                  "akcja":"OFF","info":"pogodnie · {{ states('weather.forecast_home') }} · wschód +10min"}
-      default:
-        - delay:
-            minutes: 80
-        - service: switch.turn_off
-          target:
-            entity_id: switch.porecz_klatka_schodowa_socket_1
-        - action: logbook.log
-          data:
-            name: "Poręcz klatka"
-            entity_id: switch.porecz_klatka_schodowa_socket_1
-            message: >
-              WYŁĄCZONO | wschód +90 min | pochmurnie |
-              weather: {{ states('weather.forecast_home') }}
-        - action: script.log_push
-          data:
-            wpis: >
-              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
-              "akcja":"OFF","info":"pochmurnie · {{ states('weather.forecast_home') }} · wschód +90min"}
-  mode: single
-
-
-- id: porecz_wlacz_powrot_po_zmroku
-  alias: "Poręcz klatka — włącz przy powrocie po zmroku"
-  description: >
-    Gdy ktoś wraca do domu po zachodzie słońca,
-    a oświetlenie jest wyłączone — włącz je.
-  trigger:
-    - platform: state
-      entity_id:
-        - device_tracker.iphone_tk
-        - device_tracker.iphone_monika
-      to: home
-  condition:
+  - condition: or
+    conditions:
     - condition: state
-      entity_id: sun.sun
-      state: below_horizon
+      entity_id: device_tracker.iphone_tk
+      state: home
     - condition: state
-      entity_id: switch.porecz_klatka_schodowa_socket_1
-      state: "off"
+      entity_id: device_tracker.iphone_monika
+      state: home
   action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ states(''sensor.stacja_pogodowa_solar_radiation'') | float(-1)
+          >= 50 }}
+
+          '
+      sequence:
+      - delay:
+          minutes: 70
+      - service: switch.turn_on
+        target:
+          entity_id: switch.porecz_klatka_schodowa_socket_1
+      - action: logbook.log
+        data:
+          name: Poręcz klatka
+          entity_id: switch.porecz_klatka_schodowa_socket_1
+          message: 'WŁĄCZONO | zachód −20 min | pogodnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+            | round(0) }} W/m²
+
+            '
+      - action: script.log_push
+        data:
+          wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz",
+            "akcja":"ON","info":"pogodnie {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+            | round(0) }}W/m² · zachód −20min"}
+
+            '
+    default:
     - service: switch.turn_on
       target:
         entity_id: switch.porecz_klatka_schodowa_socket_1
     - action: logbook.log
       data:
-        name: "Poręcz klatka"
+        name: Poręcz klatka
         entity_id: switch.porecz_klatka_schodowa_socket_1
-        message: >
-          WŁĄCZONO | powrót do domu po zmroku |
-          kto: {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% elif trigger.entity_id == 'device_tracker.iphone_monika' %}Monika{% else %}nieznany{% endif %} |
-          radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+        message: 'WŁĄCZONO | zachód −90 min | pochmurnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+          | round(0) }} W/m²
+
+          '
     - action: script.log_push
       data:
-        wpis: >
-          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
-          "akcja":"ON","info":"powrót po zmroku · {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}"}
+        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz", "akcja":"ON","info":"pochmurnie
+          {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m²
+          · zachód −90min"}
+
+          '
+  mode: single
+- id: porecz_wylacz_rano
+  alias: "Poręcz: wyłącz rano"
+  triggers:
+  - event: sunrise
+    offset: 00:10:00
+    trigger: sun
+  conditions:
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: device_tracker.iphone_tk
+      state: home
+    - condition: state
+      entity_id: device_tracker.iphone_monika
+      state: home
+  actions:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ states(''weather.forecast_home'') in [''sunny'',''partlycloudy'',''clear-night'']
+          }}
+
+          '
+      sequence:
+      - target:
+          entity_id: switch.porecz_klatka_schodowa_socket_1
+        action: switch.turn_off
+      - action: logbook.log
+        data:
+          name: Poręcz klatka
+          entity_id: switch.porecz_klatka_schodowa_socket_1
+          message: 'WYŁĄCZONO | wschód +10 min | pogodnie | weather: {{ states(''weather.forecast_home'')
+            }}
+
+            '
+      - action: script.log_push
+        data:
+          wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz",
+            "akcja":"OFF","info":"pogodnie · {{ states(''weather.forecast_home'')
+            }} · wschód +10min"}
+
+            '
+    default:
+    - delay:
+        minutes: 80
+    - target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+      action: switch.turn_off
+    - action: logbook.log
+      data:
+        name: Poręcz klatka
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: 'WYŁĄCZONO | wschód +90 min | pochmurnie | weather: {{ states(''weather.forecast_home'')
+          }}
+
+          '
+    - action: script.log_push
+      data:
+        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz", "akcja":"OFF","info":"pochmurnie
+          · {{ states(''weather.forecast_home'') }} · wschód +90min"}
+
+          '
+  mode: single
+- id: porecz_wlacz_powrot
+  alias: "Poręcz: włącz przy powrocie (po zmroku)"
+  description: 'Gdy ktoś wraca do domu po zachodzie słońca, a oświetlenie jest wyłączone
+    — włącz je.
+
+    '
+  trigger:
+  - platform: state
+    entity_id:
+    - device_tracker.iphone_tk
+    - device_tracker.iphone_monika
+    to: home
+  condition:
+  - condition: state
+    entity_id: sun.sun
+    state: below_horizon
+  - condition: state
+    entity_id: switch.porecz_klatka_schodowa_socket_1
+    state: 'off'
+  action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+  - action: logbook.log
+    data:
+      name: Poręcz klatka
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      message: 'WŁĄCZONO | powrót do domu po zmroku | kto: {% if trigger.entity_id
+        == ''device_tracker.iphone_tk'' %}Tomek{% elif trigger.entity_id == ''device_tracker.iphone_monika''
+        %}Monika{% else %}nieznany{% endif %} | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+        | round(0) }} W/m²
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz", "akcja":"ON","info":"powrót
+        po zmroku · {% if trigger.entity_id == ''device_tracker.iphone_tk'' %}Tomek{%
+        else %}Monika{% endif %}"}
+
+        '
+  mode: single
+- id: porecz_wylacz_failsafe
+  alias: "Poręcz: wyłącz failsafe (12:00)"
+  description: 'Awaryjnie wyłącza oświetlenie o 12:00 jeśli nadal świeci.
+
+    '
+  trigger:
+  - platform: time
+    at: '12:00:00'
+  condition:
+  - condition: state
+    entity_id: switch.porecz_klatka_schodowa_socket_1
+    state: 'on'
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+  - action: logbook.log
+    data:
+      name: Poręcz klatka
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      message: 'WYŁĄCZONO | failsafe 12:00 | switch był nadal włączony | radiation:
+        {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }} W/m²
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz", "akcja":"OFF","info":"⚠️
+        failsafe 12:00 · switch był nadal włączony"}
+
+        '
+  mode: single
+- id: kontaktrony_alert_noc
+  alias: "Kontaktrony: alert nocny (22:00)"
+  description: 'Codziennie o 22:00 sprawdza wszystkie czujniki otwarcia (binary_sensor
+    z device_class door/window/opening) w domu. Jeśli któryś jest otwarty, wysyła
+    powiadomienie do domowników przebywających w zone.home.
+
+    '
+  triggers:
+  - at: '22:00:00'
+    trigger: time
+  conditions:
+  - condition: template
+    value_template: '{{ otwarte | count > 0 }}'
+  actions:
+  - if:
+    - condition: zone
+      entity_id: person.tk
+      zone: zone.home
+    then:
+    - data:
+        title: "\U0001F513 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
+        message: "{% macro ikona(name) %}\n  {%- set n = name | lower %}\n  {%- if
+          'garaż' in n or 'garaz' in n or 'brama' in n %}\U0001F3E0\n  {%- elif 'drzwi'
+          in n %}\U0001F6AA\n  {%- elif 'okno' in n or 'okna' in n or 'okien' in n
+          %}\U0001FA9F\n  {%- else %}\U0001F513{% endif %}\n{%- endmacro %} {% for
+          s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name
+          }}{% if not loop.last %} {% endif %}{% endfor %}\n"
+        data:
+          push:
+            sound: default
+      action: notify.mobile_app_iphone_tk
+  - if:
+    - condition: zone
+      entity_id: person.monika
+      zone: zone.home
+    then:
+    - data:
+        title: "\U0001F513 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
+        message: "{% macro ikona(name) %}\n  {%- set n = name | lower %}\n  {%- if
+          'garaż' in n or 'garaz' in n or 'brama' in n %}\U0001F3E0\n  {%- elif 'drzwi'
+          in n %}\U0001F6AA\n  {%- elif 'okno' in n or 'okna' in n or 'okien' in n
+          %}\U0001FA9F\n  {%- else %}\U0001F513{% endif %}\n{%- endmacro %} {% for
+          s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name
+          }}{% if not loop.last %} {% endif %}{% endfor %}\n"
+        data:
+          push:
+            sound: default
+      action: notify.mobile_app_iphone_monika
+  - action: logbook.log
+    data:
+      name: Kontaktrony nocne
+      message: "{% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in
+        n or 'garaz' in n or 'brama' in n %}\U0001F3E0{%- elif 'drzwi' in n %}\U0001F6AA{%-
+        elif 'okno' in n or 'okna' in n or 'okien' in n %}\U0001FA9F{%- else %}\U0001F513{%
+        endif %}{%- endmacro %} {{ otwarte | count }} otwart{{ 'y' if otwarte | count
+        == 1 else 'e' }}: {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name)
+        }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}, {% endif
+        %}{% endfor %}\n"
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"kontaktrony_22",
+        "otwarte":{{ otwarte | count }},"lista":"{% for s in otwarte %}{{ states[s].attributes.friendly_name
+        }}{% if not loop.last %} | {% endif %}{% endfor %}"}
+
+        '
+  variables:
+    otwarte: "{{ states.binary_sensor\n   | selectattr('attributes.device_class',
+      'in',\n       ['door', 'window', 'opening', 'garage_door'])\n   | selectattr('state',
+      'eq', 'on')\n   | map(attribute='entity_id')\n   | list }}\n"
+  mode: single
+- alias: "Biuro wiatrak: włącz przy upale"
+  description: 'Gdy temperatura w biurze przekroczy 26°C w godzinach 7:00–22:00 i
+    TK jest w domu — włącz wiatrak.
+
+    '
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.biuro_temperature
+    above: 25
+    for:
+      minutes: 2
+  condition:
+  - condition: time
+    after: 07:00:00
+    before: '22:00:00'
+  - condition: zone
+    entity_id: person.tk
+    zone: zone.home
+  action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.biuro_wiatrak
+  - action: logbook.log
+    data:
+      name: Wiatrak biuro
+      entity_id: switch.biuro_wiatrak
+      message: 'WŁĄCZONO | temp {{ states(''sensor.biuro_temperature'') | round(1)
+        }}°C > 25°C
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"wiatrak_biuro",
+        "akcja":"ON","info":"temp {{ states(''sensor.biuro_temperature'') | float(0)
+        | round(1) }}°C"}
+
+        '
+  mode: single
+  id: wiatrak_biuro_wlacz_upal
+- alias: "Biuro wiatrak: wyłącz (temp OK lub 22:00)"
+  description: 'Wyłącz wiatrak gdy temperatura w biurze spadnie do 22°C lub poniżej,
+    albo gdy wybije 22:00.
+
+    '
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.biuro_temperature
+    below: 22.1
+  - platform: time
+    at: '22:00:00'
+  condition:
+  - condition: state
+    entity_id: switch.biuro_wiatrak
+    state: 'on'
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id: switch.biuro_wiatrak
+  - action: logbook.log
+    data:
+      name: Wiatrak biuro
+      entity_id: switch.biuro_wiatrak
+      message: 'WYŁĄCZONO | {% if trigger.platform == ''time'' %}22:00{% else %}temp
+        {{ states(''sensor.biuro_temperature'') | round(1) }}°C ≤ 22°C{% endif %}
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"wiatrak_biuro",
+        "akcja":"OFF","info":"{% if trigger.platform == ''time'' %}22:00{% else %}temp
+        {{ states(''sensor.biuro_temperature'') | float(0) | round(1) }}°C{% endif
+        %}"}
+
+        '
+  mode: single
+  id: wiatrak_biuro_wylacz
+- alias: "AC dzieci: włącz chłodzenie przy upale"
+  description: 'Gdy temperatura w pokoju dzieci przekroczy 26°C w godzinach 10:00–18:30
+    i ktoś z rodziców jest w domu — włącz klimatyzację na cooling 21°C (max fan) i
+    zamknij roletę nr 8.
+
+    '
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.nenek_temperature
+    above: 26
+  condition:
+  - condition: time
+    after: '10:00:00'
+    before: '18:30:00'
+  - condition: or
+    conditions:
+    - condition: zone
+      entity_id: person.tk
+      zone: zone.home
+    - condition: zone
+      entity_id: person.monika
+      zone: zone.home
+  - condition: state
+    entity_id: climate.pokoj_leona
+    state: 'off'
+  action:
+  - service: climate.set_hvac_mode
+    target:
+      entity_id: climate.pokoj_leona
+    data:
+      hvac_mode: cool
+  - service: climate.set_temperature
+    target:
+      entity_id: climate.pokoj_leona
+    data:
+      temperature: 21
+  - service: climate.set_fan_mode
+    target:
+      entity_id: climate.pokoj_leona
+    data:
+      fan_mode: high
+  - service: cover.close_cover
+    target:
+      entity_id: cover.rollershutter_0008
+  - action: logbook.log
+    data:
+      name: Pokój dzieci – klimatyzacja
+      entity_id: climate.pokoj_leona
+      message: 'WŁĄCZONO chłodzenie | temp {{ states(''sensor.nenek_temperature'')
+        | round(1) }}°C > 26°C | cel 21°C | roleta 8 zamknięta
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"ac_pokoj_dzieci",
+        "akcja":"ON","info":"temp {{ states(''sensor.nenek_temperature'') | float(0)
+        | round(1) }}°C · cool 21°C · roleta zamknieta"}
+
+        '
+  mode: single
+  id: ac_dzieci_wlacz_upal
+- id: ac_dzieci_wylacz
+  alias: "AC dzieci: wyłącz (temp OK lub 18:30)"
+  description: 'Wyłącz klimatyzację w pokoju dzieci gdy temperatura spadnie do 21°C
+    lub wybije 18:30.
+
+    '
+  triggers:
+  - entity_id: sensor.nenek_temperature
+    below: 21.1
+    trigger: numeric_state
+  - at: '18:30:00'
+    trigger: time
+  conditions:
+  - condition: state
+    entity_id: climate.pokoj_leona
+    state: cool
+  actions:
+  - target:
+      entity_id: climate.pokoj_leona
+    action: climate.turn_off
+  - action: logbook.log
+    data:
+      name: Pokój dzieci – klimatyzacja
+      entity_id: climate.pokoj_leona
+      message: 'WYŁĄCZONO | {% if trigger.platform == ''time'' %}18:30{% else %}temp
+        {{ states(''sensor.nenek_temperature'') | round(1) }}°C ≤ 21°C{% endif %}
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"ac_pokoj_dzieci",
+        "akcja":"OFF","info":"{% if trigger.platform == ''time'' %}18:30{% else %}temp
+        {{ states(''sensor.nenek_temperature'') | float(0) | round(1) }}°C{% endif
+        %}"}
+
+        '
+  mode: single
+- id: kwiaty_otworz_rano
+  alias: "Kwiaty: otwórz rolety rano (poza domem)"
+  trigger:
+  - platform: sun
+    event: sunrise
+    offset: 00:10:00
+  condition:
+  - condition: state
+    entity_id: device_tracker.iphone_tk
+    state: not_home
+  - condition: state
+    entity_id: device_tracker.iphone_monika
+    state: not_home
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ states(''weather.forecast_home'') in [''sunny'',''partlycloudy'',''clear-night'']
+          }}
+
+          '
+      sequence:
+      - service: cover.open_cover
+        target:
+          entity_id:
+          - cover.rollershutter_0001
+          - cover.rollershutter_0002
+          - cover.rollershutter_0009
+      - action: logbook.log
+        data:
+          name: Kwiaty — rolety
+          message: 'OTWARTO | wschód +10 min | pogodnie | weather: {{ states(''weather.forecast_home'')
+            }}
+
+            '
+      - action: script.log_push
+        data:
+          wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"kwiaty",
+            "akcja":"OPEN","info":"pogodnie · {{ states(''weather.forecast_home'')
+            }} · wschód +10min · rolety 1,2,9"}
+
+            '
+    default:
+    - delay:
+        minutes: 80
+    - service: cover.open_cover
+      target:
+        entity_id:
+        - cover.rollershutter_0001
+        - cover.rollershutter_0002
+        - cover.rollershutter_0009
+    - action: logbook.log
+      data:
+        name: Kwiaty — rolety
+        message: 'OTWARTO | wschód +90 min | pochmurnie | weather: {{ states(''weather.forecast_home'')
+          }}
+
+          '
+    - action: script.log_push
+      data:
+        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"kwiaty", "akcja":"OPEN","info":"pochmurnie
+          · {{ states(''weather.forecast_home'') }} · wschód +90min · rolety 1,2,9"}
+
+          '
+  mode: single
+- id: kwiaty_zamknij_wieczor
+  alias: "Kwiaty: zamknij rolety wieczorem (poza domem)"
+  trigger:
+  - platform: sun
+    event: sunset
+    offset: -01:30:00
+  condition:
+  - condition: state
+    entity_id: device_tracker.iphone_tk
+    state: not_home
+  - condition: state
+    entity_id: device_tracker.iphone_monika
+    state: not_home
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ states(''sensor.stacja_pogodowa_solar_radiation'') | float(-1)
+          >= 50 }}
+
+          '
+      sequence:
+      - delay:
+          minutes: 70
+      - service: cover.close_cover
+        target:
+          entity_id:
+          - cover.rollershutter_0001
+          - cover.rollershutter_0002
+          - cover.rollershutter_0009
+      - action: logbook.log
+        data:
+          name: Kwiaty — rolety
+          message: 'ZAMKNIĘTO | zachód −20 min | pogodnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+            | round(0) }} W/m²
+
+            '
+      - action: script.log_push
+        data:
+          wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"kwiaty",
+            "akcja":"CLOSE","info":"pogodnie {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+            | round(0) }}W/m² · zachód −20min · rolety 1,2,9"}
+
+            '
+    default:
+    - service: cover.close_cover
+      target:
+        entity_id:
+        - cover.rollershutter_0001
+        - cover.rollershutter_0002
+        - cover.rollershutter_0009
+    - action: logbook.log
+      data:
+        name: Kwiaty — rolety
+        message: 'ZAMKNIĘTO | zachód −90 min | pochmurnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+          | round(0) }} W/m²
+
+          '
+    - action: script.log_push
+      data:
+        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"kwiaty", "akcja":"CLOSE","info":"pochmurnie
+          {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m²
+          · zachód −90min · rolety 1,2,9"}
+
+          '
+  mode: single
+- alias: "Biuro prąd: ostrzeżenie (21:00 pn–pt)"
+  description: 'O 21:00 w dni robocze: jeśli switch.biuro jest włączony, wyślij powiadomienie
+    do iphone_tk że za godzinę prąd w biurze zostanie wyłączony.
+
+    '
+  trigger:
+  - platform: time
+    at: '21:00:00'
+  condition:
+  - condition: time
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  - condition: state
+    entity_id: switch.biuro
+    state: 'on'
+  action:
+  - service: notify.mobile_app_iphone_tk
+    data:
+      title: ⚡ Biuro – prąd włączony
+      message: Prąd w biurze jest włączony. Za godzinę (22:00) zostanie automatycznie
+        wyłączony.
+      data:
+        push:
+          sound: default
+  - action: logbook.log
+    data:
+      name: Biuro prąd
+      entity_id: switch.biuro
+      message: 'OSTRZEŻENIE | prąd włączony — wyłączenie zaplanowane na 22:00
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"biuro_prad",
+        "akcja":"WARN","info":"prąd włączony · wyłączenie za 1h o 22:00"}
+
+        '
+  mode: single
+  id: biuro_prad_ostrzezenie
+- alias: "Biuro prąd: wyłącz (22:00 pn–pt)"
+  description: 'O 22:00 w dni robocze wyłącz switch.biuro jeśli jest włączony.
+
+    '
+  trigger:
+  - platform: time
+    at: '22:00:00'
+  condition:
+  - condition: time
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  - condition: state
+    entity_id: switch.biuro
+    state: 'on'
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id: switch.biuro
+  - action: logbook.log
+    data:
+      name: Biuro prąd
+      entity_id: switch.biuro
+      message: 'WYŁĄCZONO | automatycznie o 22:00 (dzień roboczy)
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"biuro_prad",
+        "akcja":"OFF","info":"22:00 automatyczne"}
+
+        '
+  mode: single
+  id: biuro_prad_wylacz
+- id: ogrod2_snapshot_nawodnienie
+  alias: "Nawodnienie ogród 2: snapshot (03:00)"
+  description: >
+    Zapisuje stan sensor.water_2_total o 3:00 rano
+    jako punkt odniesienia do pomiaru zużycia nawodnienia.
+  triggers:
+    - trigger: time
+      at: "03:00:00"
+  actions:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.water_2_snapshot
+      data:
+        value: "{{ states('sensor.water_2_total') | float(0) }}"
+    - action: logbook.log
+      data:
+        name: "Ogród 2 nawodnienie"
+        entity_id: input_number.water_2_snapshot
+        message: >
+          Snapshot licznika przed nawodnieniem: {{ states('sensor.water_2_total') }} m³
   mode: single
 
 
-- id: porecz_wylacz_failsafe
-  alias: "Poręcz klatka — wyłącz failsafe w południe"
+- id: ogrod2_aktualizacja_nawodnienie
+  alias: "Nawodnienie ogród 2: aktualizacja (06:40)"
   description: >
-    Awaryjnie wyłącza oświetlenie o 12:00 jeśli nadal świeci.
+    Oblicza różnicę water_2_total między 03:00 a 06:40
+    i dodaje ją do input_number.ogrod_2.
+    Ignoruje dzień jeśli delta < 100 litrów (nawodnienie nie zadziałało).
+  triggers:
+    - trigger: time
+      at: "06:40:00"
+  actions:
+    - variables:
+        przed: "{{ states('input_number.water_2_snapshot') | float(0) }}"
+        po: "{{ states('sensor.water_2_total') | float(0) }}"
+        delta: "{{ [po - przed, 0] | max | round(3) }}"
+        ogrod2_nowe: "{{ (states('input_number.ogrod_2') | float(0) + [po - przed, 0] | max) | round(3) }}"
+    - condition: template
+      value_template: "{{ delta > 0.1 }}"
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.ogrod_2
+      data:
+        value: "{{ ogrod2_nowe }}"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.ogrod_2_ostatnia_aktualizacja
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - action: logbook.log
+      data:
+        name: "Ogród 2 nawodnienie"
+        entity_id: input_number.ogrod_2
+        message: >
+          Automatyczna aktualizacja: +{{ delta }} m³
+          (licznik: {{ przed }} → {{ po }} m³ | ogród_2 łącznie: {{ ogrod2_nowe }} m³)
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"nawodnienie_ogrod2",
+          "akcja":"update","delta":{{ delta }},"ogrod2":{{ ogrod2_nowe }}}
+  mode: single
+- id: strychowy_roleta_zamknij_upal
+  alias: "Roleta strychowy: zamknij przy upale (≥25°C, 5 min)"
   trigger:
-    - platform: time
-      at: "12:00:00"
+  - platform: numeric_state
+    entity_id: sensor.termometr_strychowy_temperature
+    above: 25
+    for:
+      minutes: 5
+  condition:
+  - condition: sun
+    after: sunrise
+    before: sunset
+  action:
+  - service: cover.close_cover
+    target:
+      entity_id: cover.rollershutter_0009
+  - action: logbook.log
+    data:
+      name: Strychowy — roleta
+      message: 'ZAMKNIĘTO | {{ states(''sensor.termometr_strychowy_temperature'')
+        | round(1) }}°C · {{ states(''sensor.termometr_strychowy_humidity'') | round(0)
+        }}% wilg.
+
+        '
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"strychowy_roleta",
+        "akcja":"CLOSE","temp":{{ states(''sensor.termometr_strychowy_temperature'')
+        | round(1) }}, "hum":{{ states(''sensor.termometr_strychowy_humidity'') |
+        round(0) }}, "info":"{{ states(''sensor.termometr_strychowy_temperature'')
+        | round(1) }}°C · {{ states(''sensor.termometr_strychowy_humidity'') | round(0)
+        }}% · zamknięto roletę 9"}
+
+        '
+  mode: single
+# ============================================================
+# AUTOMATYZACJA: Pergola — lamele teleco
+#
+# LOGIKA:
+#   Trigger otwarcia: temp > 26°C LUB wilgotność > 75%
+#                     (stabilne przez 2 min, by unikać skoków)
+#   Warunki otwarcia: 08:00–22:00, miesiące 4–9, nie pada,
+#                     lamela jeszcze nie otwarta
+#
+#   Ktoś w domu → otwórz na stałe, zamknij gdy:
+#     - zacznie padać (binary_sensor piezo → ON)
+#     - temp < 23°C I wilg < 70% (przez 5 min)
+#
+#   Nikogo w domu → otwórz na 30 min, potem zamknij
+#                   (deszcz przerwie wcześniej)
+#
+#   Zawsze o 22:00 → zamknij niezależnie od stanu
+#
+#   Godziny: 08:00–22:00
+#   Sezon:   kwiecień–wrzesień (miesiące 4–9)
+# ============================================================
+
+
+# ── 1. OTWÓRZ — ktoś w domu ──────────────────────────────────────────────────
+
+- id: teleco_pergola_otworz_dom
+  alias: "Pergola lamele: otwórz — ktoś w domu"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_temperature
+      above: 26
+      for:
+        minutes: 2
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_humidity
+      above: 75
+      for:
+        minutes: 2
   condition:
     - condition: state
-      entity_id: switch.porecz_klatka_schodowa_socket_1
+      entity_id: input_boolean.pergola_auto
       state: "on"
+    - condition: time
+      after: "08:00:00"
+      before: "22:00:00"
+    - condition: template
+      value_template: "{{ now().month in range(4, 10) }}"
+    - condition: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      state: "off"
     - condition: or
       conditions:
         - condition: state
@@ -511,20 +1126,218 @@
         - condition: state
           entity_id: device_tracker.iphone_monika
           state: home
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: cover.teleco_leds2
+          state: "open"
   action:
-    - service: switch.turn_off
+    - service: cover.open_cover
       target:
-        entity_id: switch.porecz_klatka_schodowa_socket_1
+        entity_id: cover.teleco_leds2
     - action: logbook.log
       data:
-        name: "Poręcz klatka"
-        entity_id: switch.porecz_klatka_schodowa_socket_1
+        name: "Pergola — lamele"
         message: >
-          WYŁĄCZONO | failsafe 12:00 | switch był nadal włączony |
-          radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+          OTWARTO | temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
     - action: script.log_push
       data:
         wpis: >
-          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
-          "akcja":"OFF","info":"⚠️ failsafe 12:00 · switch był nadal włączony"}
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"OPEN_DOM","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
   mode: single
+
+
+# ── 2. OTWÓRZ — nikogo w domu (30 min przewietrzenie) ────────────────────────
+
+- id: teleco_pergola_otworz_poza
+  alias: "Pergola lamele: otwórz 30 min (poza domem)"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_temperature
+      above: 26
+      for:
+        minutes: 2
+    - platform: numeric_state
+      entity_id: sensor.pergola_new_humidity
+      above: 75
+      for:
+        minutes: 2
+  condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
+    - condition: time
+      after: "08:00:00"
+      before: "22:00:00"
+    - condition: template
+      value_template: "{{ now().month in range(4, 10) }}"
+    - condition: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      state: "off"
+    - condition: state
+      entity_id: device_tracker.iphone_tk
+      state: not_home
+    - condition: state
+      entity_id: device_tracker.iphone_monika
+      state: not_home
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: cover.teleco_leds2
+          state: "open"
+    - condition: template
+      value_template: >
+        {{ (now().timestamp() - as_timestamp(states('input_datetime.pergola_poza_ostatnie_otwarcie'), 0)) > 14400 }}
+  action:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.pergola_poza_ostatnie_otwarcie
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - service: cover.open_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          OTWARTO na 30 min | nikt w domu |
+          temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+    - delay:
+        minutes: 30
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: "ZAMKNIĘTO | po 30 min przewietrzeniu | nikt w domu"
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
+
+
+# ── 3. ZAMKNIJ — zaczął padać ────────────────────────────────────────────────
+
+- id: teleco_pergola_zamknij_deszcz
+  alias: "Pergola lamele: zamknij — deszcz"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
+    - condition: state
+      entity_id: cover.teleco_leds2
+      state: "open"
+  action:
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          ZAMKNIĘTO | deszcz |
+          temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_DESZCZ","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"deszcz · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
+
+
+# ── 4. ZAMKNIJ — temperatura i wilgotność wróciły do normy ───────────────────
+
+- id: teleco_pergola_zamknij_temp
+  alias: "Pergola lamele: zamknij — temp w normie"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.pergola_new_temperature') | float(99) < 23
+           and states('sensor.pergola_new_humidity') | float(99) < 70 }}
+      for:
+        minutes: 5
+  condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
+    - condition: state
+      entity_id: cover.teleco_leds2
+      state: "open"
+  action:
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: >
+          ZAMKNIĘTO | temp i wilg w normie |
+          temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
+          · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_TEMP","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"temp OK {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg OK {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+  mode: single
+
+
+# ── 5. ZAMKNIJ — zawsze o 22:00 ──────────────────────────────────────────────
+
+- id: teleco_pergola_zamknij_noc
+  alias: "Pergola lamele: zamknij — noc (22:00)"
+  trigger:
+    - platform: time
+      at: "22:00:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
+    - condition: state
+      entity_id: cover.teleco_leds2
+      state: "open"
+  action:
+    - service: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
+    - action: logbook.log
+      data:
+        name: "Pergola — lamele"
+        message: "ZAMKNIĘTO | 22:00 — noc"
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
+          "akcja":"CLOSE_NOC","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
+          "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "info":"22:00 · zamknięcie nocne"}
+  mode: single
+
+

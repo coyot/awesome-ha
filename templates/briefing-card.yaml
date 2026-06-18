@@ -37,18 +37,127 @@ people:
 # Uzupełnij datami na cały sezon. Wykonane wpisy wygasają automatycznie
 # (znikają gdy oznaczysz jako done w aha-weather-card lub po dacie).
 fertilizations:
-  - date: '2026-04-15'
-    name: Nawóz startowy
-    description: Trawnik — Florovit start, 30g/m²
-  - date: '2026-05-20'
-    name: Nawóz wiosenny
-    description: Trawnik — Florovit, 30g/m²
-  - date: '2026-07-01'
-    name: Nawóz letni
-    description: N-P-K 12-6-18, 25g/m²
+  - date: '2026-04-16'
+    name: YaraMila Complex
+    description: >
+      Trawnik — YaraMila Complex, ok. 25-30 g/m².
+      Nawóz wieloskładnikowy NPK na start sezonu.
+
+  - date: '2026-05-13'
+    name: Saletra amonowa + superfosfat
+    description: >
+      Trawnik — saletra amonowa ok. 15-20 g/m² +
+      superfosfat wzbogacony ok. 20-30 g/m².
+      Mocne nawożenie azotowo-fosforowe po wiosennym starcie.
+
+  - date: '2026-05-26'
+    name: Oprysk regeneracyjny
+    description: >
+      Oprysk dolistny:
+      Optysil 50 ml / 10 l wody +
+      siarczan magnezu 100-150 g / 10 l +
+      siarczan żelaza 20-30 g / 10 l.
+      Oprysk wieczorem, bez upału.
+
+  - date: '2026-06-15'
+    name: Nawóz letni azotowo-potasowy
+    description: >
+      Trawnik — nawóz NPK ok. 18-6-12 lub 20-5-10,
+      dawka 25-30 g/m².
+      Cel: zagęszczenie, intensywna zieleń, regeneracja po użytkowaniu.
+
+  - date: '2026-06-22'
+    name: Optysil + magnez
+    description: >
+      Oprysk dolistny:
+      Optysil 50 ml / 10 l +
+      siarczan magnezu 100-150 g / 10 l.
+      Poprawa odporności na suszę i deptanie.
+
+  - date: '2026-07-10'
+    name: Potas + lekki azot
+    description: >
+      Trawnik — siarczan potasu 10-15 g/m² +
+      lekki nawóz azotowy ok. 5-10 g N/m².
+      Wzmocnienie odporności mechanicznej i odporności na suszę.
+
+  - date: '2026-07-18'
+    name: Żelazo + Optysil
+    description: >
+      Oprysk dolistny:
+      Optysil 50 ml / 10 l +
+      siarczan żelaza 20-30 g / 10 l.
+      Efekt ciemnozielonego trawnika i poprawa kondycji.
+
+  - date: '2026-08-05'
+    name: Nawóz długo działający
+    description: >
+      Trawnik — nawóz długo działający NPK ok. 15-5-15
+      lub 16-5-12 + Fe + Mg,
+      dawka 25 g/m².
+      Kluczowe nawożenie pod gęstość i regenerację.
+
+  - date: '2026-08-16'
+    name: Optysil sierpniowy
+    description: >
+      Oprysk dolistny:
+      Optysil 50 ml / 10 l +
+      siarczan magnezu 100 g / 10 l.
+      Przygotowanie trawnika do końcówki lata.
+
   - date: '2026-09-01'
     name: Nawóz jesienny
-    description: Trawnik — Florovit jesienny, 25g/m²
+    description: >
+      Trawnik — nawóz jesienny z wysokim potasem,
+      NPK ok. 6-10-20 lub 0-8-20,
+      dawka 25-30 g/m².
+      Bez mocnego azotu.
+
+  - date: '2026-09-15'
+    name: Żelazo jesienne
+    description: >
+      Lekki oprysk:
+      siarczan żelaza 20 g / 10 l +
+      siarczan magnezu 100 g / 10 l.
+      Poprawa koloru i ograniczenie mchu.
+
+  - date: '2026-10-05'
+    name: Ostatnie nawożenie jesienne
+    description: >
+      Trawnik — nawóz jesienny potasowy,
+      dawka 15-20 g/m².
+      Ostatnie nawożenie przed zimą.
+
+shopping_list:
+  - name: Nawóz letni NPK 18-6-12 lub 20-5-10
+    purpose: Zagęszczenie i wzrost letni
+
+  - name: Nawóz długo działający do trawnika
+    purpose: Stabilny wzrost i odporność latem
+
+  - name: Nawóz jesienny do trawnika
+    purpose: Potas i przygotowanie do zimy
+
+  - name: Siarczan potasu
+    purpose: Odporność na deptanie i suszę
+
+  - name: Siarczan magnezu
+    purpose: Intensywna zieleń i regeneracja
+
+  - name: Siarczan żelaza
+    purpose: Ciemnozielony kolor i ograniczenie mchu
+
+  - name: Optysil
+    purpose: Wzmocnienie źdźbeł i odporność stresowa
+
+  - name: Zwilżacz do trawnika (opcjonalnie)
+    purpose: Lepsze nawodnienie podczas upałów
+
+  - name: Opryskiwacz ciśnieniowy
+    purpose: Regularne opryski dolistne
+
+  - name: Tester pH gleby (opcjonalnie)
+    purpose: Kontrola odczynu i optymalizacja nawożenia
 
 # ── Wywóz śmieci ─────────────────────────────────────────────
 # Karta czyta datę następnego odbioru z atrybutów/stanu encji.

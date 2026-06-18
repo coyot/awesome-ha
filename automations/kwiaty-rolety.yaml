@@ -19,8 +19,8 @@
 
 # ── RANO: otwórz ─────────────────────────────────────────────────────────────
 
-- id: kwiaty_rolety_otworz_rano
-  alias: "Kwiaty — otwórz rolety rano gdy oboje poza domem"
+- id: kwiaty_otworz_rano
+  alias: "Kwiaty: otwórz rolety rano (poza domem)"
   trigger:
     - platform: sun
       event: sunrise
@@ -81,8 +81,8 @@
 
 # ── WIECZOREM: zamknij ───────────────────────────────────────────────────────
 
-- id: kwiaty_rolety_zamknij_wieczor
-  alias: "Kwiaty — zamknij rolety wieczorem gdy oboje poza domem"
+- id: kwiaty_zamknij_wieczor
+  alias: "Kwiaty: zamknij rolety wieczorem (poza domem)"
   trigger:
     - platform: sun
       event: sunset

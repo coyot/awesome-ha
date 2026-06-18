@@ -10,12 +10,14 @@
 #   Mode: single — nie powtarza jeśli już wykonane
 # ============================================================
 
-- id: strychowy_roleta_upał
-  alias: "Strychowy — zamknij roletę przy temp. ≥ 25°C"
+- id: strychowy_roleta_zamknij_upal
+  alias: "Roleta strychowy: zamknij przy upale (≥25°C, 5 min)"
   trigger:
     - platform: numeric_state
       entity_id: sensor.termometr_strychowy_temperature
       above: 25
+      for:
+        minutes: 5
   condition:
     - condition: sun
       after: sunrise

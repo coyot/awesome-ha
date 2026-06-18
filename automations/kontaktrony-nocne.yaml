@@ -1,4 +1,4 @@
-alias: "Kontaktrony – otwarte o 22:00"
+alias: "Kontaktrony: alert nocny (22:00)"
 description: >
   Codziennie o 22:00 sprawdza wszystkie czujniki otwarcia (binary_sensor
   z device_class door/window/opening) w domu. Jeśli któryś jest otwarty,

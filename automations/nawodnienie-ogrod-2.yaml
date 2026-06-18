@@ -22,8 +22,8 @@
 # ============================================================
 
 
-- id: ogrod2_snapshot_przed_nawodnieniem
-  alias: "Ogród 2 — snapshot licznika przed nawodnieniem (03:00)"
+- id: ogrod2_snapshot_nawodnienie
+  alias: "Nawodnienie ogród 2: snapshot (03:00)"
   description: >
     Zapisuje stan sensor.water_2_total o 3:00 rano
     jako punkt odniesienia do pomiaru zużycia nawodnienia.
@@ -45,8 +45,8 @@
   mode: single
 
 
-- id: ogrod2_aktualizacja_po_nawodnieniu
-  alias: "Ogród 2 — aktualizacja zużycia po nawodnieniu (06:30)"
+- id: ogrod2_aktualizacja_nawodnienie
+  alias: "Nawodnienie ogród 2: aktualizacja (06:40)"
   description: >
     Oblicza różnicę water_2_total między 03:00 a 06:30
     i dodaje ją do input_number.ogrod_2.

@@ -82,7 +82,7 @@ Layout: `flex column`, padding `10px 10px 8px`, aspect-ratio `1/1` or auto heigh
 ## Releasing
 
 When publishing a new version:
-1. Rebuild the bundle: `cat dist/aha-shared.js dist/action-apple-card.js dist/entries-apple-card.js dist/garden-meters-card.js dist/szambo-apple-card.js dist/szambo-predict-card.js dist/szambo-finance-card.js dist/waste-schedule-apple-card.js dist/astronomical-events-card.js dist/climate-apple-card.js dist/solar-clock-card.js dist/teleco-card.js dist/aha-teleco-slim-card.js dist/temp-humidity-card.js dist/temp-slim-card.js dist/temp-gauge-card.js dist/kontaktron-card.js dist/kosiarka-card.js dist/kosiarka-slim-card.js > awesome-ha.js`
+1. Rebuild the bundle: `cat dist/aha-shared.js dist/action-apple-card.js dist/entries-apple-card.js dist/garden-meters-card.js dist/szambo-apple-card.js dist/szambo-predict-card.js dist/szambo-finance-card.js dist/waste-schedule-apple-card.js dist/astronomical-events-card.js dist/climate-apple-card.js dist/solar-clock-card.js dist/teleco-card.js dist/aha-teleco-slim-card.js dist/temp-humidity-card.js dist/temp-slim-card.js dist/temp-gauge-card.js dist/kontaktron-card.js dist/kosiarka-card.js dist/kosiarka-slim-card.js dist/power-overview-card.js dist/switch-socket-card.js dist/log-history-card.js dist/roborock-vacuum-card.js dist/briefing-card.js dist/garden-calendar-card.js dist/forecast-card.js dist/weather-card.js dist/aha-input-boolean-card.js > awesome-ha.js`
 2. Commit and tag: `git tag vX.Y.Z && git push origin main --tags`
 3. **Always create a GitHub Release** (not just a git tag) using `gh release create`:
    ```

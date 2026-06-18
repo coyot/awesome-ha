@@ -1,4 +1,4 @@
-- alias: "Biuro – ostrzeżenie: prąd włączony, wyłączenie za 1h (21:00 pn–pt)"
+- alias: "Biuro prąd: ostrzeżenie (21:00 pn–pt)"
   description: >
     O 21:00 w dni robocze: jeśli switch.biuro jest włączony, wyślij powiadomienie
     do iphone_tk że za godzinę prąd w biurze zostanie wyłączony.
@@ -39,7 +39,7 @@
   mode: single
 
 
-- alias: "Biuro – wyłącz prąd o 22:00 (pn–pt)"
+- alias: "Biuro prąd: wyłącz (22:00 pn–pt)"
   description: >
     O 22:00 w dni robocze wyłącz switch.biuro jeśli jest włączony.
 

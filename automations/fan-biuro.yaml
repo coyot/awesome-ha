@@ -1,4 +1,4 @@
-- alias: "Wiatrak biuro – włącz przy upale"
+- alias: "Biuro wiatrak: włącz przy upale"
   description: >
     Gdy temperatura w biurze przekroczy 26°C w godzinach 7:00–22:00
     i TK jest w domu — włącz wiatrak.
@@ -6,7 +6,9 @@
   trigger:
     - platform: numeric_state
       entity_id: sensor.biuro_temperature
-      above: 26
+      above: 25
+      for:
+        minutes: 2
 
   condition:
     - condition: time
@@ -15,9 +17,6 @@
     - condition: zone
       entity_id: person.tk
       zone: zone.home
-    - condition: state
-      entity_id: switch.biuro_wiatrak
-      state: "off"
 
   action:
     - service: switch.turn_on
@@ -29,7 +28,7 @@
         name: "Wiatrak biuro"
         entity_id: switch.biuro_wiatrak
         message: >
-          WŁĄCZONO | temp {{ states('sensor.biuro_temperature') | round(1) }}°C > 26°C
+          WŁĄCZONO | temp {{ states('sensor.biuro_temperature') | round(1) }}°C > 25°C
 
     - action: script.log_push
       data:
@@ -39,7 +38,7 @@
 
   mode: single
 
-- alias: "Wiatrak biuro – wyłącz (temperatura OK lub godzina)"
+- alias: "Biuro wiatrak: wyłącz (temp OK lub godzina)"
   description: >
     Wyłącz wiatrak gdy temperatura w biurze spadnie do 22°C lub poniżej,
     albo gdy wybije 22:00 (pn–pt) lub 20:00 (sob–nd).

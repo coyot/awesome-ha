@@ -1,4 +1,4 @@
-alias: "Garaż – powiadomienie przy otwartych drzwiach o 20:00"
+alias: "Garaż: alert — drzwi otwarte (20:00)"
 description: >
   Codziennie o 20:00 sprawdza czy drzwi garażu są otwarte.
   Wysyła powiadomienie do osób aktualnie przebywających w domu
@@ -21,8 +21,8 @@ action:
     then:
       - service: notify.mobile_app_iphone_tk
         data:
-          title: "Garaż otwarty"
-          message: "Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
+          title: "⚠️ Garaż otwarty"
+          message: "🚘 Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
           data:
             push:
               sound: default
@@ -35,8 +35,8 @@ action:
     then:
       - service: notify.mobile_app_iphone_monika
         data:
-          title: "Garaż otwarty"
-          message: "Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
+          title: "⚠️ Garaż otwarty"
+          message: "🚘 Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
           data:
             push:
               sound: default

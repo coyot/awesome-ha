@@ -1,0 +1,577 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+lovelace:
+  resources:
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+
+logger:
+  default: info
+  logs:
+    homeassistant.components.roborock: debug
+    roborock: debug
+
+template:
+  - sensor:
+      - name: "Szambo dom 1 zużycie"
+        unique_id: szambo_dom1_zuzycie
+        unit_of_measurement: "m³"
+        device_class: water
+        state: >
+          {{ [states('sensor.water_1_total_2') | float(0) -
+          states('input_number.szambo_wywoz_dom_1') | float(0) -
+          (states('input_number.ogrod_1') | float(0) -
+          states('input_number.szambo_wywoz_ogrod_1') | float(0)), 0] | max | round(3) }}
+
+      - name: "Szambo dom 2 zużycie"
+        unique_id: szambo_dom2_zuzycie
+        unit_of_measurement: "m³"
+        device_class: water
+        state: >
+          {{ [states('sensor.water_2_total') | float(0) -
+          states('input_number.szambo_wywoz_dom_2') | float(0) -
+          (states('input_number.ogrod_2') | float(0) -
+          states('input_number.szambo_wywoz_ogrod_2') | float(0)), 0] | max | round(3) }}
+
+      - name: "Szambo zużycie"
+        unique_id: szambo_zuzycie
+        unit_of_measurement: "m³"
+        device_class: water
+        state_class: total
+        state: >
+          {{ [states('sensor.szambo_dom_1_zuzycie') | float(0) +
+          states('sensor.szambo_dom_2_zuzycie') | float(0), 0] | max | round(3) }}
+
+      - name: "Szambo dom 1 do zapłaty"
+        unique_id: szambo_dom1_zaplata
+        unit_of_measurement: "zł"
+        state: >
+          {% set d1 = states('sensor.szambo_dom_1_zuzycie') | float(0) %}
+          {% set d2 = states('sensor.szambo_dom_2_zuzycie') | float(0) %}
+          {% set total = d1 + d2 %}
+          {{ ((d1 / total * 320) if total > 0 else 0) | round(2) }}
+
+      - name: "Szambo dom 2 do zapłaty"
+        unique_id: szambo_dom2_zaplata
+        unit_of_measurement: "zł"
+        state: >
+          {% set d1 = states('sensor.szambo_dom_1_zuzycie') | float(0) %}
+          {% set d2 = states('sensor.szambo_dom_2_zuzycie') | float(0) %}
+          {% set total = d1 + d2 %}
+          {{ ((d2 / total * 320) if total > 0 else 0) | round(2) }}
+
+      - name: "Ogród 1 zużycie"
+        unique_id: ogrod1_zuzycie
+        unit_of_measurement: "m³"
+        device_class: water
+        state: >
+          {{ [states('input_number.ogrod_1') | float(0) -
+          states('input_number.szambo_wywoz_ogrod_1') | float(0), 0] | max | round(3) }}
+
+      - name: "Ogród 2 zużycie"
+        unique_id: ogrod2_zuzycie
+        unit_of_measurement: "m³"
+        device_class: water
+        state: >
+          {{ [states('input_number.ogrod_2') | float(0) -
+          states('input_number.szambo_wywoz_ogrod_2') | float(0), 0] | max | round(3) }}
+
+      - name: "Szambo godziny od wywozu"
+        unique_id: szambo_godziny_od_wywozu
+        state: >
+          {{ ((now().timestamp() - as_timestamp(states('input_datetime.ostatni_wywoz_szamba'))) / 3600) | round(0) | int }}
+        unit_of_measurement: "h"
+
+      - name: "Szambo poziom procent"
+        unique_id: szambo_procent
+        unit_of_measurement: "%"
+        state: >
+          {{ ((states('sensor.szambo_zuzycie') | float(0) / 10) * 100) | round(0) }}
+
+      - name: "Szambo przyrost dzienny"
+        unique_id: szambo_przyrost_dzienny
+        unit_of_measurement: "m³/d"
+        state: >
+          {% set current = states('sensor.szambo_zuzycie') | float(0) %}
+          {% set hours = states('sensor.szambo_godziny_od_wywozu') | float(0) %}
+          {% set days = hours / 24 %}
+          {% if days > 0 %}
+            {{ (current / days) | round(4) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "Szambo dni do pełna"
+        unique_id: szambo_dni_do_pelna
+        unit_of_measurement: "dni"
+        state: >
+          {% set current = states('sensor.szambo_zuzycie') | float(0) %}
+          {% set rate = states('sensor.szambo_przyrost_dzienny') | float(0) %}
+          {% if rate > 0 %}
+            {{ ((10 - current) / rate) | round(1) }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: "Szambo prognoza"
+        unique_id: szambo_prognoza
+        unit_of_measurement: "m³"
+        state: >
+          {% set rate = states('sensor.szambo_przyrost_dzienny') | float(0) %}
+          {% set hours = states('sensor.szambo_godziny_od_wywozu') | float(0) %}
+          {% set days = hours / 24 %}
+          {{ (rate * days) | round(2) }}
+
+      - name: Wjazd 1
+        state: >
+          {% set s = states('input_text.wjazd_1') %}
+          {% if '|' in s %}
+            {% set kto = s.split('|')[0] %}
+            {% set ts = as_timestamp(s.split('|')[1]) %}
+            {% set diff = (now().timestamp() - ts) / 60 %}
+            {% set name = 'Tomek' if kto == 'person.tk' else 'Monika' if kto == 'person.mk' else '' %}
+            {% set today = now().date() %}
+            {% set entry_date = (ts | timestamp_local | as_datetime).date() %}
+            {% if diff < 1 %}
+              {{ name }} @ teraz
+            {% elif diff < 60 %}
+              {{ name }} @ {{ diff | int }} min temu
+            {% elif entry_date == today %}
+              {{ name }} @ dziś {{ ts | timestamp_custom('%H:%M') }}
+            {% elif (today - entry_date).days == 1 %}
+              {{ name }} @ wczoraj {{ ts | timestamp_custom('%H:%M') }}
+            {% else %}
+              {{ name }} @ {{ ts | timestamp_custom('%d.%m %H:%M') }}
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        attributes:
+          entity_picture: >
+            {% set s = states('input_text.wjazd_1') %}
+            {% if 'person.tk' in s %}
+              {{ state_attr('person.tk','entity_picture') }}
+            {% elif 'person.mk' in s %}
+              {{ state_attr('person.mk','entity_picture') }}
+            {% endif %}
+
+      - name: Wjazd 2
+        state: >
+          {% set s = states('input_text.wjazd_2') %}
+          {% if '|' in s %}
+            {% set kto = s.split('|')[0] %}
+            {% set ts = as_timestamp(s.split('|')[1]) %}
+            {% set diff = (now().timestamp() - ts) / 60 %}
+            {% set name = 'Tomek' if kto == 'person.tk' else 'Monika' if kto == 'person.mk' else '' %}
+            {% set today = now().date() %}
+            {% set entry_date = (ts | timestamp_local | as_datetime).date() %}
+            {% if diff < 1 %}
+              {{ name }} @ teraz
+            {% elif diff < 60 %}
+              {{ name }} @ {{ diff | int }} min temu
+            {% elif entry_date == today %}
+              {{ name }} @ dziś {{ ts | timestamp_custom('%H:%M') }}
+            {% elif (today - entry_date).days == 1 %}
+              {{ name }} @ wczoraj {{ ts | timestamp_custom('%H:%M') }}
+            {% else %}
+              {{ name }} @ {{ ts | timestamp_custom('%d.%m %H:%M') }}
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        attributes:
+          entity_picture: >
+            {% set s = states('input_text.wjazd_2') %}
+            {% if 'person.tk' in s %}
+              {{ state_attr('person.tk','entity_picture') }}
+            {% elif 'person.mk' in s %}
+              {{ state_attr('person.mk','entity_picture') }}
+            {% endif %}
+
+      - name: Wjazd 3
+        state: >
+          {% set s = states('input_text.wjazd_3') %}
+          {% if '|' in s %}
+            {% set kto = s.split('|')[0] %}
+            {% set ts = as_timestamp(s.split('|')[1]) %}
+            {% set diff = (now().timestamp() - ts) / 60 %}
+            {% set name = 'Tomek' if kto == 'person.tk' else 'Monika' if kto == 'person.mk' else '' %}
+            {% set today = now().date() %}
+            {% set entry_date = (ts | timestamp_local | as_datetime).date() %}
+            {% if diff < 1 %}
+              {{ name }} @ teraz
+            {% elif diff < 60 %}
+              {{ name }} @ {{ diff | int }} min temu
+            {% elif entry_date == today %}
+              {{ name }} @ dziś {{ ts | timestamp_custom('%H:%M') }}
+            {% elif (today - entry_date).days == 1 %}
+              {{ name }} @ wczoraj {{ ts | timestamp_custom('%H:%M') }}
+            {% else %}
+              {{ name }} @ {{ ts | timestamp_custom('%d.%m %H:%M') }}
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        attributes:
+          entity_picture: >
+            {% set s = states('input_text.wjazd_3') %}
+            {% if 'person.tk' in s %}
+              {{ state_attr('person.tk','entity_picture') }}
+            {% elif 'person.mk' in s %}
+              {{ state_attr('person.mk','entity_picture') }}
+            {% endif %}
+
+  - binary_sensor:
+      - name: "Ogród 1 dane nieaktualne"
+        unique_id: ogrod_1_dane_nieaktualne
+        state: >
+          {{ (now().timestamp() - as_timestamp(states('input_datetime.ogrod_1_ostatnia_aktualizacja'))) > 259200 }}
+        icon: >
+          {{ 'mdi:alert-circle' if (now().timestamp() - as_timestamp(states('input_datetime.ogrod_1_ostatnia_aktualizacja'))) > 259200 else 'mdi:check-circle' }}
+
+      - name: "Ogród 2 dane nieaktualne"
+        unique_id: ogrod_2_dane_nieaktualne
+        state: >
+          {{ (now().timestamp() - as_timestamp(states('input_datetime.ogrod_2_ostatnia_aktualizacja'))) > 259200 }}
+        icon: >
+          {{ 'mdi:alert-circle' if (now().timestamp() - as_timestamp(states('input_datetime.ogrod_2_ostatnia_aktualizacja'))) > 259200 else 'mdi:check-circle' }}
+
+  - trigger:
+      - platform: time_pattern
+        hours: "/1"
+      - platform: homeassistant
+        event: start
+    action:
+      - service: weather.get_forecasts
+        data:
+          type: daily
+        target:
+          entity_id: weather.forecast_home
+        response_variable: daily_forecast
+    sensor:
+      - name: "Prognoza pogody 5 dni"
+        unique_id: weather_forecast_5day_data
+        state: "{{ now().strftime('%Y-%m-%d %H:%M') }}"
+        attributes:
+          forecast: >
+            {{ daily_forecast['weather.forecast_home'].forecast[:5] }}
+        icon: mdi:weather-cloudy-clock
+  - trigger:
+      - platform: time_pattern
+        hours: "/1"
+      - platform: homeassistant
+        event: start
+    action:
+      - service: weather.get_forecasts
+        data:
+          type: hourly
+        target:
+          entity_id: weather.forecast_home
+        response_variable: fc
+    sensor:
+      - name: "Forecast Hourly JSON"
+        unique_id: forecast_hourly_json
+        state: "{{ now().isoformat() }}"
+        attributes:
+          forecast: "{{ fc['weather.forecast_home'].forecast }}"
+
+waste_collection_schedule:
+  sources:
+    - name: ecoharmonogram_pl
+      args:
+        town: "Suchy Las"
+        street: "Mokra"
+        house_number: "49"
+        district: "Suchy Las"
+  sensors:
+    - name: "Harmonogram BIO"
+      details_format: "upcoming"
+      value_template: '{{ value.daysTo }}'
+      types:
+        - BIO
+    - name: "Harmonogram Segregowane"
+      details_format: "upcoming"
+      value_template: '{{ value.daysTo }}'
+      types:
+        - ODPADY SEGREGOWANE
+    - name: "Harmonogram Zmieszane"
+      details_format: "upcoming"
+      value_template: '{{ value.daysTo }}'
+      types:
+        - ODPADY ZMIESZANE
+    - name: "Harmonogram Gabaryty"
+      details_format: "upcoming"
+      value_template: '{{ value.daysTo }}'
+      types:
+        - WIELKOGABARYTY
+    - name: "Harmonogram Płatność"
+      details_format: "upcoming"
+      value_template: '{{ value.date.strftime("%d.%m.%Y") }}'
+      types:
+        - TERMIN PŁATNOŚCI
+
+input_boolean:
+  pergola_auto:
+    name: Pergola — automatyzacje włączone
+    icon: mdi:sun-angle
+
+input_datetime:
+  ogrod_1_ostatnia_aktualizacja:
+    name: Ogród 1 – ostatnia aktualizacja
+    has_date: true
+    has_time: true
+  ogrod_2_ostatnia_aktualizacja:
+    name: Ogród 2 – ostatnia aktualizacja
+    has_date: true
+    has_time: true
+  pergola_poza_ostatnie_otwarcie:
+    name: Pergola — ostatnie przewietrzenie (poza domem)
+    has_date: true
+    has_time: true
+
+input_button:
+  ogrod_1_potwierdz:
+    name: Ogród 1 – potwierdź
+  ogrod_2_potwierdz:
+    name: Ogród 2 – potwierdź
+
+input_text:
+  wjazd_1:
+    name: Wjazd 1
+    max: 100
+  wjazd_2:
+    name: Wjazd 2
+    max: 100
+  wjazd_3:
+    name: Wjazd 3
+    max: 100
+  szambo_h1:
+    name: "Szambo historia 1"
+    max: 255
+  szambo_h2:
+    name: "Szambo historia 2"
+    max: 255
+  szambo_h3:
+    name: "Szambo historia 3"
+    max: 255
+  szambo_h4:
+    name: "Szambo historia 4"
+    max: 255
+  szambo_h5:
+    name: "Szambo historia 5"
+    max: 255
+  szambo_h6:
+    name: "Szambo historia 6"
+    max: 255
+  szambo_h7:
+    name: "Szambo historia 7"
+    max: 255
+  szambo_h8:
+    name: "Szambo historia 8"
+    max: 255
+  szambo_h9:
+    name: "Szambo historia 9"
+    max: 255
+  szambo_h10:
+    name: "Szambo historia 10"
+    max: 255
+  log_h1:
+    name: "Log historia 1"
+    max: 255
+  log_h2:
+    name: "Log historia 2"
+    max: 255
+  log_h3:
+    name: "Log historia 3"
+    max: 255
+  log_h4:
+    name: "Log historia 4"
+    max: 255
+  log_h5:
+    name: "Log historia 5"
+    max: 255
+  log_h6:
+    name: "Log historia 6"
+    max: 255
+  log_h7:
+    name: "Log historia 7"
+    max: 255
+  log_h8:
+    name: "Log historia 8"
+    max: 255
+  log_h9:
+    name: "Log historia 9"
+    max: 255
+  log_h10:
+    name: "Log historia 10"
+    max: 255
+  log_h11:
+    name: "Log historia 11"
+    max: 255
+  log_h12:
+    name: "Log historia 12"
+    max: 255
+  log_h13:
+    name: "Log historia 13"
+    max: 255
+  log_h14:
+    name: "Log historia 14"
+    max: 255
+  log_h15:
+    name: "Log historia 15"
+    max: 255
+  log_h16:
+    name: "Log historia 16"
+    max: 255
+  log_h17:
+    name: "Log historia 17"
+    max: 255
+  log_h18:
+    name: "Log historia 18"
+    max: 255
+  log_h19:
+    name: "Log historia 19"
+    max: 255
+  log_h20:
+    name: "Log historia 20"
+    max: 255
+  log_h21:
+    name: "Log historia 21"
+    max: 255
+  log_h22:
+    name: "Log historia 22"
+    max: 255
+  log_h23:
+    name: "Log historia 23"
+    max: 255
+  log_h24:
+    name: "Log historia 24"
+    max: 255
+  log_h25:
+    name: "Log historia 25"
+    max: 255
+  log_h26:
+    name: "Log historia 26"
+    max: 255
+  log_h27:
+    name: "Log historia 27"
+    max: 255
+  log_h28:
+    name: "Log historia 28"
+    max: 255
+  log_h29:
+    name: "Log historia 29"
+    max: 255
+  log_h30:
+    name: "Log historia 30"
+    max: 255
+  log_h31:
+    name: "Log historia 31"
+    max: 255
+  log_h32:
+    name: "Log historia 32"
+    max: 255
+  log_h33:
+    name: "Log historia 33"
+    max: 255
+  log_h34:
+    name: "Log historia 34"
+    max: 255
+  log_h35:
+    name: "Log historia 35"
+    max: 255
+  log_h36:
+    name: "Log historia 36"
+    max: 255
+  log_h37:
+    name: "Log historia 37"
+    max: 255
+  log_h38:
+    name: "Log historia 38"
+    max: 255
+  log_h39:
+    name: "Log historia 39"
+    max: 255
+  log_h40:
+    name: "Log historia 40"
+    max: 255
+  log_h41:
+    name: "Log historia 41"
+    max: 255
+  log_h42:
+    name: "Log historia 42"
+    max: 255
+  log_h43:
+    name: "Log historia 43"
+    max: 255
+  log_h44:
+    name: "Log historia 44"
+    max: 255
+  log_h45:
+    name: "Log historia 45"
+    max: 255
+  log_h46:
+    name: "Log historia 46"
+    max: 255
+  log_h47:
+    name: "Log historia 47"
+    max: 255
+  log_h48:
+    name: "Log historia 48"
+    max: 255
+  log_h49:
+    name: "Log historia 49"
+    max: 255
+  log_h50:
+    name: "Log historia 50"
+    max: 255
+
+homeassistant:
+  customize:
+    weather.forecast_home:
+      forecast_type: hourly
+
+notify:
+  - name: moj_whatsapp
+    platform: rest
+    resource: "https://api.callmebot.com/whatsapp.php"
+    method: GET
+    params:
+      phone: "48791570737"
+      apikey: "7549131"
+      text: "{{ message }}"
+
+sensor:                                                                                                                                                                                                                                                                    
+  - platform: rest                                                                                                                                                                                                                                                         
+    name: upcoming_launches
+    resource: https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5&agency_launch_attempt_count=true                                                                                                                                                                  
+    value_template: "{{ value_json.count | default(0) }}"                                                                                                                                                                                                                                  
+    json_attributes:
+      - results                                                                                                                                                                                                                                                            
+    scan_interval: 3600
+  - platform: worxlandroid
+    host: 192.168.33.44
+    pin: 0000
+
+rest_command:
+  blynk_open_gate:
+    url: "https://blynk.cloud/external/api/update?token=fnHUjeRsWteFRqJtdc0ERY6s86NW4jN4&V0=1"
+    method: get
+
+  szambo_google_sheets:
+    url: "https://script.google.com/macros/s/AKfycbwcAKteuWy2g15fT_Azz4-C6-o7Wi8RE1UJd94b7-BDn7IO-pWEWfNOeEqFNK25tlBBUA/exec"
+    method: POST
+    headers:
+      Content-Type: application/json
+    payload: >
+      {"dom1_m3": "{{ dom1_m3 }}", "dom1_zl": "{{ dom1_zl }}", "dom2_m3": "{{ dom2_m3 }}", "dom2_zl": "{{ dom2_zl }}", "lacznie_m3": "{{ lacznie_m3 }}", "koszt": "320"}
+      

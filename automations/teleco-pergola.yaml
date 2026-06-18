@@ -24,7 +24,7 @@
 # ── 1. OTWÓRZ — ktoś w domu ──────────────────────────────────────────────────
 
 - id: teleco_pergola_otworz_dom
-  alias: "Pergola — otwórz lamele przy upale/wilgoci (ktoś w domu)"
+  alias: "Pergola lamele: otwórz — ktoś w domu"
   trigger:
     - platform: numeric_state
       entity_id: sensor.pergola_new_temperature
@@ -37,6 +37,9 @@
       for:
         minutes: 2
   condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
     - condition: time
       after: "08:00:00"
       before: "22:00:00"
@@ -81,7 +84,7 @@
 # ── 2. OTWÓRZ — nikogo w domu (30 min przewietrzenie) ────────────────────────
 
 - id: teleco_pergola_otworz_poza
-  alias: "Pergola — otwórz lamele na 30 min przy upale/wilgoci (poza domem)"
+  alias: "Pergola lamele: otwórz 30 min (poza domem)"
   trigger:
     - platform: numeric_state
       entity_id: sensor.pergola_new_temperature
@@ -94,6 +97,9 @@
       for:
         minutes: 2
   condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
     - condition: time
       after: "08:00:00"
       before: "22:00:00"
@@ -113,7 +119,15 @@
         - condition: state
           entity_id: cover.teleco_leds2
           state: "open"
+    - condition: template
+      value_template: >
+        {{ (now().timestamp() - as_timestamp(states('input_datetime.pergola_poza_ostatnie_otwarcie'), 0)) > 14400 }}
   action:
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.pergola_poza_ostatnie_otwarcie
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     - service: cover.open_cover
       target:
         entity_id: cover.teleco_leds2
@@ -153,12 +167,15 @@
 # ── 3. ZAMKNIJ — zaczął padać ────────────────────────────────────────────────
 
 - id: teleco_pergola_zamknij_deszcz
-  alias: "Pergola — zamknij lamele gdy zaczął padać"
+  alias: "Pergola lamele: zamknij — deszcz"
   trigger:
     - platform: state
       entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
       to: "on"
   condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
     - condition: state
       entity_id: cover.teleco_leds2
       state: "open"
@@ -185,8 +202,8 @@
 
 # ── 4. ZAMKNIJ — temperatura i wilgotność wróciły do normy ───────────────────
 
-- id: teleco_pergola_zamknij_temp_ok
-  alias: "Pergola — zamknij lamele gdy temp i wilg w normie"
+- id: teleco_pergola_zamknij_temp
+  alias: "Pergola lamele: zamknij — temp w normie"
   trigger:
     - platform: template
       value_template: >
@@ -195,6 +212,9 @@
       for:
         minutes: 5
   condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
     - condition: state
       entity_id: cover.teleco_leds2
       state: "open"
@@ -222,11 +242,14 @@
 # ── 5. ZAMKNIJ — zawsze o 22:00 ──────────────────────────────────────────────
 
 - id: teleco_pergola_zamknij_noc
-  alias: "Pergola — zamknij lamele na noc (22:00)"
+  alias: "Pergola lamele: zamknij — noc (22:00)"
   trigger:
     - platform: time
       at: "22:00:00"
   condition:
+    - condition: state
+      entity_id: input_boolean.pergola_auto
+      state: "on"
     - condition: state
       entity_id: cover.teleco_leds2
       state: "open"

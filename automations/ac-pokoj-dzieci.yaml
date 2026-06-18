@@ -1,4 +1,4 @@
-- alias: "Pokój dzieci – włącz chłodzenie przy upale"
+- alias: "AC dzieci: włącz chłodzenie przy upale"
   description: >
     Gdy temperatura w pokoju dzieci przekroczy 26°C w godzinach 10:00–18:30
     i ktoś z rodziców jest w domu — włącz klimatyzację na cooling 21°C (max fan)
@@ -63,7 +63,7 @@
 
   mode: single
 
-- alias: "Pokój dzieci – wyłącz chłodzenie (temperatura OK lub 18:30)"
+- alias: "AC dzieci: wyłącz (temp OK lub 18:30)"
   description: >
     Wyłącz klimatyzację w pokoju dzieci gdy temperatura spadnie do 21°C
     lub wybije 18:30.
