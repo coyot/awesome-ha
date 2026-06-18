@@ -14220,18 +14220,39 @@ window.customCards.push({
     // ── Tooltip HTML ─────────────────────────────────────────────────────────
 
     _tipHtml(encoded) {
+      // Tooltip lives in light DOM — inline styles only, no shadow-DOM classes.
+      const row = (icon, text) =>
+        `<div style="display:flex;align-items:center;gap:7px;margin:3px 0;line-height:1.4">${icon}<span>${text}</span></div>`;
+
+      const iconDone = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+        <circle cx="12" cy="12" r="9" fill="rgba(80,200,90,0.85)"/>
+        <path d="M8 12.5l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+      const iconPlan = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+        <circle cx="12" cy="12" r="9" stroke="rgba(80,200,90,0.80)" stroke-width="2"/>
+        <path d="M12 8v4l2.5 2.5" stroke="rgba(80,200,90,0.80)" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>`;
+      const iconRain = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+        <path d="M6 16a4 4 0 010-8 6 6 0 1112 0 4 4 0 010 8" stroke="rgba(77,168,255,0.90)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M8 19v2M12 18v3M16 19v2" stroke="rgba(77,168,255,0.80)" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>`;
+      const iconWater = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+        <path d="M12 3C12 3 6 11 6 15a6 6 0 0012 0C18 11 12 3 12 3z" fill="rgba(48,176,255,0.85)"/>
+        <path d="M10 16.5Q9.5 14.5 11 13.5" stroke="rgba(255,255,255,0.35)" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>`;
+
       let html = '';
       for (const part of encoded.split('|')) {
         if (part.startsWith('D:')) {
           for (const name of part.slice(2).split(';;'))
-            html += `<div class="tr"><span class="td dn"></span>${name}</div>`;
+            html += row(iconDone, name);
         } else if (part.startsWith('P:')) {
           for (const name of part.slice(2).split(';;'))
-            html += `<div class="tr"><span class="td pl"></span>${name}</div>`;
+            html += row(iconPlan, name);
         } else if (part.startsWith('R:')) {
-          html += `<div class="tr"><span class="td rn"></span>Deszcz: ${part.slice(2)} mm</div>`;
+          html += row(iconRain, `Deszcz: ${part.slice(2)} mm`);
         } else if (part.startsWith('W:')) {
-          html += `<div class="tr"><span class="td wt"></span>Podlano: ${part.slice(2)} L</div>`;
+          html += row(iconWater, `Podlano: ${part.slice(2)} L`);
         }
       }
       return html;

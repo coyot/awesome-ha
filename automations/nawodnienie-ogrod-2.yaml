@@ -50,7 +50,7 @@
   description: >
     Oblicza różnicę water_2_total między 03:00 a 06:30
     i dodaje ją do input_number.ogrod_2.
-    Ignoruje dzień jeśli delta < 1 litr (nawodnienie nie zadziałało).
+    Ignoruje dzień jeśli delta < 100 litrów (nawodnienie nie zadziałało).
   triggers:
     - trigger: time
       at: "06:30:00"
@@ -61,7 +61,7 @@
         delta: "{{ [po - przed, 0] | max | round(3) }}"
         ogrod2_nowe: "{{ (states('input_number.ogrod_2') | float(0) + [po - przed, 0] | max) | round(3) }}"
     - condition: template
-      value_template: "{{ delta > 0.001 }}"
+      value_template: "{{ delta > 0.1 }}"
     - action: input_number.set_value
       target:
         entity_id: input_number.ogrod_2
