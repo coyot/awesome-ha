@@ -323,6 +323,9 @@ input_boolean:
   pergola_auto:
     name: Pergola — automatyzacje włączone
     icon: mdi:sun-angle
+  tk_is_working:
+    name: Praca — praca trwa u TK
+    icon: mdi:desktop-classic
 
 input_datetime:
   ogrod_1_ostatnia_aktualizacja:

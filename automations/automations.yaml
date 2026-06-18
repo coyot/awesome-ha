@@ -913,8 +913,12 @@
   - service: notify.mobile_app_iphone_tk
     data:
       title: ⚡ Biuro – prąd włączony
-      message: Prąd w biurze jest włączony. Za godzinę (22:00) zostanie automatycznie
-        wyłączony.
+      message: >
+        {% if is_state('input_boolean.tk_is_working', 'on') %}
+        Pracujesz — prąd w biurze pozostanie włączony. Wyłącz tryb pracy, aby wyłączyć prąd po 22:00.
+        {% else %}
+        Prąd w biurze jest włączony. Za godzinę (22:00) zostanie automatycznie wyłączony.
+        {% endif %}
       data:
         push:
           sound: default
@@ -922,15 +926,18 @@
     data:
       name: Biuro prąd
       entity_id: switch.biuro
-      message: 'OSTRZEŻENIE | prąd włączony — wyłączenie zaplanowane na 22:00
-
-        '
+      message: >
+        OSTRZEŻENIE | prąd włączony —
+        {% if is_state('input_boolean.tk_is_working', 'on') %}
+        tryb pracy aktywny · wyłączenie wstrzymane
+        {% else %}
+        wyłączenie zaplanowane na 22:00
+        {% endif %}
   - action: script.log_push
     data:
-      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"biuro_prad",
-        "akcja":"WARN","info":"prąd włączony · wyłączenie za 1h o 22:00"}
-
-        '
+      wpis: >
+        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"biuro_prad",
+        "akcja":"WARN","info":"prąd włączony · {% if is_state('input_boolean.tk_is_working', 'on') %}tryb pracy aktywny{% else %}wyłączenie za 1h o 22:00{% endif %}"}
   mode: single
   id: biuro_prad_ostrzezenie
 - alias: "Biuro prąd: wyłącz (22:00 pn–pt)"
@@ -951,6 +958,9 @@
   - condition: state
     entity_id: switch.biuro
     state: 'on'
+  - condition: state
+    entity_id: input_boolean.tk_is_working
+    state: 'off'
   action:
   - service: switch.turn_off
     target:
@@ -970,6 +980,34 @@
         '
   mode: single
   id: biuro_prad_wylacz
+- id: biuro_prad_wylacz_po_pracy
+  alias: "Biuro prąd: wyłącz po pracy (po 22:00)"
+  description: >
+    Gdy tk_is_working zmieni się na off po 22:00 i prąd w biurze jest włączony,
+    wyłącz go — prąd był wstrzymany z powodu trybu pracy.
+  trigger:
+  - platform: state
+    entity_id: input_boolean.tk_is_working
+    to: 'off'
+  condition:
+  - condition: time
+    after: '22:00:00'
+  - condition: state
+    entity_id: switch.biuro
+    state: 'on'
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id: switch.biuro
+  - action: logbook.log
+    data:
+      name: Biuro prąd
+      entity_id: switch.biuro
+      message: 'WYŁĄCZONO | koniec pracy po 22:00'
+  - action: script.log_push
+    data:
+      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"biuro_prad","akcja":"OFF","info":"koniec pracy po 22:00"}'
+  mode: single
 - id: ogrod2_snapshot_nawodnienie
   alias: "Nawodnienie ogród 2: snapshot (03:00)"
   description: >
