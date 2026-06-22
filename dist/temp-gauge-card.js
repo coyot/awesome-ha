@@ -238,7 +238,7 @@ class AhaTempGaugeCard extends HTMLElement {
   .card.cold  .state-label { color: rgba(125,212,248,0.55); }
   .card.frost .state-label { color: rgba(90,200,250,0.90); }
   .card.warm  .state-label { color: rgba(255,159,10,0.90); }
-  .card.fire  .state-label { color: rgba(255,100,70,0.95); }
+  .card.fire  .state-label { color: rgba(255,255,255,0.92); text-shadow: 0 0 8px rgba(200,30,0,0.70); }
 
   /* ── room name HTML at bottom ── */
   .room-name {

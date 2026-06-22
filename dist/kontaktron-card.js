@@ -235,9 +235,9 @@ const STYLES = `
     font-size: 12px;
     font-weight: 600;
     color: rgba(255,255,255,0.65);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
     padding-bottom: 4px;
     position: relative;
     z-index: 2;
