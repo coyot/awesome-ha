@@ -73,9 +73,8 @@ const STYLES = `
     display: flex;
     flex-direction: column;
     position: relative;
-    overflow: hidden;
     cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.4s ease;
+    transition: transform 0.15s ease, border-color 0.4s ease, background 0.4s ease;
     border: 1px solid rgba(255,255,255,0.06);
     box-sizing: border-box;
     font-family: -apple-system, system-ui, sans-serif;
@@ -118,42 +117,28 @@ const STYLES = `
     position: absolute;
     inset: 0;
     pointer-events: none;
+    border-radius: 19px;
     transition: background 0.4s ease;
   }
 
-  /* State pill — absolute top-right (jak pills w temp-gauge) */
-  .pill-wrap {
+  /* State label — top-center, identyczny styl jak temp-gauge-card */
+  .state-label {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 10px; left: 0; right: 0;
     z-index: 5;
-  }
-
-  .state-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 7px;
-    border-radius: 99px;
-    border: .5px solid;
-    font-size: 8px;
+    text-align: center;
+    pointer-events: none;
+    font-size: 9px;
     font-weight: 600;
-    white-space: nowrap;
-    letter-spacing: .01em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.4s ease, opacity 0.4s ease;
   }
+  .closed .state-label { opacity: 0; }
+  .open   .state-label { color: rgba(255,214,10,0.90); }
+  .alarm  .state-label { color: rgba(255,255,255,0.92); text-shadow: 0 0 8px rgba(200,30,0,0.70); }
 
-  .closed .state-pill { display: none; }
-  .open   .state-pill {
-    background: rgba(255,214,10,0.12);
-    border-color: rgba(255,214,10,0.30);
-    color: #ffd60a;
-  }
-  .alarm  .state-pill {
-    background: rgba(255,69,58,0.14);
-    border-color: rgba(255,69,58,0.35);
-    color: #ff453a;
-  }
-
-  /* Icon area — wypełnia dostępną przestrzeń; padding-top daje luz pod pillem */
+  /* Icon area */
   .icon-area {
     flex: 1;
     display: flex;
@@ -165,17 +150,17 @@ const STYLES = `
 
   .icon-wrap {
     position: relative;
-    width: 44px;
-    height: 44px;
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .icon-bg {
-    width: 42px;
-    height: 42px;
-    border-radius: 13px;
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -189,9 +174,9 @@ const STYLES = `
 
   .ring {
     position: absolute;
-    width: 42px;
-    height: 42px;
-    border-radius: 13px;
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
     border: 2px solid rgba(255,69,58,0.75);
     z-index: 1;
     pointer-events: none;
@@ -203,7 +188,7 @@ const STYLES = `
   }
 
   ha-icon {
-    --mdc-icon-size: 24px;
+    --mdc-icon-size: 28px;
     transition: color 0.4s ease;
   }
   .closed  ha-icon { color: #8e8e93; }
@@ -214,20 +199,20 @@ const STYLES = `
     transform-origin: top center;
   }
 
-  /* Duration — czas otwarcia, muted, centered */
+  /* Duration — czas otwarcia, centered, kolorowany stanem */
   .duration {
     text-align: center;
     font-size: 10px;
     font-weight: 500;
-    color: #636366;
     position: relative;
     z-index: 2;
     flex-shrink: 0;
     padding-bottom: 4px;
     transition: color 0.4s ease, font-weight 0.3s ease;
   }
-  .alarm .duration { color: #ff6b60; font-weight: 600; }
   .closed .duration { display: none; }
+  .open   .duration { color: rgba(255,214,10,0.65); }
+  .alarm  .duration { color: #ff6b60; font-weight: 600; }
 
   /* Name — identyczny z .room-name w temp-gauge */
   .name {
@@ -316,9 +301,7 @@ class KontaktronCard extends HTMLElement {
 
     this._card.innerHTML = `
       <div class="glow"></div>
-      <div class="pill-wrap">
-        <span class="state-pill"></span>
-      </div>
+      <div class="state-label"></div>
       <div class="icon-area">
         <div class="icon-wrap">
           <div class="ring"></div>
@@ -337,7 +320,7 @@ class KontaktronCard extends HTMLElement {
 
     this._haIcon      = shadow.querySelector('ha-icon');
     this._nameEl      = shadow.querySelector('.name');
-    this._stateEl     = shadow.querySelector('.state-pill');
+    this._stateEl     = shadow.querySelector('.state-label');
     this._durationEl  = shadow.querySelector('.duration');
 
     /* battery widget — created once, shown only if battery_entity configured */
@@ -383,7 +366,7 @@ class KontaktronCard extends HTMLElement {
     } else {
       stateClass   = 'alarm';
       icon         = this._config.icon_alarm;
-      stateText    = 'ALARM';
+      stateText    = 'alarm';
       durationText = this._formatDuration(diffMin);
     }
 
