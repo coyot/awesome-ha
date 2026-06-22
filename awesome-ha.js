@@ -10175,6 +10175,16 @@ function iconSvg(e) {
     `);
   }
 
+  if (e.typ === 'tryb_noc') {
+    const on = e.akcja === 'ON';
+    const col = on ? 'rgba(94,92,230,0.90)' : 'rgba(150,150,155,0.50)';
+    return s(col, c => `
+      <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"
+        fill="${c.replace(/[\d.]+\)$/, '0.25)')}" stroke="${c}" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+    `);
+  }
+
   return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
     <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
   </svg>`;
@@ -10226,6 +10236,10 @@ function nodeStyle(e) {
       : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'strychowy_roleta')
     return { bg: 'rgba(255,100,10,0.13)', outline: 'rgba(255,100,10,0.28)' };
+  if (e.typ === 'tryb_noc')
+    return e.akcja === 'ON'
+      ? { bg: 'rgba(94,92,230,0.14)',  outline: 'rgba(94,92,230,0.28)' }
+      : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
 
@@ -10356,6 +10370,18 @@ function titleAndDetail(e, PEOPLE) {
       detail:       parts.length ? parts.join(' · ') : (e.info ?? ''),
       avatarPeople: null,
       rightSvg:     FIRE_SVG,
+    };
+  }
+  if (e.typ === 'tryb_noc') {
+    const on = e.akcja === 'ON';
+    const details = [];
+    if (on && e.otwarte != null && e.otwarte > 0) details.push(`otwarte czujniki: ${e.otwarte}`);
+    if (!on) details.push('reset o wschodzie słońca');
+    return {
+      titleColor:   on ? 'rgba(94,92,230,0.90)' : 'rgba(150,150,155,0.60)',
+      titleText:    on ? 'Tryb nocny — aktywowany' : 'Tryb nocny — wyłączony',
+      detail:       details.join(' · ') || (e.info ?? ''),
+      avatarPeople: null,
     };
   }
   return {

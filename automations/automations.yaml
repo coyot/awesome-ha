@@ -1492,4 +1492,156 @@
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
   mode: single
 
+- id: tryb_noc_aktywuj
+  alias: "Tryb nocny: aktywuj"
+  description: >
+    Po włączeniu input_boolean.tryb_noc: sprawdza otwarte kontaktrony,
+    zamyka rolety 1–5,8–13, zamyka lamele pergoli, wyłącza biuro i wiatrak.
+    Wysyła podsumowanie "Dobranoc".
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.tryb_noc
+      to: "on"
+
+  action:
+    - variables:
+        biuro_wlaczone: "{{ is_state('switch.biuro', 'on') }}"
+        wiatrak_wlaczony: "{{ is_state('switch.biuro_wiatrak', 'on') }}"
+        pergola_otwarta: "{{ is_state('cover.teleco_leds2', 'open') }}"
+        otwarte_lista: >
+          {% set sens = states.binary_sensor
+             | selectattr('attributes.device_class', 'in', ['door','window','opening','garage_door'])
+             | selectattr('state', 'eq', 'on')
+             | map(attribute='attributes.friendly_name')
+             | list %}
+          {{ sens | join(', ') if sens else '' }}
+        otwarte_ile: >
+          {{ states.binary_sensor
+             | selectattr('attributes.device_class', 'in', ['door','window','opening','garage_door'])
+             | selectattr('state', 'eq', 'on')
+             | list | count }}
+
+    - service: cover.close_cover
+      target:
+        entity_id:
+          - cover.rollershutter_0001
+          - cover.rollershutter_0002
+          - cover.rollershutter_0003
+          - cover.rollershutter_0004
+          - cover.rollershutter_0005
+          - cover.rollershutter_0008
+          - cover.rollershutter_0009
+          - cover.rollershutter_0010
+          - cover.rollershutter_0011
+          - cover.rollershutter_0012
+          - cover.rollershutter_0013
+
+    - if:
+        - condition: template
+          value_template: "{{ pergola_otwarta }}"
+      then:
+        - service: cover.close_cover
+          target:
+            entity_id: cover.teleco_leds2
+
+    - if:
+        - condition: template
+          value_template: "{{ biuro_wlaczone }}"
+      then:
+        - service: switch.turn_off
+          target:
+            entity_id: switch.biuro
+
+    - if:
+        - condition: template
+          value_template: "{{ wiatrak_wlaczony }}"
+      then:
+        - service: switch.turn_off
+          target:
+            entity_id: switch.biuro_wiatrak
+
+    - action: logbook.log
+      data:
+        name: "Tryb nocny"
+        entity_id: input_boolean.tryb_noc
+        message: >
+          AKTYWOWANO | rolety zamknięte |
+          {% if biuro_wlaczone %}biuro wyłączone | {% endif %}
+          {% if wiatrak_wlaczony %}wiatrak wyłączony | {% endif %}
+          {% if pergola_otwarta %}pergola zamknięta | {% endif %}
+          otwarte czujniki: {{ otwarte_ile }}
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"tryb_noc",
+          "akcja":"ON","otwarte":{{ otwarte_ile }},
+          "info":"tryb nocny aktywowany"}
+
+    - service: notify.iphone_tk
+      data:
+        title: "🌙 Dobranoc"
+        message: >
+          Tryb nocny aktywny — rolety zamknięte.
+          {% if otwarte_ile | int > 0 %}
+          ⚠️ Otwarte czujniki ({{ otwarte_ile }}): {{ otwarte_lista }}.
+          {% endif %}
+          {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
+          {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
+        data:
+          push:
+            sound: default
+
+    - service: notify.iphone_monika
+      data:
+        title: "🌙 Dobranoc"
+        message: >
+          Tryb nocny aktywny — rolety zamknięte.
+          {% if otwarte_ile | int > 0 %}
+          ⚠️ Otwarte czujniki ({{ otwarte_ile }}): {{ otwarte_lista }}.
+          {% endif %}
+          {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
+          {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
+        data:
+          push:
+            sound: default
+
+  mode: single
+
+- id: tryb_noc_reset_rano
+  alias: "Tryb nocny: reset rano (wschód +30 min)"
+  description: >
+    Automatycznie wyłącza tryb nocny o wschodzie słońca +30 minut,
+    jeśli użytkownik nie wyłączył go ręcznie wcześniej.
+
+  trigger:
+    - platform: sun
+      event: sunrise
+      offset: "00:30:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.tryb_noc
+      state: "on"
+
+  action:
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.tryb_noc
+
+    - action: logbook.log
+      data:
+        name: "Tryb nocny"
+        entity_id: input_boolean.tryb_noc
+        message: "RESET | wschód słońca +30min — tryb nocny wyłączony automatycznie"
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"tryb_noc",
+          "akcja":"OFF","info":"reset o wschodzie słońca +30min"}
+
+  mode: single
+
 

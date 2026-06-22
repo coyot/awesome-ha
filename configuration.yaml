@@ -326,6 +326,9 @@ input_boolean:
   tk_is_working:
     name: Praca — praca trwa u TK
     icon: mdi:desktop-classic
+  tryb_noc:
+    name: Tryb nocny
+    icon: mdi:moon-waning-crescent
 
 input_datetime:
   ogrod_1_ostatnia_aktualizacja:
