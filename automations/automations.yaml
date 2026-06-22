@@ -1253,6 +1253,22 @@
           "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+    - service: notify.mobile_app_iphone_tk
+      data:
+        title: "🌿 Pergola — otwarto"
+        message: >
+          Lamele otwarte (poza domem) ·
+          {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+          wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}% ·
+          zamknięcie za 30 min
+    - service: notify.mobile_app_iphone_monika
+      data:
+        title: "🌿 Pergola — otwarto"
+        message: >
+          Lamele otwarte (poza domem) ·
+          {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+          wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}% ·
+          zamknięcie za 30 min
     - delay:
         minutes: 30
     - service: cover.close_cover
@@ -1269,6 +1285,14 @@
           "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+    - service: notify.mobile_app_iphone_tk
+      data:
+        title: "🌿 Pergola — zamknięto"
+        message: "Lamele zamknięte po 30 min przewietrzeniu"
+    - service: notify.mobile_app_iphone_monika
+      data:
+        title: "🌿 Pergola — zamknięto"
+        message: "Lamele zamknięte po 30 min przewietrzeniu"
   mode: single
 
 
@@ -1305,6 +1329,27 @@
           "akcja":"CLOSE_DESZCZ","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"deszcz · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ not is_state('device_tracker.iphone_tk', 'home') and
+                   not is_state('device_tracker.iphone_monika', 'home') }}
+          sequence:
+            - service: notify.mobile_app_iphone_tk
+              data:
+                title: "🌿 Pergola — zamknięto"
+                message: >
+                  Lamele zamknięte — zaczął padać deszcz ·
+                  {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+                  wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
+            - service: notify.mobile_app_iphone_monika
+              data:
+                title: "🌿 Pergola — zamknięto"
+                message: >
+                  Lamele zamknięte — zaczął padać deszcz ·
+                  {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+                  wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
   mode: single
 
 
@@ -1344,6 +1389,27 @@
           "akcja":"CLOSE_TEMP","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"temp OK {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg OK {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ not is_state('device_tracker.iphone_tk', 'home') and
+                   not is_state('device_tracker.iphone_monika', 'home') }}
+          sequence:
+            - service: notify.mobile_app_iphone_tk
+              data:
+                title: "🌿 Pergola — zamknięto"
+                message: >
+                  Lamele zamknięte — temperatura i wilgotność w normie ·
+                  {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+                  wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
+            - service: notify.mobile_app_iphone_monika
+              data:
+                title: "🌿 Pergola — zamknięto"
+                message: >
+                  Lamele zamknięte — temperatura i wilgotność w normie ·
+                  {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+                  wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
   mode: single
 
 
@@ -1376,6 +1442,21 @@
           "akcja":"CLOSE_NOC","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"22:00 · zamknięcie nocne"}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: >
+                {{ not is_state('device_tracker.iphone_tk', 'home') and
+                   not is_state('device_tracker.iphone_monika', 'home') }}
+          sequence:
+            - service: notify.mobile_app_iphone_tk
+              data:
+                title: "🌿 Pergola — zamknięto"
+                message: "Lamele zamknięte — nocne zamknięcie o 22:00"
+            - service: notify.mobile_app_iphone_monika
+              data:
+                title: "🌿 Pergola — zamknięto"
+                message: "Lamele zamknięte — nocne zamknięcie o 22:00"
   mode: single
 
 
