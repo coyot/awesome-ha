@@ -16800,53 +16800,71 @@ class AhaAcSlimCard extends HTMLElement {
     const fanMode     = (stateObj.attributes.fan_mode || 'auto').toLowerCase();
     const name = this._config.name || stateObj.attributes.friendly_name || this._config.entity;
 
-    /* ── classify state ── */
-    const isHeating = action === 'heating';
-    const isCooling = action === 'cooling';
-    const isFan     = action === 'fan' || mode === 'fan_only';
-    const isDrying  = mode === 'dry';
-    const isOff     = mode === 'off';
-    const isActive  = isHeating || isCooling || isFan || isDrying;
+    /* ── classify state ──
+     * hvac_action: heating | cooling | fan | idle | off
+     * hvac_mode (state): heat | cool | fan_only | dry | auto | off
+     *
+     * Gdy action === 'idle': klimatyzacja JEST włączona, osiągnęła cel i czeka.
+     * Nadal pulsuje i świeci w kolorze trybu — użytkownik powinien wiedzieć że jest ON.
+     */
+    const isHeating   = action === 'heating';
+    const isCooling   = action === 'cooling';
+    const isFan       = action === 'fan' || mode === 'fan_only';
+    const isDrying    = mode === 'dry';
+    const isOff       = mode === 'off';
+    const isOn        = !isOff && mode !== 'unavailable';
+    // idle: włączona ale osiągnęła cel — kolorujemy wg trybu
+    const isIdleOn    = isOn && !isHeating && !isCooling && !isFan && !isDrying;
+    const isActively  = isHeating || isCooling || isFan || isDrying; // faktycznie pracuje
 
-    const stateKey = isHeating ? 'heating'
-                   : isCooling ? 'cooling'
-                   : isFan     ? 'fan'
-                   : isDrying  ? 'drying'
-                   : isOff     ? 'off' : 'idle';
+    // Kolor wyznaczamy wg action, a gdy idle — wg mode
+    const stateKey = isHeating      ? 'heating'
+                   : isCooling      ? 'cooling'
+                   : isFan          ? 'fan'
+                   : isDrying       ? 'drying'
+                   : isIdleOn && mode === 'cool' ? 'cooling'
+                   : isIdleOn && mode === 'heat' ? 'heating'
+                   : isIdleOn && mode === 'fan_only' ? 'fan'
+                   : isOff          ? 'off' : 'idle';
 
     const col = AC_COLORS[stateKey];
 
-    /* ── card class ── */
-    this._card.className = `card ${isActive ? stateKey : ''}`;
+    /* ── card class — pulsuje gdy AC jest ON ── */
+    this._card.className = `card ${isOn ? stateKey : ''}`;
 
     /* ── color bar ── */
     this._bar.style.background = col.main;
 
-    /* ── icon ── */
-    this._icon.innerHTML = isHeating ? AC_SVG.heating
-                         : isCooling ? AC_SVG.cooling
-                         : isFan     ? AC_SVG.fan
-                         : isDrying  ? AC_SVG.drying
-                         : AC_SVG.idle;
+    /* ── icon — gdy idle używa ikony wg trybu ── */
+    const iconKey = isHeating                          ? 'heating'
+                  : isCooling                          ? 'cooling'
+                  : isFan                              ? 'fan'
+                  : isDrying                           ? 'drying'
+                  : (isIdleOn && mode === 'cool')      ? 'cooling'
+                  : (isIdleOn && mode === 'heat')      ? 'heating'
+                  : (isIdleOn && mode === 'fan_only')  ? 'fan'
+                  : 'idle';
+    this._icon.innerHTML = AC_SVG[iconKey] ?? AC_SVG.idle;
 
     /* ── name ── */
     this._name.textContent = name;
 
     /* ── badge ── */
-    const badgeLabel = isHeating ? 'grzeje'
-                     : isCooling ? 'chłodzi'
-                     : isFan     ? 'wentyluje'
-                     : isDrying  ? 'osusza'
-                     : isOff     ? 'wyłączona' : 'czeka';
+    const badgeLabel = isHeating  ? 'grzeje'
+                     : isCooling  ? 'chłodzi'
+                     : isFan      ? 'wentyluje'
+                     : isDrying   ? 'osusza'
+                     : isIdleOn   ? 'włączona'
+                     : 'wyłączona';
 
-    const badgeBg = isActive
+    const badgeBg = isOn
       ? `rgba(${col.r},${col.g},${col.b},0.14)`
       : 'rgba(95,94,90,0.12)';
 
     this._badge.style.background = badgeBg;
-    this._badge.style.color      = isActive ? col.main : '#5F5E5A';
-    this._dot.style.background   = isActive ? col.main : '#5F5E5A';
-    this._dot.className          = `badge-dot${isActive ? ' blink' : ''}`;
+    this._badge.style.color      = isOn ? col.main : '#5F5E5A';
+    this._dot.style.background   = isOn ? col.main : '#5F5E5A';
+    this._dot.className          = `badge-dot${isOn ? ' blink' : ''}`;
     this._badgeLabel.textContent = badgeLabel;
 
     /* ── chips ── */
@@ -16863,20 +16881,23 @@ class AhaAcSlimCard extends HTMLElement {
     }
     this._chips.innerHTML = chipsHtml;
 
-    /* ── progress bar ── */
-    if (isActive && (isHeating || isCooling) && currentTemp !== null && targetTemp !== null) {
+    /* ── progress bar — show when heating/cooling (active or idle) ── */
+    const showProgress = isOn && (isHeating || isCooling || isIdleOn)
+                      && (mode === 'heat' || mode === 'cool')
+                      && currentTemp !== null && targetTemp !== null;
+    if (showProgress) {
       const diff = Math.abs(targetTemp - currentTemp);
       let pct, desc;
-      if (diff < 0.5) {
+      if (diff < 0.5 || isIdleOn) {
         pct  = 100;
         desc = 'temperatura osiągnięta';
       } else {
         const range = 10;
         pct  = Math.min(100, Math.max(0, Math.round(((range - diff) / range) * 100)));
-        desc = isHeating ? `dogrzewa +${diff.toFixed(1)}°C` : `schładza −${diff.toFixed(1)}°C`;
+        desc = (mode === 'heat') ? `dogrzewa +${diff.toFixed(1)}°C` : `schładza −${diff.toFixed(1)}°C`;
       }
-      const grad = isHeating ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
-                             : 'linear-gradient(90deg,#185FA5,#85B7EB)';
+      const grad = (mode === 'heat') ? 'linear-gradient(90deg,#9A5230,#EF9F27)'
+                                     : 'linear-gradient(90deg,#185FA5,#85B7EB)';
       this._pFill.style.width      = `${pct}%`;
       this._pFill.style.background = grad;
       this._pDesc.textContent      = desc;
