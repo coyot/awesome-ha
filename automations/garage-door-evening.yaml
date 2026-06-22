@@ -1,8 +1,8 @@
 alias: "Garaż: alert — drzwi otwarte (20:00)"
 description: >
   Codziennie o 20:00 sprawdza czy drzwi garażu są otwarte.
-  Wysyła powiadomienie do osób aktualnie przebywających w domu
-  (iphone_tk i/lub iphone_monika).
+  Wysyła powiadomienie do TK i Moniki — zawsze, niezależnie od obecności w domu.
+  Jeśli oboje są poza domem, wiadomość informuje o tym wprost.
 
 trigger:
   - platform: time
@@ -14,32 +14,52 @@ condition:
     state: "on"
 
 action:
-  - if:
-      - condition: zone
-        entity_id: person.tk
-        zone: zone.home
-    then:
-      - service: notify.mobile_app_iphone_tk
-        data:
-          title: "⚠️ Garaż otwarty"
-          message: "🚘 Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
-          data:
-            push:
-              sound: default
-            url: /lovelace/garaz
+  - service: notify.iphone_tk
+    data:
+      title: "⚠️ Garaż otwarty"
+      message: >
+        🚘 Drzwi garażu są otwarte!
+        {% if not is_state('device_tracker.iphone_tk', 'home') and not is_state('device_tracker.iphone_monika', 'home') %}
+        Oboje jesteście poza domem — sprawdźcie czy ktoś może zamknąć.
+        {% else %}
+        Pamiętaj o zamknięciu.
+        {% endif %}
+      data:
+        push:
+          sound: default
+        url: /lovelace/garaz
 
-  - if:
-      - condition: zone
-        entity_id: person.monika
-        zone: zone.home
-    then:
-      - service: notify.mobile_app_iphone_monika
-        data:
-          title: "⚠️ Garaż otwarty"
-          message: "🚘 Drzwi garażu są otwarte od jakiegoś czasu. Pamiętaj o zamknięciu!"
-          data:
-            push:
-              sound: default
-            url: /lovelace/garaz
+  - service: notify.iphone_monika
+    data:
+      title: "⚠️ Garaż otwarty"
+      message: >
+        🚘 Drzwi garażu są otwarte!
+        {% if not is_state('device_tracker.iphone_tk', 'home') and not is_state('device_tracker.iphone_monika', 'home') %}
+        Oboje jesteście poza domem — sprawdźcie czy ktoś może zamknąć.
+        {% else %}
+        Pamiętaj o zamknięciu.
+        {% endif %}
+      data:
+        push:
+          sound: default
+        url: /lovelace/garaz
+
+  - action: logbook.log
+    data:
+      name: "Garaż"
+      entity_id: binary_sensor.kontaktron_garaz
+      message: >
+        ALERT 20:00 | garaż otwarty |
+        {% if is_state('device_tracker.iphone_tk', 'home') or is_state('device_tracker.iphone_monika', 'home') %}
+        ktoś w domu
+        {% else %}
+        oboje poza domem
+        {% endif %}
+
+  - action: script.log_push
+    data:
+      wpis: >
+        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"garaz_alert",
+        "akcja":"OPEN_20","info":"garaż otwarty o 20:00"}
 
 mode: single

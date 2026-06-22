@@ -197,6 +197,41 @@
             '
         action: notify.iphone_monika
   mode: single
+- id: szambo_alert_krytyczny
+  alias: "Szambo: alert real-time (>9 m³)"
+  description: >
+    Natychmiastowy alert gdy szambo przekroczy 9 m³ — nie czeka do 7:00 rano.
+    Debounce 5 min by uniknąć skoków sensora.
+  triggers:
+  - trigger: numeric_state
+    entity_id: sensor.szambo_zuzycie
+    above: 9
+    for:
+      minutes: 5
+  actions:
+  - action: notify.iphone_tk
+    data:
+      title: "\U0001F6A8 Szambo na granicy!"
+      message: >
+        Szambo przekroczyło 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³.
+        Pilnie zamów wywóz.
+  - action: notify.iphone_monika
+    data:
+      title: "\U0001F6A8 Szambo na granicy!"
+      message: >
+        Szambo przekroczyło 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³.
+        Pilnie zamów wywóz.
+  - action: logbook.log
+    data:
+      name: "Szambo"
+      message: >
+        ALERT KRYTYCZNY | {{ states('sensor.szambo_zuzycie') }} m³ > 9 m³
+  - action: script.log_push
+    data:
+      wpis: >
+        {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"szambo",
+        "akcja":"ALERT_KRYTYCZNY","lm":{{ states('sensor.szambo_zuzycie') | float(0) | round(2) }}}
+  mode: single
 - id: brama_otworz_powrot
   alias: "Brama: otwórz przy powrocie"
   triggers:
@@ -272,7 +307,7 @@
       datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
 - id: smieciarnia_alert_wieczor
   alias: "Śmieciarnia: alert wieczorny (17:30)"
-  description: Wysyła powiadomienia o 17:30 na dzień przed wywozem do osób w domu.
+  description: Wysyła powiadomienia o 17:30 na dzień przed wywozem — zawsze do obojga, niezależnie od obecności.
   triggers:
   - at: '17:30:00'
     trigger: time
@@ -290,31 +325,29 @@
       items_tomorrow: "{% set found = ns(types=[]) %} {% for s in sensors if states(s.entity)
         == '1' %}\n  {% set found.types = found.types + [s.name] %}\n{% endfor %}
         {{ found.types | join(', ') }}\n"
-      monika_home: '{{ is_state(''device_tracker.iphone_monika'', ''home'') }}'
-      tomek_home: '{{ is_state(''device_tracker.iphone_tk'', ''home'') }}'
+      oboje_poza: '{{ not is_state(''device_tracker.iphone_tk'', ''home'') and not is_state(''device_tracker.iphone_monika'', ''home'') }}'
   - condition: template
     value_template: '{{ items_tomorrow != "" }}'
-  - if:
-    - condition: template
-      value_template: '{{ monika_home }}'
-    then:
-    - data:
-        title: "\U0001F69B Jutro wywóz śmieci!"
-        message: "Witaj Monika, jutro wywozimy: {{ items_tomorrow }}. {% if tomek_home
-          %} \U0001F4E2 Powiedz Tomkowi, żeby wystawił kubły przed dom! {% else %}
-          ⚠️ Pamiętaj o wystawieniu kubłów przed dom. {% endif %}\n"
-      action: notify.iphone_monika
-  - if:
-    - condition: template
-      value_template: '{{ tomek_home }}'
-    then:
-    - data:
-        title: "\U0001F69B Jutro wywóz śmieci!"
-        message: 'Witaj Tomek, jutro wywozimy: {{ items_tomorrow }}. ⚠️ Nie zapomnij
-          wystawić kubłów przed dom!
-
-          '
-      action: notify.iphone_tk
+  - action: notify.iphone_monika
+    data:
+      title: "\U0001F69B Jutro wywóz śmieci!"
+      message: >
+        Jutro wywozimy: {{ items_tomorrow }}.
+        {% if oboje_poza %}
+        ⚠️ Jesteście poza domem — zadbajcie o wystawienie kubłów!
+        {% else %}
+        ⚠️ Pamiętaj o wystawieniu kubłów przed dom.
+        {% endif %}
+  - action: notify.iphone_tk
+    data:
+      title: "\U0001F69B Jutro wywóz śmieci!"
+      message: >
+        Jutro wywozimy: {{ items_tomorrow }}.
+        {% if oboje_poza %}
+        ⚠️ Jesteście poza domem — zadbajcie o wystawienie kubłów!
+        {% else %}
+        ⚠️ Nie zapomnij wystawić kubłów przed dom.
+        {% endif %}
   mode: restart
 - id: porecz_wlacz_wieczor
   alias: "Poręcz: włącz wieczorem"
