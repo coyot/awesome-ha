@@ -315,7 +315,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
   .range-text {
     font-family: -apple-system,system-ui,sans-serif;
-    font-size: 12px; font-weight: 500; fill: rgba(255,255,255,.18);
+    font-size: 14px; font-weight: 500; fill: rgba(255,255,255,.38);
   }
 </style>
 

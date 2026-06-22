@@ -7769,7 +7769,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
   .range-text {
     font-family: -apple-system,system-ui,sans-serif;
-    font-size: 12px; font-weight: 500; fill: rgba(255,255,255,.18);
+    font-size: 14px; font-weight: 500; fill: rgba(255,255,255,.38);
   }
 </style>
 
@@ -8204,7 +8204,6 @@ const STYLES = `
     color: rgba(255,255,255,0.65);
     white-space: normal;
     word-break: break-word;
-    line-height: 1.25;
     padding-bottom: 4px;
     position: relative;
     z-index: 2;
