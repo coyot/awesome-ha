@@ -1,0 +1,319 @@
+otworz_wjazd:
+  sequence:
+  - action: rest_command.blynk_open_gate
+    metadata: {}
+    data: {}
+  alias: Otworz wjazd
+  description: ''
+  icon: mdi:gate-open
+
+log_push:
+  alias: "Log — push wpisu"
+  description: "Przesuwa ring buffer log_h1..100 i zapisuje nowy wpis w h1"
+  fields:
+    wpis:
+      description: "JSON string do zapisania"
+      example: '{"ts":"2025-04-08T20:14","typ":"porecz","akcja":"ON"}'
+  sequence:
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h100 }
+      data: { value: "{{ states('input_text.log_h99') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h99 }
+      data: { value: "{{ states('input_text.log_h98') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h98 }
+      data: { value: "{{ states('input_text.log_h97') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h97 }
+      data: { value: "{{ states('input_text.log_h96') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h96 }
+      data: { value: "{{ states('input_text.log_h95') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h95 }
+      data: { value: "{{ states('input_text.log_h94') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h94 }
+      data: { value: "{{ states('input_text.log_h93') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h93 }
+      data: { value: "{{ states('input_text.log_h92') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h92 }
+      data: { value: "{{ states('input_text.log_h91') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h91 }
+      data: { value: "{{ states('input_text.log_h90') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h90 }
+      data: { value: "{{ states('input_text.log_h89') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h89 }
+      data: { value: "{{ states('input_text.log_h88') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h88 }
+      data: { value: "{{ states('input_text.log_h87') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h87 }
+      data: { value: "{{ states('input_text.log_h86') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h86 }
+      data: { value: "{{ states('input_text.log_h85') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h85 }
+      data: { value: "{{ states('input_text.log_h84') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h84 }
+      data: { value: "{{ states('input_text.log_h83') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h83 }
+      data: { value: "{{ states('input_text.log_h82') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h82 }
+      data: { value: "{{ states('input_text.log_h81') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h81 }
+      data: { value: "{{ states('input_text.log_h80') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h80 }
+      data: { value: "{{ states('input_text.log_h79') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h79 }
+      data: { value: "{{ states('input_text.log_h78') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h78 }
+      data: { value: "{{ states('input_text.log_h77') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h77 }
+      data: { value: "{{ states('input_text.log_h76') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h76 }
+      data: { value: "{{ states('input_text.log_h75') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h75 }
+      data: { value: "{{ states('input_text.log_h74') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h74 }
+      data: { value: "{{ states('input_text.log_h73') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h73 }
+      data: { value: "{{ states('input_text.log_h72') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h72 }
+      data: { value: "{{ states('input_text.log_h71') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h71 }
+      data: { value: "{{ states('input_text.log_h70') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h70 }
+      data: { value: "{{ states('input_text.log_h69') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h69 }
+      data: { value: "{{ states('input_text.log_h68') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h68 }
+      data: { value: "{{ states('input_text.log_h67') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h67 }
+      data: { value: "{{ states('input_text.log_h66') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h66 }
+      data: { value: "{{ states('input_text.log_h65') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h65 }
+      data: { value: "{{ states('input_text.log_h64') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h64 }
+      data: { value: "{{ states('input_text.log_h63') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h63 }
+      data: { value: "{{ states('input_text.log_h62') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h62 }
+      data: { value: "{{ states('input_text.log_h61') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h61 }
+      data: { value: "{{ states('input_text.log_h60') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h60 }
+      data: { value: "{{ states('input_text.log_h59') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h59 }
+      data: { value: "{{ states('input_text.log_h58') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h58 }
+      data: { value: "{{ states('input_text.log_h57') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h57 }
+      data: { value: "{{ states('input_text.log_h56') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h56 }
+      data: { value: "{{ states('input_text.log_h55') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h55 }
+      data: { value: "{{ states('input_text.log_h54') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h54 }
+      data: { value: "{{ states('input_text.log_h53') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h53 }
+      data: { value: "{{ states('input_text.log_h52') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h52 }
+      data: { value: "{{ states('input_text.log_h51') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h51 }
+      data: { value: "{{ states('input_text.log_h50') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h50 }
+      data: { value: "{{ states('input_text.log_h49') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h49 }
+      data: { value: "{{ states('input_text.log_h48') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h48 }
+      data: { value: "{{ states('input_text.log_h47') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h47 }
+      data: { value: "{{ states('input_text.log_h46') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h46 }
+      data: { value: "{{ states('input_text.log_h45') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h45 }
+      data: { value: "{{ states('input_text.log_h44') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h44 }
+      data: { value: "{{ states('input_text.log_h43') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h43 }
+      data: { value: "{{ states('input_text.log_h42') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h42 }
+      data: { value: "{{ states('input_text.log_h41') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h41 }
+      data: { value: "{{ states('input_text.log_h40') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h40 }
+      data: { value: "{{ states('input_text.log_h39') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h39 }
+      data: { value: "{{ states('input_text.log_h38') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h38 }
+      data: { value: "{{ states('input_text.log_h37') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h37 }
+      data: { value: "{{ states('input_text.log_h36') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h36 }
+      data: { value: "{{ states('input_text.log_h35') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h35 }
+      data: { value: "{{ states('input_text.log_h34') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h34 }
+      data: { value: "{{ states('input_text.log_h33') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h33 }
+      data: { value: "{{ states('input_text.log_h32') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h32 }
+      data: { value: "{{ states('input_text.log_h31') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h31 }
+      data: { value: "{{ states('input_text.log_h30') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h30 }
+      data: { value: "{{ states('input_text.log_h29') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h29 }
+      data: { value: "{{ states('input_text.log_h28') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h28 }
+      data: { value: "{{ states('input_text.log_h27') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h27 }
+      data: { value: "{{ states('input_text.log_h26') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h26 }
+      data: { value: "{{ states('input_text.log_h25') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h25 }
+      data: { value: "{{ states('input_text.log_h24') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h24 }
+      data: { value: "{{ states('input_text.log_h23') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h23 }
+      data: { value: "{{ states('input_text.log_h22') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h22 }
+      data: { value: "{{ states('input_text.log_h21') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h21 }
+      data: { value: "{{ states('input_text.log_h20') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h20 }
+      data: { value: "{{ states('input_text.log_h19') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h19 }
+      data: { value: "{{ states('input_text.log_h18') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h18 }
+      data: { value: "{{ states('input_text.log_h17') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h17 }
+      data: { value: "{{ states('input_text.log_h16') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h16 }
+      data: { value: "{{ states('input_text.log_h15') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h15 }
+      data: { value: "{{ states('input_text.log_h14') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h14 }
+      data: { value: "{{ states('input_text.log_h13') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h13 }
+      data: { value: "{{ states('input_text.log_h12') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h12 }
+      data: { value: "{{ states('input_text.log_h11') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h11 }
+      data: { value: "{{ states('input_text.log_h10') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h10 }
+      data: { value: "{{ states('input_text.log_h9') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h9 }
+      data: { value: "{{ states('input_text.log_h8') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h8 }
+      data: { value: "{{ states('input_text.log_h7') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h7 }
+      data: { value: "{{ states('input_text.log_h6') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h6 }
+      data: { value: "{{ states('input_text.log_h5') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h5 }
+      data: { value: "{{ states('input_text.log_h4') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h4 }
+      data: { value: "{{ states('input_text.log_h3') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h3 }
+      data: { value: "{{ states('input_text.log_h2') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h2 }
+      data: { value: "{{ states('input_text.log_h1') }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.log_h1 }
+      data: { value: "{{ wpis }}" }
+  mode: queued
+  max: 5
