@@ -8681,7 +8681,6 @@ const KOS_STYLES = `
   .card {
     background: #1c1c1e;
     border-radius: 16px;
-    overflow: hidden;
     font-family: -apple-system, system-ui, sans-serif;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
