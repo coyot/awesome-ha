@@ -150,14 +150,14 @@
             }} m³. Pilnie zamów wywóz.
 
             '
-        action: notify.mobile_app_iphone_tk
+        action: notify.iphone_tk
       - data:
           title: "\U0001F6A8\U0001F6A8\U0001F6A8 Szambo na granicy! \U0001F6A8\U0001F6A8\U0001F6A8"
           message: 'Poziom szamba przekroczył 9 m³! Aktualnie: {{ states(''sensor.szambo_zuzycie'')
             }} m³. Pilnie zamów wywóz.
 
             '
-        action: notify.mobile_app_iphone_monika
+        action: notify.iphone_monika
     - conditions:
       - condition: numeric_state
         entity_id: sensor.szambo_zuzycie
@@ -169,14 +169,14 @@
             }} m³. Warto zamówić wywóz.
 
             '
-        action: notify.mobile_app_iphone_tk
+        action: notify.iphone_tk
       - data:
           title: ⚠️ Szambo blisko pełnego
           message: 'Szambo przekroczyło 8 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
             }} m³. Warto zamówić wywóz.
 
             '
-        action: notify.mobile_app_iphone_monika
+        action: notify.iphone_monika
     - conditions:
       - condition: numeric_state
         entity_id: sensor.szambo_zuzycie
@@ -188,14 +188,14 @@
             }} m³. Kontroluj.
 
             '
-        action: notify.mobile_app_iphone_tk
+        action: notify.iphone_tk
       - data:
           title: ℹ️ Szambo zaczyna się zapełniać
           message: 'Szambo przekroczyło 7 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
             }} m³. Kontroluj.
 
             '
-        action: notify.mobile_app_iphone_monika
+        action: notify.iphone_monika
   mode: single
 - id: brama_otworz_powrot
   alias: "Brama: otwórz przy powrocie"
@@ -238,8 +238,8 @@
         %}"}
 
         '
-  - action: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  notify.mobile_app_iphone_tk\n{%
-      elif trigger.entity_id == 'device_tracker.iphone_monika' %}\n  notify.mobile_app_iphone_monika\n{%
+  - action: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  notify.iphone_tk\n{%
+      elif trigger.entity_id == 'device_tracker.iphone_monika' %}\n  notify.iphone_monika\n{%
       endif %}\n"
     data:
       title: "\U0001F3E0 Witaj w domu!"
@@ -303,7 +303,7 @@
         message: "Witaj Monika, jutro wywozimy: {{ items_tomorrow }}. {% if tomek_home
           %} \U0001F4E2 Powiedz Tomkowi, żeby wystawił kubły przed dom! {% else %}
           ⚠️ Pamiętaj o wystawieniu kubłów przed dom. {% endif %}\n"
-      action: notify.mobile_app_iphone_monika
+      action: notify.iphone_monika
   - if:
     - condition: template
       value_template: '{{ tomek_home }}'
@@ -314,7 +314,7 @@
           wystawić kubłów przed dom!
 
           '
-      action: notify.mobile_app_iphone_tk
+      action: notify.iphone_tk
   mode: restart
 - id: porecz_wlacz_wieczor
   alias: "Poręcz: włącz wieczorem"
@@ -545,7 +545,7 @@
         data:
           push:
             sound: default
-      action: notify.mobile_app_iphone_tk
+      action: notify.iphone_tk
   - if:
     - condition: zone
       entity_id: person.monika
@@ -562,7 +562,7 @@
         data:
           push:
             sound: default
-      action: notify.mobile_app_iphone_monika
+      action: notify.iphone_monika
   - action: logbook.log
     data:
       name: Kontaktrony nocne
@@ -910,7 +910,7 @@
     entity_id: switch.biuro
     state: 'on'
   action:
-  - service: notify.mobile_app_iphone_tk
+  - service: notify.iphone_tk
     data:
       title: ⚡ Biuro – prąd włączony
       message: >
@@ -1253,7 +1253,7 @@
           "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - service: notify.mobile_app_iphone_tk
+    - service: notify.iphone_tk
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -1261,7 +1261,7 @@
           {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
           wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}% ·
           zamknięcie za 30 min
-    - service: notify.mobile_app_iphone_monika
+    - service: notify.iphone_monika
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -1285,11 +1285,11 @@
           "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - service: notify.mobile_app_iphone_tk
+    - service: notify.iphone_tk
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
-    - service: notify.mobile_app_iphone_monika
+    - service: notify.iphone_monika
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
@@ -1336,14 +1336,14 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - service: notify.mobile_app_iphone_tk
+            - service: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — zaczął padać deszcz ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - service: notify.mobile_app_iphone_monika
+            - service: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -1396,14 +1396,14 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - service: notify.mobile_app_iphone_tk
+            - service: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — temperatura i wilgotność w normie ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - service: notify.mobile_app_iphone_monika
+            - service: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -1449,11 +1449,11 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - service: notify.mobile_app_iphone_tk
+            - service: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
-            - service: notify.mobile_app_iphone_monika
+            - service: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"

@@ -15,7 +15,7 @@
       state: "on"
 
   action:
-    - service: notify.mobile_app_iphone_tk
+    - service: notify.iphone_tk
       data:
         title: "⚡ Biuro – prąd włączony"
         message: >
