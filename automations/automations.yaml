@@ -1532,10 +1532,10 @@
           - cover.rollershutter_0005
           - cover.rollershutter_0008
           - cover.rollershutter_0009
-          - cover.rollershutter_0010
-          - cover.rollershutter_0011
-          - cover.rollershutter_0012
-          - cover.rollershutter_0013
+          - cover.rollershutter_000a
+          - cover.rollershutter_000b
+          - cover.rollershutter_000c
+          - cover.rollershutter_000d
 
     - if:
         - condition: template
