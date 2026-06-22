@@ -555,7 +555,7 @@ class AhaLogHistoryCard extends HTMLElement {
   // ── READ ENTRIES ───────────────────────────────────────────────────────────
 
   _readEntries() {
-    const slots = this._config.slots ?? 50;
+    const slots = this._config.slots ?? 100;
     const entries = [];
     for (let i = 1; i <= slots; i++) {
       const raw = this._hass?.states[`input_text.log_h${i}`]?.state ?? '';

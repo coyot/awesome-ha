@@ -540,6 +540,156 @@ input_text:
   log_h50:
     name: "Log historia 50"
     max: 255
+  log_h51:
+    name: "Log historia 51"
+    max: 255
+  log_h52:
+    name: "Log historia 52"
+    max: 255
+  log_h53:
+    name: "Log historia 53"
+    max: 255
+  log_h54:
+    name: "Log historia 54"
+    max: 255
+  log_h55:
+    name: "Log historia 55"
+    max: 255
+  log_h56:
+    name: "Log historia 56"
+    max: 255
+  log_h57:
+    name: "Log historia 57"
+    max: 255
+  log_h58:
+    name: "Log historia 58"
+    max: 255
+  log_h59:
+    name: "Log historia 59"
+    max: 255
+  log_h60:
+    name: "Log historia 60"
+    max: 255
+  log_h61:
+    name: "Log historia 61"
+    max: 255
+  log_h62:
+    name: "Log historia 62"
+    max: 255
+  log_h63:
+    name: "Log historia 63"
+    max: 255
+  log_h64:
+    name: "Log historia 64"
+    max: 255
+  log_h65:
+    name: "Log historia 65"
+    max: 255
+  log_h66:
+    name: "Log historia 66"
+    max: 255
+  log_h67:
+    name: "Log historia 67"
+    max: 255
+  log_h68:
+    name: "Log historia 68"
+    max: 255
+  log_h69:
+    name: "Log historia 69"
+    max: 255
+  log_h70:
+    name: "Log historia 70"
+    max: 255
+  log_h71:
+    name: "Log historia 71"
+    max: 255
+  log_h72:
+    name: "Log historia 72"
+    max: 255
+  log_h73:
+    name: "Log historia 73"
+    max: 255
+  log_h74:
+    name: "Log historia 74"
+    max: 255
+  log_h75:
+    name: "Log historia 75"
+    max: 255
+  log_h76:
+    name: "Log historia 76"
+    max: 255
+  log_h77:
+    name: "Log historia 77"
+    max: 255
+  log_h78:
+    name: "Log historia 78"
+    max: 255
+  log_h79:
+    name: "Log historia 79"
+    max: 255
+  log_h80:
+    name: "Log historia 80"
+    max: 255
+  log_h81:
+    name: "Log historia 81"
+    max: 255
+  log_h82:
+    name: "Log historia 82"
+    max: 255
+  log_h83:
+    name: "Log historia 83"
+    max: 255
+  log_h84:
+    name: "Log historia 84"
+    max: 255
+  log_h85:
+    name: "Log historia 85"
+    max: 255
+  log_h86:
+    name: "Log historia 86"
+    max: 255
+  log_h87:
+    name: "Log historia 87"
+    max: 255
+  log_h88:
+    name: "Log historia 88"
+    max: 255
+  log_h89:
+    name: "Log historia 89"
+    max: 255
+  log_h90:
+    name: "Log historia 90"
+    max: 255
+  log_h91:
+    name: "Log historia 91"
+    max: 255
+  log_h92:
+    name: "Log historia 92"
+    max: 255
+  log_h93:
+    name: "Log historia 93"
+    max: 255
+  log_h94:
+    name: "Log historia 94"
+    max: 255
+  log_h95:
+    name: "Log historia 95"
+    max: 255
+  log_h96:
+    name: "Log historia 96"
+    max: 255
+  log_h97:
+    name: "Log historia 97"
+    max: 255
+  log_h98:
+    name: "Log historia 98"
+    max: 255
+  log_h99:
+    name: "Log historia 99"
+    max: 255
+  log_h100:
+    name: "Log historia 100"
+    max: 255
 
 homeassistant:
   customize:
