@@ -2707,7 +2707,6 @@ class SzamboAppleCard extends HTMLElement {
 
     const dom1zl  = this._val(this._config.entity_dom1_zaplata);
     const dom2zl  = this._val(this._config.entity_dom2_zaplata);
-    const totalZl = dom1zl + dom2zl;
     const fmtZl   = v => v.toFixed(2).replace('.', ',');
 
     const staleOn = this._config.entity_stale
@@ -2717,11 +2716,12 @@ class SzamboAppleCard extends HTMLElement {
     const pct = v => Math.min(Math.round((v / cap) * 100), 100);
     const fmt = v => v.toFixed(2).replace('.', ',');
 
-    const totalPct = pct(total);
-    const d1szPct  = pct(d1sz);
-    const d2szPct  = pct(d2sz);
-    const d1ogPct  = pct(d1og);
-    const d2ogPct  = pct(d2og);
+    const totalPct   = pct(total);
+    const observePct = pct(warnObserve);
+    const planPct    = pct(warnPlan);
+    const d1pct      = pct(d1sz);
+    const d2pct      = pct(d2sz);
+    const emptPct    = Math.max(0, 100 - d1pct - d2pct);
 
     const isPlan    = total >= warnPlan;
     const isObserve = !isPlan && total >= warnObserve;
@@ -2731,17 +2731,15 @@ class SzamboAppleCard extends HTMLElement {
     const clrD2    = isPlan ? CLR_D2_PLAN : isObserve ? CLR_D2_OBS : CLR_D2;
     const totalClr = isPlan ? '#FF3B30' : isObserve ? '#FF9500' : '#34C759';
 
-    const alertTxt  = isPlan    ? 'Zam\u00f3w wyw\u00f3z!'
-                    : isObserve ? 'Obserwuj'
-                    :             'W normie';
+    const alertTxt   = isPlan    ? 'Zam\u00f3w wyw\u00f3z!'
+                     : isObserve ? 'Obserwuj'
+                     :             'W normie';
     const alertBgRgb = isPlan ? '255,59,48' : isObserve ? '255,149,0' : '52,199,89';
 
-    // stacked bar widths: d1sz | d1og | d2sz | d2og | empty
-    // cap = 100%, ogr\u00f3d nie trafia do zbiornika ale warto go pokaza\u0107 jako stripe
-    const d1szW = d1szPct;
-    const d1ogW = Math.min(d1ogPct, Math.max(0, 100 - d1szW));
-    const d2szW = Math.min(d2szPct, Math.max(0, 100 - d1szW - d1ogW));
-    const d2ogW = Math.min(d2ogPct, Math.max(0, 100 - d1szW - d1ogW - d2szW));
+    const tankSvg = this._renderTankSVG(
+      d1pct, d2pct, emptPct, totalPct, observePct, planPct,
+      clrD1, clrD2, warnObserve, warnPlan
+    );
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -2751,6 +2749,10 @@ class SzamboAppleCard extends HTMLElement {
           0%, 100% { box-shadow: 0 0 0 0 rgba(${alertBgRgb}, 0); }
           50%       { box-shadow: 0 0 0 5px rgba(${alertBgRgb}, 0.18); }
         }
+        @keyframes szambo-liquid-flow {
+          0%, 100% { opacity: 0.88; }
+          50%       { opacity: 0.96; }
+        }
 
         .card {
           background: #1C1C1E;
@@ -2759,14 +2761,12 @@ class SzamboAppleCard extends HTMLElement {
           box-sizing: border-box;
           font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
-          border: 0.5px solid rgba(255,255,255,0.08);
+          border: 0.5px solid ${!isOk ? `rgba(${alertBgRgb}, 0.30)` : 'rgba(255,255,255,0.08)'};
           display: flex;
           gap: 12px;
           align-items: stretch;
-          position: relative;
           transition: border-color 0.4s ease;
           ${!isOk ? `animation: szambo-slim-pulse ${isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
-          border-color: ${!isOk ? `rgba(${alertBgRgb}, 0.30)` : 'rgba(255,255,255,0.08)'};
         }
 
         .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
@@ -2780,26 +2780,36 @@ class SzamboAppleCard extends HTMLElement {
           transition: background 0.4s ease;
         }
 
-        .body {
-          flex: 1;
+        /* mini tank */
+        .tank-col {
+          flex-shrink: 0;
           display: flex;
-          gap: 10px;
           align-items: center;
-          min-width: 0;
         }
 
+        .tank-svg {
+          width: 52px;
+          height: auto;
+          filter: drop-shadow(1px 2px 6px rgba(0,0,0,0.35));
+        }
+
+        .liquid-d1 { animation: szambo-liquid-flow 4s ease-in-out infinite; }
+        .liquid-d2 { animation: szambo-liquid-flow 4.5s ease-in-out infinite; }
+
+        /* content */
         .content {
           flex: 1;
           min-width: 0;
           display: flex;
           flex-direction: column;
-          gap: 7px;
+          justify-content: center;
+          gap: 6px;
         }
 
         .name-row {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 7px;
         }
 
         .name {
@@ -2813,13 +2823,12 @@ class SzamboAppleCard extends HTMLElement {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 500;
-          letter-spacing: -0.1px;
           color: ${totalClr};
           background: rgba(${alertBgRgb}, 0.18);
           border-radius: 6px;
-          padding: 2px 7px;
+          padding: 2px 6px;
         }
 
         .badge-dot {
@@ -2827,96 +2836,99 @@ class SzamboAppleCard extends HTMLElement {
           height: 5px;
           border-radius: 50%;
           background: ${totalClr};
-          ${!isOk ? 'animation: szambo-slim-pulse 2s ease-in-out infinite;' : ''}
+          flex-shrink: 0;
         }
 
-        .stale-chip {
+        .stale-badge {
           font-size: 10px;
           font-weight: 500;
           color: #FFD60A;
           background: rgba(255,214,10,0.12);
           border-radius: 5px;
-          padding: 2px 6px;
+          padding: 2px 5px;
         }
 
-        /* stacked bar */
-        .bar-wrap {
-          height: 3px;
-          background: rgba(58,58,60,0.7);
-          border-radius: 99px;
-          overflow: hidden;
+        /* dom rows */
+        .dom-row {
           display: flex;
-        }
-
-        .bar-seg {
-          height: 100%;
-          transition: width 0.4s ease;
-        }
-
-        /* dom chips */
-        .chips {
-          display: flex;
+          align-items: baseline;
           gap: 6px;
-          flex-wrap: wrap;
         }
 
-        .chip {
+        .dom-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          margin-bottom: 1px;
+          align-self: center;
+        }
+
+        .dom-name {
           font-size: 11px;
-          font-weight: 500;
-          letter-spacing: -0.1px;
-          border-radius: 6px;
-          padding: 2px 7px;
+          font-weight: 400;
+          color: rgba(142,142,147,0.85);
+          flex-shrink: 0;
+          min-width: 0;
         }
 
-        .chip-d1 {
-          color: ${clrD1};
-          background: rgba(${this._hexToRgb(clrD1)}, 0.15);
+        .dom-val {
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.95);
+          letter-spacing: -0.3px;
+          font-variant-numeric: tabular-nums;
         }
 
-        .chip-d2 {
-          color: ${clrD2};
-          background: rgba(${this._hexToRgb(clrD2)}, 0.15);
+        .dom-unit {
+          font-size: 10px;
+          font-weight: 400;
+          color: rgba(142,142,147,0.6);
         }
 
-        .chip-og {
-          color: rgba(142,142,147,0.8);
-          background: rgba(58,58,60,0.5);
+        .dom-og {
+          font-size: 10px;
+          font-weight: 400;
+          color: rgba(142,142,147,0.5);
+          font-variant-numeric: tabular-nums;
         }
 
-        /* billing row */
+        /* billing */
         .billing-row {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
           margin-top: 1px;
         }
 
         .billing-lbl {
           font-size: 10px;
           font-weight: 500;
-          color: rgba(142,142,147,0.7);
-          letter-spacing: 0.3px;
+          color: rgba(142,142,147,0.55);
           text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
-        .billing-val {
-          font-size: 11px;
+        .billing-item {
+          font-size: 10px;
           font-weight: 600;
-          color: rgba(255,255,255,0.75);
+          color: rgba(255,255,255,0.65);
           font-variant-numeric: tabular-nums;
         }
 
         .billing-sep {
+          color: rgba(142,142,147,0.3);
           font-size: 10px;
-          color: rgba(142,142,147,0.35);
         }
 
         /* right metric */
         .metric {
+          flex-shrink: 0;
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          flex-shrink: 0;
+          justify-content: center;
+          gap: 2px;
         }
 
         .metric-val {
@@ -2931,63 +2943,56 @@ class SzamboAppleCard extends HTMLElement {
 
         .metric-unit {
           font-size: 10px;
-          font-weight: 400;
-          color: rgba(142,142,147,0.7);
-          margin-top: 2px;
-          text-align: right;
+          color: rgba(142,142,147,0.65);
         }
 
         .metric-pct {
           font-size: 11px;
           font-weight: 600;
-          color: rgba(142,142,147,0.85);
-          margin-top: 3px;
+          color: rgba(142,142,147,0.80);
           font-variant-numeric: tabular-nums;
         }
       </style>
 
       <div class="card">
         <div class="color-bar"></div>
-        <div class="body">
-          <div class="content">
 
-            <div class="name-row">
-              <span class="name">Szambo</span>
-              <span class="badge">
-                <span class="badge-dot"></span>
-                ${alertTxt}
-              </span>
-              ${staleOn ? '<span class="stale-chip">\u26a0\ufe0f dane og.</span>' : ''}
-            </div>
+        <div class="tank-col">${tankSvg}</div>
 
-            <div class="bar-wrap">
-              <div class="bar-seg" style="width:${d1szW}%;background:${clrD1};opacity:0.9;"></div>
-              <div class="bar-seg" style="width:${d1ogW}%;background:${clrD1};opacity:0.40;"></div>
-              <div class="bar-seg" style="width:${d2szW}%;background:${clrD2};opacity:0.9;"></div>
-              <div class="bar-seg" style="width:${d2ogW}%;background:${clrD2};opacity:0.40;"></div>
-            </div>
-
-            <div class="chips">
-              <span class="chip chip-d1">${dom1Name} ${fmt(d1sz + d1og)}&nbsp;m\u00b3</span>
-              <span class="chip chip-d2">${dom2Name} ${fmt(d2sz + d2og)}&nbsp;m\u00b3</span>
-              ${(d1og + d2og) > 0 ? `<span class="chip chip-og">og. ${fmt(d1og + d2og)}&nbsp;m\u00b3</span>` : ''}
-            </div>
-
-            ${(dom1zl > 0 || dom2zl > 0) ? `
-            <div class="billing-row">
-              <span class="billing-lbl">Rozliczenie</span>
-              <span class="billing-val">${dom1Name}: ${fmtZl(dom1zl)}&nbsp;z\u0142</span>
-              <span class="billing-sep">\u00b7</span>
-              <span class="billing-val">${dom2Name}: ${fmtZl(dom2zl)}&nbsp;z\u0142</span>
-            </div>` : ''}
-
+        <div class="content">
+          <div class="name-row">
+            <span class="name">Szambo</span>
+            <span class="badge"><span class="badge-dot"></span>${alertTxt}</span>
+            ${staleOn ? '<span class="stale-badge">\u26a0\ufe0f og.</span>' : ''}
           </div>
 
-          <div class="metric">
-            <div class="metric-val">${fmt(total)}</div>
-            <div class="metric-unit">m\u00b3</div>
-            <div class="metric-pct">${totalPct}%</div>
+          <div class="dom-row">
+            <div class="dom-dot" style="background:${clrD1};"></div>
+            <span class="dom-name">${dom1Name}</span>
+            <span class="dom-val">${fmt(d1sz)}</span><span class="dom-unit">&nbsp;m\u00b3</span>
+            ${d1og > 0 ? `<span class="dom-og">+ ${fmt(d1og)}&nbsp;og.</span>` : ''}
           </div>
+
+          <div class="dom-row">
+            <div class="dom-dot" style="background:${clrD2};"></div>
+            <span class="dom-name">${dom2Name}</span>
+            <span class="dom-val">${fmt(d2sz)}</span><span class="dom-unit">&nbsp;m\u00b3</span>
+            ${d2og > 0 ? `<span class="dom-og">+ ${fmt(d2og)}&nbsp;og.</span>` : ''}
+          </div>
+
+          ${(dom1zl > 0 || dom2zl > 0) ? `
+          <div class="billing-row">
+            <span class="billing-lbl">Rozlicz.</span>
+            <span class="billing-item">${fmtZl(dom1zl)}&nbsp;z\u0142</span>
+            <span class="billing-sep">/</span>
+            <span class="billing-item">${fmtZl(dom2zl)}&nbsp;z\u0142</span>
+          </div>` : ''}
+        </div>
+
+        <div class="metric">
+          <div class="metric-val">${fmt(total)}</div>
+          <div class="metric-unit">m\u00b3</div>
+          <div class="metric-pct">${totalPct}%</div>
         </div>
       </div>
     `;
