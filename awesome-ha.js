@@ -1682,15 +1682,16 @@ class SzamboAppleCard extends HTMLElement {
       entity_stale:        config.entity_stale        ?? null,
       entity_dom1_zaplata: config.entity_dom1_zaplata ?? null,
       entity_dom2_zaplata: config.entity_dom2_zaplata ?? null,
+      slim:                config.slim                ?? false,
     };
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._render();
+    this._config.slim ? this._renderSlim() : this._render();
   }
 
-  getCardSize() { return 4; }
+  getCardSize() { return this._config?.slim ? 2 : 4; }
 
   _val(id) {
     if (!id || !this._hass) return 0;
@@ -2686,6 +2687,317 @@ class SzamboAppleCard extends HTMLElement {
     `;
 
     this._bindHover();
+  }
+
+  _renderSlim() {
+    if (!this._hass) return;
+    const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
+
+    const cap         = this._config.capacity;
+    const warnObserve = this._config.warn_observe;
+    const warnPlan    = this._config.warn_plan;
+    const dom1Name    = this._config.dom1_name;
+    const dom2Name    = this._config.dom2_name;
+
+    const total = this._val(this._config.entity_total);
+    const d1sz  = this._val(this._config.entity_dom1_szambo);
+    const d1og  = this._val(this._config.entity_dom1_ogrod);
+    const d2sz  = this._val(this._config.entity_dom2_szambo);
+    const d2og  = this._val(this._config.entity_dom2_ogrod);
+
+    const dom1zl  = this._val(this._config.entity_dom1_zaplata);
+    const dom2zl  = this._val(this._config.entity_dom2_zaplata);
+    const totalZl = dom1zl + dom2zl;
+    const fmtZl   = v => v.toFixed(2).replace('.', ',');
+
+    const staleOn = this._config.entity_stale
+      ? this._hass.states[this._config.entity_stale]?.state === 'on'
+      : false;
+
+    const pct = v => Math.min(Math.round((v / cap) * 100), 100);
+    const fmt = v => v.toFixed(2).replace('.', ',');
+
+    const totalPct = pct(total);
+    const d1szPct  = pct(d1sz);
+    const d2szPct  = pct(d2sz);
+    const d1ogPct  = pct(d1og);
+    const d2ogPct  = pct(d2og);
+
+    const isPlan    = total >= warnPlan;
+    const isObserve = !isPlan && total >= warnObserve;
+    const isOk      = !isPlan && !isObserve;
+
+    const clrD1    = isPlan ? CLR_D1_PLAN : isObserve ? CLR_D1_OBS : CLR_D1;
+    const clrD2    = isPlan ? CLR_D2_PLAN : isObserve ? CLR_D2_OBS : CLR_D2;
+    const totalClr = isPlan ? '#FF3B30' : isObserve ? '#FF9500' : '#34C759';
+
+    const alertTxt  = isPlan    ? 'Zam\u00f3w wyw\u00f3z!'
+                    : isObserve ? 'Obserwuj'
+                    :             'W normie';
+    const alertBgRgb = isPlan ? '255,59,48' : isObserve ? '255,149,0' : '52,199,89';
+
+    // stacked bar widths: d1sz | d1og | d2sz | d2og | empty
+    // cap = 100%, ogr\u00f3d nie trafia do zbiornika ale warto go pokaza\u0107 jako stripe
+    const d1szW = d1szPct;
+    const d1ogW = Math.min(d1ogPct, Math.max(0, 100 - d1szW));
+    const d2szW = Math.min(d2szPct, Math.max(0, 100 - d1szW - d1ogW));
+    const d2ogW = Math.min(d2ogPct, Math.max(0, 100 - d1szW - d1ogW - d2szW));
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display: block; }
+
+        @keyframes szambo-slim-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(${alertBgRgb}, 0); }
+          50%       { box-shadow: 0 0 0 5px rgba(${alertBgRgb}, 0.18); }
+        }
+
+        .card {
+          background: #1C1C1E;
+          border-radius: 16px;
+          padding: 14px 16px;
+          box-sizing: border-box;
+          font-family: -apple-system, system-ui, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          border: 0.5px solid rgba(255,255,255,0.08);
+          display: flex;
+          gap: 12px;
+          align-items: stretch;
+          position: relative;
+          transition: border-color 0.4s ease;
+          ${!isOk ? `animation: szambo-slim-pulse ${isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
+          border-color: ${!isOk ? `rgba(${alertBgRgb}, 0.30)` : 'rgba(255,255,255,0.08)'};
+        }
+
+        .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
+
+        .color-bar {
+          width: 4px;
+          border-radius: 3px;
+          background: ${totalClr};
+          flex-shrink: 0;
+          align-self: stretch;
+          transition: background 0.4s ease;
+        }
+
+        .body {
+          flex: 1;
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          min-width: 0;
+        }
+
+        .content {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+        }
+
+        .name-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .name {
+          font-size: 13px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.90);
+          letter-spacing: -0.2px;
+        }
+
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: -0.1px;
+          color: ${totalClr};
+          background: rgba(${alertBgRgb}, 0.18);
+          border-radius: 6px;
+          padding: 2px 7px;
+        }
+
+        .badge-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: ${totalClr};
+          ${!isOk ? 'animation: szambo-slim-pulse 2s ease-in-out infinite;' : ''}
+        }
+
+        .stale-chip {
+          font-size: 10px;
+          font-weight: 500;
+          color: #FFD60A;
+          background: rgba(255,214,10,0.12);
+          border-radius: 5px;
+          padding: 2px 6px;
+        }
+
+        /* stacked bar */
+        .bar-wrap {
+          height: 3px;
+          background: rgba(58,58,60,0.7);
+          border-radius: 99px;
+          overflow: hidden;
+          display: flex;
+        }
+
+        .bar-seg {
+          height: 100%;
+          transition: width 0.4s ease;
+        }
+
+        /* dom chips */
+        .chips {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .chip {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: -0.1px;
+          border-radius: 6px;
+          padding: 2px 7px;
+        }
+
+        .chip-d1 {
+          color: ${clrD1};
+          background: rgba(${this._hexToRgb(clrD1)}, 0.15);
+        }
+
+        .chip-d2 {
+          color: ${clrD2};
+          background: rgba(${this._hexToRgb(clrD2)}, 0.15);
+        }
+
+        .chip-og {
+          color: rgba(142,142,147,0.8);
+          background: rgba(58,58,60,0.5);
+        }
+
+        /* billing row */
+        .billing-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 1px;
+        }
+
+        .billing-lbl {
+          font-size: 10px;
+          font-weight: 500;
+          color: rgba(142,142,147,0.7);
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
+        }
+
+        .billing-val {
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.75);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .billing-sep {
+          font-size: 10px;
+          color: rgba(142,142,147,0.35);
+        }
+
+        /* right metric */
+        .metric {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          flex-shrink: 0;
+        }
+
+        .metric-val {
+          font-size: 20px;
+          font-weight: 600;
+          letter-spacing: -0.8px;
+          color: ${totalClr};
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+          transition: color 0.4s ease;
+        }
+
+        .metric-unit {
+          font-size: 10px;
+          font-weight: 400;
+          color: rgba(142,142,147,0.7);
+          margin-top: 2px;
+          text-align: right;
+        }
+
+        .metric-pct {
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(142,142,147,0.85);
+          margin-top: 3px;
+          font-variant-numeric: tabular-nums;
+        }
+      </style>
+
+      <div class="card">
+        <div class="color-bar"></div>
+        <div class="body">
+          <div class="content">
+
+            <div class="name-row">
+              <span class="name">Szambo</span>
+              <span class="badge">
+                <span class="badge-dot"></span>
+                ${alertTxt}
+              </span>
+              ${staleOn ? '<span class="stale-chip">\u26a0\ufe0f dane og.</span>' : ''}
+            </div>
+
+            <div class="bar-wrap">
+              <div class="bar-seg" style="width:${d1szW}%;background:${clrD1};opacity:0.9;"></div>
+              <div class="bar-seg" style="width:${d1ogW}%;background:${clrD1};opacity:0.40;"></div>
+              <div class="bar-seg" style="width:${d2szW}%;background:${clrD2};opacity:0.9;"></div>
+              <div class="bar-seg" style="width:${d2ogW}%;background:${clrD2};opacity:0.40;"></div>
+            </div>
+
+            <div class="chips">
+              <span class="chip chip-d1">${dom1Name} ${fmt(d1sz + d1og)}&nbsp;m\u00b3</span>
+              <span class="chip chip-d2">${dom2Name} ${fmt(d2sz + d2og)}&nbsp;m\u00b3</span>
+              ${(d1og + d2og) > 0 ? `<span class="chip chip-og">og. ${fmt(d1og + d2og)}&nbsp;m\u00b3</span>` : ''}
+            </div>
+
+            ${(dom1zl > 0 || dom2zl > 0) ? `
+            <div class="billing-row">
+              <span class="billing-lbl">Rozliczenie</span>
+              <span class="billing-val">${dom1Name}: ${fmtZl(dom1zl)}&nbsp;z\u0142</span>
+              <span class="billing-sep">\u00b7</span>
+              <span class="billing-val">${dom2Name}: ${fmtZl(dom2zl)}&nbsp;z\u0142</span>
+            </div>` : ''}
+
+          </div>
+
+          <div class="metric">
+            <div class="metric-val">${fmt(total)}</div>
+            <div class="metric-unit">m\u00b3</div>
+            <div class="metric-pct">${totalPct}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `${r},${g},${b}`;
   }
 
   _bindHover() {
