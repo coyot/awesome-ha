@@ -94,7 +94,9 @@
           "akcja":"ON","otwarte":{{ otwarte_ile }},
           "info":"tryb nocny aktywowany"}
 
-    - action: notify.iphone_tk
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
       data:
         title: "🌙 Dobranoc"
         message: >
@@ -108,7 +110,9 @@
           push:
             sound: default
 
-    - action: notify.iphone_monika
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
       data:
         title: "🌙 Dobranoc"
         message: >

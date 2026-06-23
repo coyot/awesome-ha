@@ -144,11 +144,15 @@
             entity_id: sensor.szambo_zuzycie
             above: 9
         sequence:
-          - action: notify.iphone_tk
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_tk
             data:
               title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
               message: "Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz."
-          - action: notify.iphone_monika
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_monika
             data:
               title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
               message: "Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz."
@@ -157,11 +161,15 @@
             entity_id: sensor.szambo_zuzycie
             above: 8
         sequence:
-          - action: notify.iphone_tk
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_tk
             data:
               title: "⚠️ Szambo blisko pełnego"
               message: "Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz."
-          - action: notify.iphone_monika
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_monika
             data:
               title: "⚠️ Szambo blisko pełnego"
               message: "Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz."
@@ -170,11 +178,15 @@
             entity_id: sensor.szambo_zuzycie
             above: 7
         sequence:
-          - action: notify.iphone_tk
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_tk
             data:
               title: "ℹ️ Szambo zaczyna się zapełniać"
               message: "Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj."
-          - action: notify.iphone_monika
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_monika
             data:
               title: "ℹ️ Szambo zaczyna się zapełniać"
               message: "Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj."
@@ -191,13 +203,17 @@
     for:
       minutes: 5
   actions:
-  - action: notify.iphone_tk
+  - action: notify.send_message
+    target:
+      entity_id: notify.iphone_tk
     data:
       title: "\U0001F6A8 Szambo na granicy!"
       message: >
         Szambo przekroczyło 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³.
         Pilnie zamów wywóz.
-  - action: notify.iphone_monika
+  - action: notify.send_message
+    target:
+      entity_id: notify.iphone_monika
     data:
       title: "\U0001F6A8 Szambo na granicy!"
       message: >
@@ -260,7 +276,9 @@
           - condition: template
             value_template: "{{ trigger.entity_id == 'device_tracker.iphone_tk' }}"
         sequence:
-          - action: notify.iphone_tk
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_tk
             data:
               title: "🏠 Witaj w domu!"
               message: "👋 Cześć Tomek, brama otwarta!"
@@ -268,7 +286,9 @@
           - condition: template
             value_template: "{{ trigger.entity_id == 'device_tracker.iphone_monika' }}"
         sequence:
-          - action: notify.iphone_monika
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_monika
             data:
               title: "🏠 Witaj w domu!"
               message: "👋 Cześć Monika, brama otwarta!"
@@ -319,7 +339,9 @@
       oboje_poza: '{{ not is_state(''device_tracker.iphone_tk'', ''home'') and not is_state(''device_tracker.iphone_monika'', ''home'') }}'
   - condition: template
     value_template: '{{ items_tomorrow != "" }}'
-  - action: notify.iphone_monika
+  - action: notify.send_message
+    target:
+      entity_id: notify.iphone_monika
     data:
       title: "\U0001F69B Jutro wywóz śmieci!"
       message: >
@@ -329,7 +351,9 @@
         {% else %}
         ⚠️ Pamiętaj o wystawieniu kubłów przed dom.
         {% endif %}
-  - action: notify.iphone_tk
+  - action: notify.send_message
+    target:
+      entity_id: notify.iphone_tk
     data:
       title: "\U0001F69B Jutro wywóz śmieci!"
       message: >
@@ -565,7 +589,9 @@
           entity_id: person.tk
           zone: zone.home
       then:
-        - action: notify.iphone_tk
+        - action: notify.send_message
+          target:
+            entity_id: notify.iphone_tk
           data:
             title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
             message: >
@@ -583,7 +609,9 @@
           entity_id: person.monika
           zone: zone.home
       then:
-        - action: notify.iphone_monika
+        - action: notify.send_message
+          target:
+            entity_id: notify.iphone_monika
           data:
             title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
             message: >
@@ -930,7 +958,9 @@
     entity_id: switch.biuro
     state: 'on'
   action:
-  - action: notify.iphone_tk
+  - action: notify.send_message
+    target:
+      entity_id: notify.iphone_tk
     data:
       title: ⚡ Biuro – prąd włączony
       message: >
@@ -1302,7 +1332,9 @@
           "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - action: notify.iphone_tk
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -1310,7 +1342,9 @@
           {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
           wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}% ·
           zamknięcie za 30 min
-    - action: notify.iphone_monika
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -1334,11 +1368,15 @@
           "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - action: notify.iphone_tk
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
-    - action: notify.iphone_monika
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
@@ -1385,14 +1423,18 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - action: notify.iphone_tk
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — zaczął padać deszcz ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - action: notify.iphone_monika
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -1445,14 +1487,18 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - action: notify.iphone_tk
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — temperatura i wilgotność w normie ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - action: notify.iphone_monika
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -1498,11 +1544,15 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - action: notify.iphone_tk
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
-            - action: notify.iphone_monika
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
@@ -1599,7 +1649,9 @@
           "akcja":"ON","otwarte":{{ otwarte_ile }},
           "info":"tryb nocny aktywowany"}
 
-    - action: notify.iphone_tk
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
       data:
         title: "🌙 Dobranoc"
         message: >
@@ -1613,7 +1665,9 @@
           push:
             sound: default
 
-    - action: notify.iphone_monika
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
       data:
         title: "🌙 Dobranoc"
         message: >

@@ -148,7 +148,9 @@
           "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - action: notify.iphone_tk
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -156,7 +158,9 @@
           {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
           wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}% ·
           zamknięcie za 30 min
-    - action: notify.iphone_monika
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -180,11 +184,15 @@
           "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - action: notify.iphone_tk
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
-    - action: notify.iphone_monika
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
@@ -231,14 +239,18 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - action: notify.iphone_tk
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — zaczął padać deszcz ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - action: notify.iphone_monika
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -291,14 +303,18 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - action: notify.iphone_tk
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — temperatura i wilgotność w normie ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - action: notify.iphone_monika
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -344,11 +360,15 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - action: notify.iphone_tk
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
-            - action: notify.iphone_monika
+            - action: notify.send_message
+              target:
+                entity_id: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
