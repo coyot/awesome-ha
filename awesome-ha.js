@@ -10450,9 +10450,13 @@ class AhaLogHistoryCard extends HTMLElement {
 
     const allEntries = this._readEntries();
 
-    const rangeMs = { today: 86400000, week: 7 * 86400000, month: 30 * 86400000 }[this._range] ?? 7 * 86400000;
-    const now     = Date.now();
-    const visible = allEntries.filter(e => (now - new Date(e.ts).getTime()) <= rangeMs);
+    const rangeStart = (() => {
+      const d = new Date(); d.setHours(0, 0, 0, 0);   // midnight today
+      if (this._range === 'today') return d;
+      if (this._range === 'week')  { d.setDate(d.getDate() - 6); return d; }
+      /* month */                    d.setDate(d.getDate() - 29); return d;
+    })();
+    const visible = allEntries.filter(e => new Date(e.ts) >= rangeStart);
     const shown   = visible.slice(0, this._page * PAGE_SIZE);
     const hasMore = visible.length > shown.length;
     const remaining = visible.length - shown.length;
