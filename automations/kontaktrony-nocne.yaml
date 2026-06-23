@@ -27,7 +27,7 @@ action:
         entity_id: person.tk
         zone: zone.home
     then:
-      - service: notify.iphone_tk
+      - action: notify.iphone_tk
         data:
           title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
           message: >
@@ -49,7 +49,7 @@ action:
         entity_id: person.monika
         zone: zone.home
     then:
-      - service: notify.iphone_monika
+      - action: notify.iphone_monika
         data:
           title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
           message: >

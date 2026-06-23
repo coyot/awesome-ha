@@ -32,7 +32,7 @@
              | selectattr('state', 'eq', 'on')
              | list | count }}
 
-    - service: cover.close_cover
+    - action: cover.close_cover
       target:
         entity_id:
           - cover.rollershutter_0001
@@ -51,7 +51,7 @@
         - condition: template
           value_template: "{{ pergola_otwarta }}"
       then:
-        - service: cover.close_cover
+        - action: cover.close_cover
           target:
             entity_id: cover.teleco_leds2
 
@@ -59,7 +59,7 @@
         - condition: template
           value_template: "{{ biuro_wlaczone and not is_state('input_boolean.tk_is_working', 'on') }}"
       then:
-        - service: switch.turn_off
+        - action: switch.turn_off
           target:
             entity_id: switch.biuro
 
@@ -67,7 +67,7 @@
         - condition: template
           value_template: "{{ wiatrak_wlaczony }}"
       then:
-        - service: switch.turn_off
+        - action: switch.turn_off
           target:
             entity_id: switch.biuro_wiatrak
 
@@ -89,7 +89,7 @@
           "akcja":"ON","otwarte":{{ otwarte_ile }},
           "info":"tryb nocny aktywowany"}
 
-    - service: notify.iphone_tk
+    - action: notify.iphone_tk
       data:
         title: "🌙 Dobranoc"
         message: >
@@ -103,7 +103,7 @@
           push:
             sound: default
 
-    - service: notify.iphone_monika
+    - action: notify.iphone_monika
       data:
         title: "🌙 Dobranoc"
         message: >
@@ -136,7 +136,7 @@
       state: "on"
 
   action:
-    - service: input_boolean.turn_off
+    - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.tryb_noc
 

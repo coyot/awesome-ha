@@ -23,7 +23,7 @@
       after: sunrise
       before: sunset
   action:
-    - service: cover.close_cover
+    - action: cover.close_cover
       target:
         entity_id: cover.rollershutter_0009
     - action: logbook.log

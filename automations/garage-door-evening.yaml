@@ -14,7 +14,7 @@ condition:
     state: "on"
 
 action:
-  - service: notify.iphone_tk
+  - action: notify.iphone_tk
     data:
       title: "⚠️ Garaż otwarty"
       message: >
@@ -29,7 +29,7 @@ action:
           sound: default
         url: /lovelace/garaz
 
-  - service: notify.iphone_monika
+  - action: notify.iphone_monika
     data:
       title: "⚠️ Garaż otwarty"
       message: >

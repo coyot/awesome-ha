@@ -39,7 +39,7 @@
               value_template: >
                 {{ states('weather.forecast_home') in ['sunny','partlycloudy','clear-night'] }}
           sequence:
-            - service: cover.open_cover
+            - action: cover.open_cover
               target:
                 entity_id:
                   - cover.rollershutter_0001
@@ -59,7 +59,7 @@
       default:
         - delay:
             minutes: 80
-        - service: cover.open_cover
+        - action: cover.open_cover
           target:
             entity_id:
               - cover.rollershutter_0001
@@ -103,7 +103,7 @@
           sequence:
             - delay:
                 minutes: 70
-            - service: cover.close_cover
+            - action: cover.close_cover
               target:
                 entity_id:
                   - cover.rollershutter_0001
@@ -121,7 +121,7 @@
                   {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kwiaty",
                   "akcja":"CLOSE","info":"pogodnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −20min · rolety 1,2,9"}
       default:
-        - service: cover.close_cover
+        - action: cover.close_cover
           target:
             entity_id:
               - cover.rollershutter_0001

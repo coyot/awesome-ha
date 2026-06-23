@@ -13,7 +13,7 @@
       state: "on"
 
   action:
-    - service: notify.iphone_tk
+    - action: notify.iphone_tk
       data:
         title: "⚡ Biuro – prąd włączony"
         message: >
@@ -65,7 +65,7 @@
       state: 'off'
 
   action:
-    - service: switch.turn_off
+    - action: switch.turn_off
       target:
         entity_id: switch.biuro
 
@@ -104,7 +104,7 @@
       state: 'on'
 
   action:
-    - service: switch.turn_off
+    - action: switch.turn_off
       target:
         entity_id: switch.biuro
 

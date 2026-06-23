@@ -65,7 +65,7 @@
           entity_id: cover.teleco_leds2
           state: "open"
   action:
-    - service: cover.open_cover
+    - action: cover.open_cover
       target:
         entity_id: cover.teleco_leds2
     - action: logbook.log
@@ -131,7 +131,7 @@
         entity_id: input_datetime.pergola_poza_ostatnie_otwarcie
       data:
         datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-    - service: cover.open_cover
+    - action: cover.open_cover
       target:
         entity_id: cover.teleco_leds2
     - action: logbook.log
@@ -148,7 +148,7 @@
           "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - service: notify.iphone_tk
+    - action: notify.iphone_tk
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -156,7 +156,7 @@
           {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
           wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}% ·
           zamknięcie za 30 min
-    - service: notify.iphone_monika
+    - action: notify.iphone_monika
       data:
         title: "🌿 Pergola — otwarto"
         message: >
@@ -166,7 +166,7 @@
           zamknięcie za 30 min
     - delay:
         minutes: 30
-    - service: cover.close_cover
+    - action: cover.close_cover
       target:
         entity_id: cover.teleco_leds2
     - action: logbook.log
@@ -180,11 +180,11 @@
           "akcja":"CLOSE_30MIN","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"po 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - service: notify.iphone_tk
+    - action: notify.iphone_tk
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
-    - service: notify.iphone_monika
+    - action: notify.iphone_monika
       data:
         title: "🌿 Pergola — zamknięto"
         message: "Lamele zamknięte po 30 min przewietrzeniu"
@@ -207,7 +207,7 @@
       entity_id: cover.teleco_leds2
       state: "open"
   action:
-    - service: cover.close_cover
+    - action: cover.close_cover
       target:
         entity_id: cover.teleco_leds2
     - action: logbook.log
@@ -231,14 +231,14 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - service: notify.iphone_tk
+            - action: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — zaczął padać deszcz ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - service: notify.iphone_monika
+            - action: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -267,7 +267,7 @@
       entity_id: cover.teleco_leds2
       state: "open"
   action:
-    - service: cover.close_cover
+    - action: cover.close_cover
       target:
         entity_id: cover.teleco_leds2
     - action: logbook.log
@@ -291,14 +291,14 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - service: notify.iphone_tk
+            - action: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
                   Lamele zamknięte — temperatura i wilgotność w normie ·
                   {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
                   wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - service: notify.iphone_monika
+            - action: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: >
@@ -323,7 +323,7 @@
       entity_id: cover.teleco_leds2
       state: "open"
   action:
-    - service: cover.close_cover
+    - action: cover.close_cover
       target:
         entity_id: cover.teleco_leds2
     - action: logbook.log
@@ -344,11 +344,11 @@
                 {{ not is_state('device_tracker.iphone_tk', 'home') and
                    not is_state('device_tracker.iphone_monika', 'home') }}
           sequence:
-            - service: notify.iphone_tk
+            - action: notify.iphone_tk
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
-            - service: notify.iphone_monika
+            - action: notify.iphone_monika
               data:
                 title: "🌿 Pergola — zamknięto"
                 message: "Lamele zamknięte — nocne zamknięcie o 22:00"
