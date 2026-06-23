@@ -1,6 +1,6 @@
-- alias: "Biuro prąd: ostrzeżenie (21:00 pn–pt)"
+- alias: "Biuro prąd: ostrzeżenie (21:00)"
   description: >
-    O 21:00 w dni robocze: jeśli switch.biuro jest włączony, wyślij powiadomienie
+    O 21:00 każdego dnia: jeśli switch.biuro jest włączony, wyślij powiadomienie
     do iphone_tk — dynamicznie: czy pracuje (tryb pracy aktywny) czy nie (wyłączenie za godzinę).
 
   trigger:
@@ -8,8 +8,6 @@
       at: "21:00:00"
 
   condition:
-    - condition: time
-      weekday: [mon, tue, wed, thu, fri]
     - condition: state
       entity_id: switch.biuro
       state: "on"
@@ -50,17 +48,15 @@
   id: biuro_prad_ostrzezenie
 
 
-- alias: "Biuro prąd: wyłącz (22:00 pn–pt)"
+- alias: "Biuro prąd: wyłącz (22:00)"
   description: >
-    O 22:00 w dni robocze wyłącz switch.biuro jeśli jest włączony i nie pracuje.
+    O 22:00 każdego dnia: wyłącz switch.biuro jeśli włączony i nie pracuje.
 
   trigger:
     - platform: time
       at: "22:00:00"
 
   condition:
-    - condition: time
-      weekday: [mon, tue, wed, thu, fri]
     - condition: state
       entity_id: switch.biuro
       state: "on"
