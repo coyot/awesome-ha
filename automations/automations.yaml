@@ -273,14 +273,23 @@
         %}"}
 
         '
-  - action: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  notify.iphone_tk\n{%
-      elif trigger.entity_id == 'device_tracker.iphone_monika' %}\n  notify.iphone_monika\n{%
-      endif %}\n"
-    data:
-      title: "\U0001F3E0 Witaj w domu!"
-      message: "{% if trigger.entity_id == 'device_tracker.iphone_tk' %}\n  \U0001F64B
-        Cześć Tomek, brama otwarta!\n{% elif trigger.entity_id == 'device_tracker.iphone_monika'
-        %}\n  \U0001F64B Cześć Monika, brama otwarta!\n{% endif %}\n"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.entity_id == 'device_tracker.iphone_tk' }}"
+        sequence:
+          - action: notify.iphone_tk
+            data:
+              title: "🏠 Witaj w domu!"
+              message: "👋 Cześć Tomek, brama otwarta!"
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.entity_id == 'device_tracker.iphone_monika' }}"
+        sequence:
+          - action: notify.iphone_monika
+            data:
+              title: "🏠 Witaj w domu!"
+              message: "👋 Cześć Monika, brama otwarta!"
   mode: queued
   max: 2
 - alias: "Ogród 1: potwierdź"
