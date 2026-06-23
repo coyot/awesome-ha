@@ -1699,12 +1699,12 @@ class SzamboAppleCard extends HTMLElement {
     return isNaN(v) ? 0 : v;
   }
 
-  _renderTankSVG(d1pct, d2pct, emptPct, totalPct, observePct, planPct, clrD1, clrD2, warnObserve, warnPlan) {
+  _renderTankSVG(d1pct, d2pct, emptPct, totalPct, observePct, planPct, clrD1, clrD2, warnObserve, warnPlan, tankH = 260) {
     // Isometric projection: 30° angles
     // Tank dimensions
     const w = 50;  // width
     const d = 30;  // depth
-    const h = 260; // height
+    const h = tankH; // height
 
     // Isometric offsets (30° projection)
     const cos30 = Math.cos(Math.PI / 6);
@@ -2692,6 +2692,7 @@ class SzamboAppleCard extends HTMLElement {
   _renderSlim() {
     if (!this._hass) return;
     const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
+    // SLIM — full rewrite
 
     const cap         = this._config.capacity;
     const warnObserve = this._config.warn_observe;
@@ -2738,7 +2739,7 @@ class SzamboAppleCard extends HTMLElement {
 
     const tankSvg = this._renderTankSVG(
       d1pct, d2pct, emptPct, totalPct, observePct, planPct,
-      clrD1, clrD2, warnObserve, warnPlan
+      clrD1, clrD2, warnObserve, warnPlan, 90
     );
 
     this.shadowRoot.innerHTML = `
@@ -2746,8 +2747,8 @@ class SzamboAppleCard extends HTMLElement {
         :host { display: block; }
 
         @keyframes szambo-slim-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(${alertBgRgb}, 0); }
-          50%       { box-shadow: 0 0 0 5px rgba(${alertBgRgb}, 0.18); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(${alertBgRgb},0); }
+          50%       { box-shadow: 0 0 0 5px rgba(${alertBgRgb},0.18); }
         }
         @keyframes szambo-liquid-flow {
           0%, 100% { opacity: 0.88; }
@@ -2761,14 +2762,13 @@ class SzamboAppleCard extends HTMLElement {
           box-sizing: border-box;
           font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
-          border: 0.5px solid ${!isOk ? `rgba(${alertBgRgb}, 0.30)` : 'rgba(255,255,255,0.08)'};
+          border: 0.5px solid ${!isOk ? `rgba(${alertBgRgb},0.30)` : 'rgba(255,255,255,0.08)'};
           display: flex;
           gap: 12px;
           align-items: stretch;
           transition: border-color 0.4s ease;
           ${!isOk ? `animation: szambo-slim-pulse ${isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
         }
-
         .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
 
         .color-bar {
@@ -2780,84 +2780,58 @@ class SzamboAppleCard extends HTMLElement {
           transition: background 0.4s ease;
         }
 
-        /* mini tank + metric pod nim */
+        /* tank */
         .tank-col {
           flex-shrink: 0;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 4px;
         }
-
         .tank-svg {
-          width: 68px;
-          height: auto;
+          height: 100px;
+          width: auto;
           filter: drop-shadow(1px 2px 6px rgba(0,0,0,0.35));
         }
-
         .liquid-d1 { animation: szambo-liquid-flow 4s ease-in-out infinite; }
         .liquid-d2 { animation: szambo-liquid-flow 4.5s ease-in-out infinite; }
 
-        .tank-metric {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1px;
-        }
-
-        .tank-metric-val {
-          font-size: 18px;
-          font-weight: 600;
-          letter-spacing: -0.7px;
-          color: ${totalClr};
-          line-height: 1;
-          font-variant-numeric: tabular-nums;
-          transition: color 0.4s ease;
-        }
-
-        .tank-metric-sub {
-          font-size: 10px;
-          color: rgba(142,142,147,0.65);
-          font-variant-numeric: tabular-nums;
-          text-align: center;
-        }
-
-        /* content */
-        .content {
+        /* right side */
+        .data {
           flex: 1;
           min-width: 0;
           display: flex;
           flex-direction: column;
           justify-content: center;
-          gap: 6px;
+          gap: 8px;
         }
 
-        .name-row {
+        /* header: title + level pill */
+        .header {
           display: flex;
           align-items: center;
-          gap: 7px;
+          justify-content: space-between;
+          gap: 8px;
         }
-
-        .name {
+        .title {
           font-size: 13px;
           font-weight: 600;
           color: rgba(255,255,255,0.90);
           letter-spacing: -0.2px;
         }
-
-        .badge {
+        .pill {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          font-size: 10px;
-          font-weight: 500;
+          font-size: 11px;
+          font-weight: 600;
           color: ${totalClr};
-          background: rgba(${alertBgRgb}, 0.18);
-          border-radius: 6px;
-          padding: 2px 6px;
+          background: rgba(${alertBgRgb},0.16);
+          border-radius: 20px;
+          padding: 3px 9px;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.2px;
+          transition: background 0.4s ease, color 0.4s ease;
         }
-
-        .badge-dot {
+        .pill-dot {
           width: 5px;
           height: 5px;
           border-radius: 50%;
@@ -2865,129 +2839,163 @@ class SzamboAppleCard extends HTMLElement {
           flex-shrink: 0;
         }
 
-        .stale-badge {
-          font-size: 10px;
-          font-weight: 500;
-          color: #FFD60A;
-          background: rgba(255,214,10,0.12);
-          border-radius: 5px;
-          padding: 2px 5px;
+        /* divider */
+        .div {
+          height: 1px;
+          background: rgba(58,58,60,0.7);
+          border-radius: 1px;
         }
 
-        /* dom rows */
-        .dom-row {
+        /* dom section */
+        .dom {
           display: flex;
-          align-items: baseline;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .dom-header {
+          display: flex;
+          align-items: center;
           gap: 6px;
         }
-
         .dom-dot {
           width: 7px;
           height: 7px;
           border-radius: 50%;
           flex-shrink: 0;
-          margin-bottom: 1px;
-          align-self: center;
         }
-
         .dom-name {
           font-size: 11px;
-          font-weight: 400;
-          color: rgba(142,142,147,0.85);
-          flex-shrink: 0;
-          min-width: 0;
+          font-weight: 600;
+          color: rgba(255,255,255,0.85);
+          letter-spacing: -0.1px;
         }
-
-        .dom-val {
+        .dom-vals {
+          display: flex;
+          gap: 12px;
+          padding-left: 13px;
+        }
+        .val-group {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
+        .val-lbl {
+          font-size: 10px;
+          font-weight: 400;
+          color: rgba(142,142,147,0.65);
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .val-num {
           font-size: 13px;
           font-weight: 600;
           color: rgba(255,255,255,0.95);
           letter-spacing: -0.3px;
           font-variant-numeric: tabular-nums;
         }
-
-        .dom-unit {
+        .val-unit {
           font-size: 10px;
           font-weight: 400;
           color: rgba(142,142,147,0.6);
-        }
-
-        .dom-og {
-          font-size: 10px;
-          font-weight: 400;
-          color: rgba(142,142,147,0.5);
-          font-variant-numeric: tabular-nums;
+          margin-left: 1px;
         }
 
         /* billing */
-        .billing-row {
+        .billing {
           display: flex;
           align-items: center;
           gap: 5px;
-          margin-top: 1px;
         }
-
         .billing-lbl {
           font-size: 10px;
           font-weight: 500;
-          color: rgba(142,142,147,0.55);
+          color: rgba(142,142,147,0.50);
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
-
-        .billing-item {
-          font-size: 10px;
+        .billing-val {
+          font-size: 11px;
           font-weight: 600;
-          color: rgba(255,255,255,0.65);
+          color: rgba(255,255,255,0.60);
           font-variant-numeric: tabular-nums;
         }
-
         .billing-sep {
-          color: rgba(142,142,147,0.3);
+          color: rgba(142,142,147,0.30);
           font-size: 10px;
         }
-
+        .stale-chip {
+          font-size: 10px;
+          font-weight: 500;
+          color: #FFD60A;
+          background: rgba(255,214,10,0.12);
+          border-radius: 5px;
+          padding: 1px 5px;
+        }
       </style>
 
       <div class="card">
         <div class="color-bar"></div>
 
-        <div class="tank-col">
-          ${tankSvg}
-          <div class="tank-metric">
-            <div class="tank-metric-val">${fmt(total)}</div>
-            <div class="tank-metric-sub">m\u00b3 &middot; ${totalPct}%</div>
-          </div>
-        </div>
+        <div class="tank-col">${tankSvg}</div>
 
-        <div class="content">
-          <div class="name-row">
-            <span class="name">Szambo</span>
-            <span class="badge"><span class="badge-dot"></span>${alertTxt}</span>
-            ${staleOn ? '<span class="stale-badge">\u26a0\ufe0f og.</span>' : ''}
-          </div>
+        <div class="data">
 
-          <div class="dom-row">
-            <div class="dom-dot" style="background:${clrD1};"></div>
-            <span class="dom-name">${dom1Name}</span>
-            <span class="dom-val">${fmt(d1sz)}</span><span class="dom-unit">&nbsp;m\u00b3</span>
-            ${d1og > 0 ? `<span class="dom-og">+ ${fmt(d1og)}&nbsp;og.</span>` : ''}
+          <div class="header">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="title">Szambo</span>
+              ${staleOn ? '<span class="stale-chip">\u26a0\ufe0f og.</span>' : ''}
+            </div>
+            <span class="pill">
+              <span class="pill-dot"></span>
+              ${fmt(total)}&nbsp;m\u00b3&nbsp;&middot;&nbsp;${totalPct}%
+            </span>
           </div>
 
-          <div class="dom-row">
-            <div class="dom-dot" style="background:${clrD2};"></div>
-            <span class="dom-name">${dom2Name}</span>
-            <span class="dom-val">${fmt(d2sz)}</span><span class="dom-unit">&nbsp;m\u00b3</span>
-            ${d2og > 0 ? `<span class="dom-og">+ ${fmt(d2og)}&nbsp;og.</span>` : ''}
+          <div class="div"></div>
+
+          <div class="dom">
+            <div class="dom-header">
+              <div class="dom-dot" style="background:${clrD1};"></div>
+              <span class="dom-name">${dom1Name}</span>
+            </div>
+            <div class="dom-vals">
+              <div class="val-group">
+                <span class="val-lbl">Woda</span>
+                <span class="val-num">${fmt(d1sz)}<span class="val-unit">m\u00b3</span></span>
+              </div>
+              <div class="val-group">
+                <span class="val-lbl">Ogr\u00f3d</span>
+                <span class="val-num">${fmt(d1og)}<span class="val-unit">m\u00b3</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dom">
+            <div class="dom-header">
+              <div class="dom-dot" style="background:${clrD2};"></div>
+              <span class="dom-name">${dom2Name}</span>
+            </div>
+            <div class="dom-vals">
+              <div class="val-group">
+                <span class="val-lbl">Woda</span>
+                <span class="val-num">${fmt(d2sz)}<span class="val-unit">m\u00b3</span></span>
+              </div>
+              <div class="val-group">
+                <span class="val-lbl">Ogr\u00f3d</span>
+                <span class="val-num">${fmt(d2og)}<span class="val-unit">m\u00b3</span></span>
+              </div>
+            </div>
           </div>
 
           ${(dom1zl > 0 || dom2zl > 0) ? `
-          <div class="billing-row">
+          <div class="div"></div>
+          <div class="billing">
             <span class="billing-lbl">Rozlicz.</span>
-            <span class="billing-item">${fmtZl(dom1zl)}&nbsp;z\u0142</span>
+            <span class="billing-val">${fmtZl(dom1zl)}&nbsp;z\u0142</span>
             <span class="billing-sep">/</span>
-            <span class="billing-item">${fmtZl(dom2zl)}&nbsp;z\u0142</span>
+            <span class="billing-val">${fmtZl(dom2zl)}&nbsp;z\u0142</span>
           </div>` : ''}
+
         </div>
       </div>
     `;
