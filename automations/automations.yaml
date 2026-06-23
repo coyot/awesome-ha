@@ -1083,6 +1083,43 @@
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"nawodnienie_ogrod2",
           "akcja":"update","delta":{{ delta }},"ogrod2":{{ ogrod2_nowe }}}
   mode: single
+- id: strychowy_roleta_otworz_chlod
+  alias: "Roleta strychowy: otwórz gdy ochłodzenie (≤22°C, 5 min)"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.termometr_strychowy_temperature
+      below: 22
+      for:
+        minutes: 5
+  condition:
+    - condition: sun
+      after: sunrise
+      before: sunset
+    - condition: state
+      entity_id: input_boolean.tryb_noc
+      state: "off"
+    - condition: state
+      entity_id: cover.rollershutter_0009
+      state: "closed"
+  action:
+    - action: cover.open_cover
+      target:
+        entity_id: cover.rollershutter_0009
+    - action: logbook.log
+      data:
+        name: "Strychowy — roleta"
+        message: >
+          OTWARTO | {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
+          · {{ states('sensor.termometr_strychowy_humidity') | round(0) }}% wilg.
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"strychowy_roleta",
+          "akcja":"OPEN","temp":{{ states('sensor.termometr_strychowy_temperature') | round(1) }},
+          "hum":{{ states('sensor.termometr_strychowy_humidity') | round(0) }},
+          "info":"{{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C · {{ states('sensor.termometr_strychowy_humidity') | round(0) }}% · otwarto roletę 9"}
+  mode: single
+
 - id: strychowy_roleta_zamknij_upal
   alias: "Roleta strychowy: zamknij przy upale (≥25°C, 5 min)"
   trigger:
