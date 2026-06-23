@@ -49,6 +49,7 @@ class SzamboPredictCard extends HTMLElement {
       warn_observe: config.warn_observe ?? DEFAULTS.WARN_OBSERVE,
       warn_plan: config.warn_plan ?? DEFAULTS.WARN_PLAN,
       tap_action: config.tap_action ?? { action: 'more-info' },
+      slim: config.slim ?? false,
     };
   }
 
@@ -62,7 +63,7 @@ class SzamboPredictCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 2;
+    return this._config?.slim ? 1 : 2;
   }
 
   _val(entityId) {
@@ -94,7 +95,7 @@ class SzamboPredictCard extends HTMLElement {
 
   _setupCard() {
     const style = document.createElement('style');
-    style.textContent = this._getStyles();
+    style.textContent = this._config.slim ? this._getSlimStyles() : this._getStyles();
     this.shadowRoot.appendChild(style);
 
     const card = document.createElement('div');
@@ -178,10 +179,10 @@ class SzamboPredictCard extends HTMLElement {
     const fmt = v => v.toFixed(3).replace('.', ',');
     const fmt2 = v => v.toFixed(2).replace('.', ',');
 
-    card.innerHTML = this._renderContent({
-      noData, isFull, daysInt, daysLabel, dayName, dateStr,
-      accentClr, barColor, fillPct, current, cap, rate, weekly, remaining, fmt, fmt2
-    });
+    const args = { noData, isFull, daysInt, daysLabel, dayName, dateStr, accentClr, barColor, fillPct, current, cap, rate, weekly, remaining, fmt, fmt2 };
+    card.innerHTML = this._config.slim
+      ? this._renderSlimContent(args)
+      : this._renderContent(args);
   }
 
   _renderError(title, subtitle) {
@@ -256,6 +257,207 @@ class SzamboPredictCard extends HTMLElement {
           <div class="metric-val">${fmt2(remaining)}<span class="metric-unit"> m³</span></div>
         </div>
       </div>
+    `;
+  }
+
+  _renderSlimContent({ noData, isFull, daysInt, daysLabel, dayName, dateStr, accentClr, barColor, fillPct, current, cap, rate, remaining, fmt, fmt2 }) {
+    const alertBgRgb = accentClr === COLORS.RED ? '255,59,48' : accentClr === COLORS.ORANGE ? '255,149,0' : accentClr === COLORS.BLUE ? '10,132,255' : '52,199,89';
+
+    if (noData || isFull) {
+      return `
+        <div class="color-bar" style="background:${COLORS.RED}"></div>
+        <div class="body">
+          <div class="content">
+            <div class="title-row">
+              <span class="title">Wywóz szamba</span>
+              <span class="badge" style="color:${COLORS.RED};background:rgba(255,59,48,0.16);">
+                <span class="badge-dot" style="background:${COLORS.RED}"></span>
+                ${isFull ? 'Szambo pełne!' : 'Brak danych'}
+              </span>
+            </div>
+            <div class="sub">${isFull ? 'Wywóz natychmiast' : 'Za mało historii zużycia'}</div>
+          </div>
+          <div class="metric"><div class="metric-val" style="color:${COLORS.RED}">!</div></div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="color-bar" style="background:${accentClr}"></div>
+      <div class="body">
+        <div class="content">
+          <div class="title-row">
+            <span class="title">Wywóz szamba</span>
+            <span class="badge" style="color:${accentClr};background:rgba(${alertBgRgb},0.16);">
+              <span class="badge-dot" style="background:${accentClr}"></span>
+              ${accentClr === COLORS.RED ? 'Zaplanuj!' : accentClr === COLORS.ORANGE ? 'Obserwuj' : 'W terminie'}
+            </span>
+          </div>
+          <div class="date-row">
+            <span class="date-icon">📅</span>
+            <span class="date-name" style="color:${accentClr}">${dayName}</span>
+            <span class="date-str">${dateStr}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stat"><span class="stat-lbl">dziś</span><span class="stat-val">${fmt2(current)}&nbsp;m³</span></span>
+            <span class="stat-sep">·</span>
+            <span class="stat"><span class="stat-lbl">pozostało</span><span class="stat-val">${fmt2(remaining)}&nbsp;m³</span></span>
+            <span class="stat-sep">·</span>
+            <span class="stat"><span class="stat-lbl">dziennie</span><span class="stat-val">${fmt(rate)}&nbsp;m³</span></span>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" style="color:${accentClr}">${daysInt}</div>
+          <div class="metric-lbl">${daysLabel}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _getSlimStyles() {
+    return `
+      :host { display: block; }
+      .card {
+        background: #1C1C1E;
+        border-radius: 16px;
+        padding: 14px 16px;
+        box-sizing: border-box;
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        border: 0.5px solid rgba(255,255,255,0.08);
+        cursor: pointer;
+        display: flex;
+        gap: 12px;
+        align-items: stretch;
+      }
+      .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
+
+      .color-bar {
+        width: 4px;
+        border-radius: 3px;
+        flex-shrink: 0;
+        align-self: stretch;
+        transition: background 0.4s ease;
+      }
+
+      .body {
+        flex: 1;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .title {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.90);
+        letter-spacing: -0.2px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        font-weight: 500;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+      .badge-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .date-row {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+      }
+      .date-icon { font-size: 11px; }
+      .date-name {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: -0.2px;
+        text-transform: capitalize;
+        transition: color 0.3s ease;
+      }
+      .date-str {
+        font-size: 11px;
+        color: rgba(142,142,147,0.75);
+      }
+
+      .stats-row {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .stat {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 3px;
+      }
+      .stat-lbl {
+        font-size: 10px;
+        color: rgba(142,142,147,0.60);
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+      }
+      .stat-val {
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.80);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.2px;
+      }
+      .stat-sep {
+        font-size: 10px;
+        color: rgba(142,142,147,0.30);
+      }
+
+      .sub {
+        font-size: 11px;
+        color: rgba(142,142,147,0.65);
+      }
+
+      /* right countdown */
+      .metric {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 2px;
+      }
+      .metric-val {
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -1.5px;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        transition: color 0.3s ease;
+      }
+      .metric-lbl {
+        font-size: 11px;
+        font-weight: 400;
+        color: rgba(142,142,147,0.65);
+        text-align: right;
+      }
     `;
   }
 
