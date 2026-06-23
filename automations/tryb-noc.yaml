@@ -57,7 +57,7 @@
 
     - if:
         - condition: template
-          value_template: "{{ biuro_wlaczone }}"
+          value_template: "{{ biuro_wlaczone and not is_state('input_boolean.tk_is_working', 'on') }}"
       then:
         - service: switch.turn_off
           target:
