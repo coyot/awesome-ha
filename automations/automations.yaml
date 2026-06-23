@@ -139,63 +139,45 @@
     trigger: time
   actions:
   - choose:
-    - conditions:
-      - condition: numeric_state
-        entity_id: sensor.szambo_zuzycie
-        above: 9
-      sequence:
-      - data:
-          title: "\U0001F6A8\U0001F6A8\U0001F6A8 Szambo na granicy! \U0001F6A8\U0001F6A8\U0001F6A8"
-          message: 'Poziom szamba przekroczył 9 m³! Aktualnie: {{ states(''sensor.szambo_zuzycie'')
-            }} m³. Pilnie zamów wywóz.
-
-            '
-        action: notify.iphone_tk
-      - data:
-          title: "\U0001F6A8\U0001F6A8\U0001F6A8 Szambo na granicy! \U0001F6A8\U0001F6A8\U0001F6A8"
-          message: 'Poziom szamba przekroczył 9 m³! Aktualnie: {{ states(''sensor.szambo_zuzycie'')
-            }} m³. Pilnie zamów wywóz.
-
-            '
-        action: notify.iphone_monika
-    - conditions:
-      - condition: numeric_state
-        entity_id: sensor.szambo_zuzycie
-        above: 8
-      sequence:
-      - data:
-          title: ⚠️ Szambo blisko pełnego
-          message: 'Szambo przekroczyło 8 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
-            }} m³. Warto zamówić wywóz.
-
-            '
-        action: notify.iphone_tk
-      - data:
-          title: ⚠️ Szambo blisko pełnego
-          message: 'Szambo przekroczyło 8 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
-            }} m³. Warto zamówić wywóz.
-
-            '
-        action: notify.iphone_monika
-    - conditions:
-      - condition: numeric_state
-        entity_id: sensor.szambo_zuzycie
-        above: 7
-      sequence:
-      - data:
-          title: ℹ️ Szambo zaczyna się zapełniać
-          message: 'Szambo przekroczyło 7 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
-            }} m³. Kontroluj.
-
-            '
-        action: notify.iphone_tk
-      - data:
-          title: ℹ️ Szambo zaczyna się zapełniać
-          message: 'Szambo przekroczyło 7 m³. Aktualnie: {{ states(''sensor.szambo_zuzycie'')
-            }} m³. Kontroluj.
-
-            '
-        action: notify.iphone_monika
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.szambo_zuzycie
+            above: 9
+        sequence:
+          - action: notify.iphone_tk
+            data:
+              title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
+              message: "Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz."
+          - action: notify.iphone_monika
+            data:
+              title: "🚨🚨🚨 Szambo na granicy! 🚨🚨🚨"
+              message: "Poziom szamba przekroczył 9 m³! Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Pilnie zamów wywóz."
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.szambo_zuzycie
+            above: 8
+        sequence:
+          - action: notify.iphone_tk
+            data:
+              title: "⚠️ Szambo blisko pełnego"
+              message: "Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz."
+          - action: notify.iphone_monika
+            data:
+              title: "⚠️ Szambo blisko pełnego"
+              message: "Szambo przekroczyło 8 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Warto zamówić wywóz."
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.szambo_zuzycie
+            above: 7
+        sequence:
+          - action: notify.iphone_tk
+            data:
+              title: "ℹ️ Szambo zaczyna się zapełniać"
+              message: "Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj."
+          - action: notify.iphone_monika
+            data:
+              title: "ℹ️ Szambo zaczyna się zapełniać"
+              message: "Szambo przekroczyło 7 m³. Aktualnie: {{ states('sensor.szambo_zuzycie') }} m³. Kontroluj."
   mode: single
 - id: szambo_alert_krytyczny
   alias: "Szambo: alert real-time (>9 m³)"
@@ -559,73 +541,77 @@
   mode: single
 - id: kontaktrony_alert_noc
   alias: "Kontaktrony: alert nocny (22:00)"
-  description: 'Codziennie o 22:00 sprawdza wszystkie czujniki otwarcia (binary_sensor
-    z device_class door/window/opening) w domu. Jeśli któryś jest otwarty, wysyła
-    powiadomienie do domowników przebywających w zone.home.
-
-    '
+  description: >
+    Codziennie o 22:00 sprawdza wszystkie czujniki otwarcia (binary_sensor
+    z device_class door/window/opening) w domu. Jeśli któryś jest otwarty,
+    wysyła powiadomienie do domowników przebywających w zone.home.
   triggers:
-  - at: '22:00:00'
-    trigger: time
-  conditions:
-  - condition: template
-    value_template: '{{ otwarte | count > 0 }}'
-  actions:
-  - if:
-    - condition: zone
-      entity_id: person.tk
-      zone: zone.home
-    then:
-    - data:
-        title: "\U0001F513 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
-        message: "{% macro ikona(name) %}\n  {%- set n = name | lower %}\n  {%- if
-          'garaż' in n or 'garaz' in n or 'brama' in n %}\U0001F3E0\n  {%- elif 'drzwi'
-          in n %}\U0001F6AA\n  {%- elif 'okno' in n or 'okna' in n or 'okien' in n
-          %}\U0001FA9F\n  {%- else %}\U0001F513{% endif %}\n{%- endmacro %} {% for
-          s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name
-          }}{% if not loop.last %} {% endif %}{% endfor %}\n"
-        data:
-          push:
-            sound: default
-      action: notify.iphone_tk
-  - if:
-    - condition: zone
-      entity_id: person.monika
-      zone: zone.home
-    then:
-    - data:
-        title: "\U0001F513 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
-        message: "{% macro ikona(name) %}\n  {%- set n = name | lower %}\n  {%- if
-          'garaż' in n or 'garaz' in n or 'brama' in n %}\U0001F3E0\n  {%- elif 'drzwi'
-          in n %}\U0001F6AA\n  {%- elif 'okno' in n or 'okna' in n or 'okien' in n
-          %}\U0001FA9F\n  {%- else %}\U0001F513{% endif %}\n{%- endmacro %} {% for
-          s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name
-          }}{% if not loop.last %} {% endif %}{% endfor %}\n"
-        data:
-          push:
-            sound: default
-      action: notify.iphone_monika
-  - action: logbook.log
-    data:
-      name: Kontaktrony nocne
-      message: "{% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in
-        n or 'garaz' in n or 'brama' in n %}\U0001F3E0{%- elif 'drzwi' in n %}\U0001F6AA{%-
-        elif 'okno' in n or 'okna' in n or 'okien' in n %}\U0001FA9F{%- else %}\U0001F513{%
-        endif %}{%- endmacro %} {{ otwarte | count }} otwart{{ 'y' if otwarte | count
-        == 1 else 'e' }}: {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name)
-        }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}, {% endif
-        %}{% endfor %}\n"
-  - action: script.log_push
-    data:
-      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"kontaktrony_22",
-        "otwarte":{{ otwarte | count }},"lista":"{% for s in otwarte %}{{ states[s].attributes.friendly_name
-        }}{% if not loop.last %} | {% endif %}{% endfor %}"}
-
-        '
+    - trigger: time
+      at: "22:00:00"
   variables:
-    otwarte: "{{ states.binary_sensor\n   | selectattr('attributes.device_class',
-      'in',\n       ['door', 'window', 'opening', 'garage_door'])\n   | selectattr('state',
-      'eq', 'on')\n   | map(attribute='entity_id')\n   | list }}\n"
+    otwarte: >
+      {{ states.binary_sensor
+         | selectattr('attributes.device_class', 'in',
+             ['door', 'window', 'opening', 'garage_door'])
+         | selectattr('state', 'eq', 'on')
+         | map(attribute='entity_id')
+         | list }}
+  conditions:
+    - condition: template
+      value_template: "{{ otwarte | count > 0 }}"
+  actions:
+    - if:
+        - condition: zone
+          entity_id: person.tk
+          zone: zone.home
+      then:
+        - action: notify.iphone_tk
+          data:
+            title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
+            message: >
+              {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n
+              or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif
+              'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif
+              %}{%- endmacro %} {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name)
+              }} {{ states[s].attributes.friendly_name }}{% if not loop.last %} {% endif
+              %}{% endfor %}
+            data:
+              push:
+                sound: default
+    - if:
+        - condition: zone
+          entity_id: person.monika
+          zone: zone.home
+      then:
+        - action: notify.iphone_monika
+          data:
+            title: "🔓 Otwarte czujniki o 22:00 ({{ otwarte | count }})"
+            message: >
+              {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n
+              or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif
+              'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif
+              %}{%- endmacro %} {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name)
+              }} {{ states[s].attributes.friendly_name }}{% if not loop.last %} {% endif
+              %}{% endfor %}
+            data:
+              push:
+                sound: default
+    - action: logbook.log
+      data:
+        name: Kontaktrony nocne
+        message: >
+          {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or
+          'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno'
+          in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro
+          %} {{ otwarte | count }} otwart{{ 'y' if otwarte | count == 1 else 'e' }}:
+          {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{
+          states[s].attributes.friendly_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kontaktrony_22",
+          "otwarte":{{ otwarte | count }},"lista":"{% for s in otwarte %}{{
+          states[s].attributes.friendly_name }}{% if not loop.last %} | {% endif %}{% endfor %}"}
   mode: single
 - alias: "Biuro wiatrak: włącz przy upale"
   description: 'Gdy temperatura w biurze przekroczy 26°C w godzinach 7:00–22:00 i
