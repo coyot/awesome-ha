@@ -251,7 +251,7 @@ const KOS_STYLES = `
   .toggle-btn:hover  { opacity: 0.65; }
   .toggle-btn:active { transform: scale(0.92); }
 
-  .blade-reset-btn {
+  .ctrl-btn {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 11px; font-weight: 500; font-family: -apple-system, system-ui, sans-serif;
     color: rgba(255,255,255,0.60);
@@ -262,8 +262,8 @@ const KOS_STYLES = `
     transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .blade-reset-btn:hover  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
-  .blade-reset-btn:active { transform: scale(0.95); }
+  .ctrl-btn:hover  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+  .ctrl-btn:active { transform: scale(0.95); }
 
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
@@ -687,25 +687,40 @@ class KosiarkaCard extends HTMLElement {
       sections.push(`<div class="section">${chipsHtml}</div>`);
     }
 
-    // Section 5: Blade reset (optional)
-    if (this._config.blade_reset_entity) {
+    // Section 5: Controls (party mode + blade reset)
+    const hasParty = !!this._config.party_mode_entity;
+    const hasBlade = !!this._config.blade_reset_entity;
+    if (hasParty || hasBlade) {
       const { bladeDays, bladeLabel, bladeWarn, bladePre } = d;
-      const bladeWarnDays = this._config.blade_warn_days;
-      const col = bladeWarn ? '#E24B4A' : bladePre ? '#EF9F27' : 'rgba(255,255,255,0.45)';
-      const bladeInfo = bladeDays !== null ? `<span style="font-size:11px;color:${col};font-variant-numeric:tabular-nums;">${bladeLabel}</span>` : '';
+      const bladeCol = bladeWarn ? '#E24B4A' : bladePre ? '#EF9F27' : 'rgba(255,255,255,0.45)';
+      const bladeInfo = bladeDays !== null ? `<span style="font-size:11px;color:${bladeCol};font-variant-numeric:tabular-nums;">${bladeLabel}</span>` : '';
+
+      const partyOn = partyMode;
+      const partyBtnStyle = partyOn
+        ? 'background:rgba(239,159,39,0.18);color:#EF9F27;border-color:rgba(239,159,39,0.35);'
+        : '';
+
+      const btns = [];
+      if (hasParty) btns.push(`
+        <button class="ctrl-btn party-toggle-btn" style="${partyBtnStyle}" title="Party mode">
+          🎉 Party${partyOn ? ' ON' : ''}
+        </button>`);
+      if (hasBlade) btns.push(`
+        <button class="ctrl-btn blade-reset-btn" title="Reset licznika noży">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+          </svg>
+          Reset noży
+        </button>`);
+
       sections.push('<div class="sep"></div>');
       sections.push(`
         <div class="section" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="display:flex;flex-direction:column;gap:2px;">
+          ${hasBlade ? `<div style="display:flex;flex-direction:column;gap:2px;">
             <span style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.4px;">Noże — przebieg</span>
             ${bladeInfo}
-          </div>
-          <button class="blade-reset-btn" title="Reset licznika noży">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
-            </svg>
-            Reset noży
-          </button>
+          </div>` : '<div></div>'}
+          <div style="display:flex;gap:8px;">${btns.join('')}</div>
         </div>`);
     }
 
@@ -856,6 +871,10 @@ class KosiarkaCard extends HTMLElement {
     this.shadowRoot.querySelector('.blade-reset-btn')?.addEventListener('click', e => {
       e.stopPropagation();
       this._hass.callService('button', 'press', { entity_id: this._config.blade_reset_entity });
+    });
+    this.shadowRoot.querySelector('.party-toggle-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      this._hass.callService('switch', 'toggle', { entity_id: this._config.party_mode_entity });
     });
     this.shadowRoot.querySelector('.card')?.addEventListener('click', e => {
       if (!e.target.closest('button')) this._moreInfo();
