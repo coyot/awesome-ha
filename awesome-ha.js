@@ -2848,33 +2848,47 @@ class SzamboAppleCard extends HTMLElement {
           border-radius: 1px;
         }
 
-        /* dom section */
+        /* dom section — horizontal layout */
+        .houses {
+          display: flex;
+          gap: 0;
+          align-items: flex-start;
+        }
         .dom {
+          flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 3px;
+          gap: 4px;
+          min-width: 0;
+        }
+        .dom-sep {
+          width: 1px;
+          background: rgba(58,58,60,0.9);
+          align-self: stretch;
+          margin: 0 10px;
+          flex-shrink: 0;
         }
         .dom-header {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
         }
         .dom-dot {
-          width: 7px;
-          height: 7px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           flex-shrink: 0;
         }
         .dom-name {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
-          color: rgba(255,255,255,0.85);
-          letter-spacing: -0.1px;
+          color: rgba(255,255,255,0.70);
+          letter-spacing: 0.1px;
+          text-transform: uppercase;
         }
         .dom-vals {
           display: flex;
-          gap: 12px;
-          padding-left: 13px;
+          gap: 8px;
         }
         .val-group {
           display: flex;
@@ -2882,9 +2896,9 @@ class SzamboAppleCard extends HTMLElement {
           gap: 1px;
         }
         .val-lbl {
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 400;
-          color: rgba(142,142,147,0.65);
+          color: rgba(142,142,147,0.55);
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -2972,36 +2986,40 @@ class SzamboAppleCard extends HTMLElement {
 
           <div class="div"></div>
 
-          <div class="dom">
-            <div class="dom-header">
-              <div class="dom-dot" style="background:${clrD1};"></div>
-              <span class="dom-name">${dom1Name}</span>
-            </div>
-            <div class="dom-vals">
-              <div class="val-group">
-                <span class="val-lbl">Woda</span>
-                <span class="val-num">${fmt(d1sz)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+          <div class="houses">
+            <div class="dom">
+              <div class="dom-header">
+                <div class="dom-dot" style="background:${clrD1};"></div>
+                <span class="dom-name">${dom1Name}</span>
               </div>
-              <div class="val-group">
-                <span class="val-lbl">Ogr\u00f3d</span>
-                <span class="val-num">${fmt(d1og)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+              <div class="dom-vals">
+                <div class="val-group">
+                  <span class="val-lbl">Woda</span>
+                  <span class="val-num">${fmt(d1sz)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+                </div>
+                <div class="val-group">
+                  <span class="val-lbl">Ogr\u00f3d</span>
+                  <span class="val-num">${fmt(d1og)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="dom">
-            <div class="dom-header">
-              <div class="dom-dot" style="background:${clrD2};"></div>
-              <span class="dom-name">${dom2Name}</span>
-            </div>
-            <div class="dom-vals">
-              <div class="val-group">
-                <span class="val-lbl">Woda</span>
-                <span class="val-num">${fmt(d2sz)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+            <div class="dom-sep"></div>
+
+            <div class="dom">
+              <div class="dom-header">
+                <div class="dom-dot" style="background:${clrD2};"></div>
+                <span class="dom-name">${dom2Name}</span>
               </div>
-              <div class="val-group">
-                <span class="val-lbl">Ogr\u00f3d</span>
-                <span class="val-num">${fmt(d2og)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+              <div class="dom-vals">
+                <div class="val-group">
+                  <span class="val-lbl">Woda</span>
+                  <span class="val-num">${fmt(d2sz)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+                </div>
+                <div class="val-group">
+                  <span class="val-lbl">Ogr\u00f3d</span>
+                  <span class="val-num">${fmt(d2og)}<span class="val-unit">&nbsp;m\u00b3</span></span>
+                </div>
               </div>
             </div>
           </div>
