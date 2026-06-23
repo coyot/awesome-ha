@@ -3405,13 +3405,6 @@ class SzamboPredictCard extends HTMLElement {
             <span class="date-name" style="color:${accentClr}">${dayName}</span>
             <span class="date-str">${dateStr}</span>
           </div>
-          <div class="stats-row">
-            <span class="stat"><span class="stat-lbl">dziś</span><span class="stat-val">${fmt2(current)}&nbsp;m³</span></span>
-            <span class="stat-sep">·</span>
-            <span class="stat"><span class="stat-lbl">pozostało</span><span class="stat-val">${fmt2(remaining)}&nbsp;m³</span></span>
-            <span class="stat-sep">·</span>
-            <span class="stat"><span class="stat-lbl">dziennie</span><span class="stat-val">${fmt(rate)}&nbsp;m³</span></span>
-          </div>
         </div>
         <div class="metric">
           <div class="metric-val" style="color:${accentClr}">${daysInt}</div>
