@@ -26,9 +26,6 @@ action:
         {% else %}
         Pamiętaj o zamknięciu.
         {% endif %}
-      data:
-        push:
-          sound: default
         url: /lovelace/garaz
 
   - action: notify.send_message
@@ -43,9 +40,6 @@ action:
         {% else %}
         Pamiętaj o zamknięciu.
         {% endif %}
-      data:
-        push:
-          sound: default
         url: /lovelace/garaz
 
   - action: logbook.log

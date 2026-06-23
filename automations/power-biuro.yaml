@@ -24,9 +24,6 @@
           {% else %}
           Prąd w biurze jest włączony. Za godzinę (22:00) zostanie automatycznie wyłączony.
           {% endif %}
-        data:
-          push:
-            sound: default
 
     - action: logbook.log
       data:

@@ -42,9 +42,6 @@ action:
             {%- endmacro %}
             {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
-          data:
-            push:
-              sound: default
 
   - if:
       - condition: zone
@@ -66,9 +63,6 @@ action:
             {%- endmacro %}
             {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
-          data:
-            push:
-              sound: default
 
   - action: logbook.log
     data:

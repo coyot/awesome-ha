@@ -106,9 +106,6 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
-        data:
-          push:
-            sound: default
 
     - action: notify.send_message
       target:
@@ -122,9 +119,6 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
-        data:
-          push:
-            sound: default
 
   mode: single
 

@@ -601,9 +601,6 @@
               %}{%- endmacro %} {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name)
               }} {{ states[s].attributes.friendly_name }}{% if not loop.last %} {% endif
               %}{% endfor %}
-            data:
-              push:
-                sound: default
     - if:
         - condition: zone
           entity_id: person.monika
@@ -621,9 +618,6 @@
               %}{%- endmacro %} {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name)
               }} {{ states[s].attributes.friendly_name }}{% if not loop.last %} {% endif
               %}{% endfor %}
-            data:
-              push:
-                sound: default
     - action: logbook.log
       data:
         name: Kontaktrony nocne
@@ -969,9 +963,6 @@
         {% else %}
         Prąd w biurze jest włączony. Za godzinę (22:00) zostanie automatycznie wyłączony.
         {% endif %}
-      data:
-        push:
-          sound: default
   - action: logbook.log
     data:
       name: Biuro prąd
@@ -1661,9 +1652,6 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
-        data:
-          push:
-            sound: default
 
     - action: notify.send_message
       target:
@@ -1677,9 +1665,6 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
-        data:
-          push:
-            sound: default
 
   mode: single
 
