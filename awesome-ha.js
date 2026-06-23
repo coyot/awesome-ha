@@ -2780,21 +2780,47 @@ class SzamboAppleCard extends HTMLElement {
           transition: background 0.4s ease;
         }
 
-        /* mini tank */
+        /* mini tank + metric pod nim */
         .tank-col {
           flex-shrink: 0;
           display: flex;
+          flex-direction: column;
           align-items: center;
+          gap: 4px;
         }
 
         .tank-svg {
-          width: 52px;
+          width: 68px;
           height: auto;
           filter: drop-shadow(1px 2px 6px rgba(0,0,0,0.35));
         }
 
         .liquid-d1 { animation: szambo-liquid-flow 4s ease-in-out infinite; }
         .liquid-d2 { animation: szambo-liquid-flow 4.5s ease-in-out infinite; }
+
+        .tank-metric {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1px;
+        }
+
+        .tank-metric-val {
+          font-size: 18px;
+          font-weight: 600;
+          letter-spacing: -0.7px;
+          color: ${totalClr};
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+          transition: color 0.4s ease;
+        }
+
+        .tank-metric-sub {
+          font-size: 10px;
+          color: rgba(142,142,147,0.65);
+          font-variant-numeric: tabular-nums;
+          text-align: center;
+        }
 
         /* content */
         .content {
@@ -2921,43 +2947,18 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 10px;
         }
 
-        /* right metric */
-        .metric {
-          flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          justify-content: center;
-          gap: 2px;
-        }
-
-        .metric-val {
-          font-size: 20px;
-          font-weight: 600;
-          letter-spacing: -0.8px;
-          color: ${totalClr};
-          line-height: 1;
-          font-variant-numeric: tabular-nums;
-          transition: color 0.4s ease;
-        }
-
-        .metric-unit {
-          font-size: 10px;
-          color: rgba(142,142,147,0.65);
-        }
-
-        .metric-pct {
-          font-size: 11px;
-          font-weight: 600;
-          color: rgba(142,142,147,0.80);
-          font-variant-numeric: tabular-nums;
-        }
       </style>
 
       <div class="card">
         <div class="color-bar"></div>
 
-        <div class="tank-col">${tankSvg}</div>
+        <div class="tank-col">
+          ${tankSvg}
+          <div class="tank-metric">
+            <div class="tank-metric-val">${fmt(total)}</div>
+            <div class="tank-metric-sub">m\u00b3 &middot; ${totalPct}%</div>
+          </div>
+        </div>
 
         <div class="content">
           <div class="name-row">
@@ -2987,12 +2988,6 @@ class SzamboAppleCard extends HTMLElement {
             <span class="billing-sep">/</span>
             <span class="billing-item">${fmtZl(dom2zl)}&nbsp;z\u0142</span>
           </div>` : ''}
-        </div>
-
-        <div class="metric">
-          <div class="metric-val">${fmt(total)}</div>
-          <div class="metric-unit">m\u00b3</div>
-          <div class="metric-pct">${totalPct}%</div>
         </div>
       </div>
     `;
