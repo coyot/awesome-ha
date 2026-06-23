@@ -2739,7 +2739,7 @@ class SzamboAppleCard extends HTMLElement {
 
     const tankSvg = this._renderTankSVG(
       d1pct, d2pct, emptPct, totalPct, observePct, planPct,
-      clrD1, clrD2, warnObserve, warnPlan, 90
+      clrD1, clrD2, warnObserve, warnPlan, 140
     );
 
     this.shadowRoot.innerHTML = `
@@ -2787,14 +2787,14 @@ class SzamboAppleCard extends HTMLElement {
           align-items: center;
         }
         .tank-svg {
-          height: 100px;
+          height: 140px;
           width: auto;
           filter: drop-shadow(1px 2px 6px rgba(0,0,0,0.35));
         }
         .liquid-d1 { animation: szambo-liquid-flow 4s ease-in-out infinite; }
         .liquid-d2 { animation: szambo-liquid-flow 4.5s ease-in-out infinite; }
 
-        /* right side */
+        /* middle data */
         .data {
           flex: 1;
           min-width: 0;
@@ -2804,12 +2804,10 @@ class SzamboAppleCard extends HTMLElement {
           gap: 8px;
         }
 
-        /* header: title + level pill */
-        .header {
+        .title-row {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          gap: 8px;
+          gap: 7px;
         }
         .title {
           font-size: 13px;
@@ -2817,29 +2815,33 @@ class SzamboAppleCard extends HTMLElement {
           color: rgba(255,255,255,0.90);
           letter-spacing: -0.2px;
         }
-        .pill {
+        .badge {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          font-size: 11px;
-          font-weight: 600;
+          font-size: 10px;
+          font-weight: 500;
           color: ${totalClr};
           background: rgba(${alertBgRgb},0.16);
-          border-radius: 20px;
-          padding: 3px 9px;
-          font-variant-numeric: tabular-nums;
-          letter-spacing: -0.2px;
-          transition: background 0.4s ease, color 0.4s ease;
+          border-radius: 6px;
+          padding: 2px 6px;
         }
-        .pill-dot {
+        .badge-dot {
           width: 5px;
           height: 5px;
           border-radius: 50%;
           background: ${totalClr};
           flex-shrink: 0;
         }
+        .stale-chip {
+          font-size: 10px;
+          font-weight: 500;
+          color: #FFD60A;
+          background: rgba(255,214,10,0.12);
+          border-radius: 5px;
+          padding: 1px 5px;
+        }
 
-        /* divider */
         .div {
           height: 1px;
           background: rgba(58,58,60,0.7);
@@ -2900,7 +2902,6 @@ class SzamboAppleCard extends HTMLElement {
           margin-left: 1px;
         }
 
-        /* billing */
         .billing {
           display: flex;
           align-items: center;
@@ -2923,13 +2924,37 @@ class SzamboAppleCard extends HTMLElement {
           color: rgba(142,142,147,0.30);
           font-size: 10px;
         }
-        .stale-chip {
-          font-size: 10px;
-          font-weight: 500;
-          color: #FFD60A;
-          background: rgba(255,214,10,0.12);
-          border-radius: 5px;
-          padding: 1px 5px;
+
+        /* right metric — big value */
+        .metric {
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          justify-content: center;
+          gap: 3px;
+        }
+        .metric-val {
+          font-size: 26px;
+          font-weight: 600;
+          letter-spacing: -1px;
+          color: ${totalClr};
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+          transition: color 0.4s ease;
+        }
+        .metric-unit {
+          font-size: 11px;
+          font-weight: 400;
+          color: rgba(142,142,147,0.65);
+          text-align: right;
+        }
+        .metric-pct {
+          font-size: 15px;
+          font-weight: 600;
+          color: rgba(142,142,147,0.80);
+          font-variant-numeric: tabular-nums;
+          text-align: right;
         }
       </style>
 
@@ -2939,16 +2964,10 @@ class SzamboAppleCard extends HTMLElement {
         <div class="tank-col">${tankSvg}</div>
 
         <div class="data">
-
-          <div class="header">
-            <div style="display:flex;align-items:center;gap:7px;">
-              <span class="title">Szambo</span>
-              ${staleOn ? '<span class="stale-chip">\u26a0\ufe0f og.</span>' : ''}
-            </div>
-            <span class="pill">
-              <span class="pill-dot"></span>
-              ${fmt(total)}&nbsp;m\u00b3&nbsp;&middot;&nbsp;${totalPct}%
-            </span>
+          <div class="title-row">
+            <span class="title">Szambo</span>
+            <span class="badge"><span class="badge-dot"></span>${alertTxt}</span>
+            ${staleOn ? '<span class="stale-chip">\u26a0\ufe0f og.</span>' : ''}
           </div>
 
           <div class="div"></div>
@@ -2961,11 +2980,11 @@ class SzamboAppleCard extends HTMLElement {
             <div class="dom-vals">
               <div class="val-group">
                 <span class="val-lbl">Woda</span>
-                <span class="val-num">${fmt(d1sz)}<span class="val-unit">m\u00b3</span></span>
+                <span class="val-num">${fmt(d1sz)}<span class="val-unit">&nbsp;m\u00b3</span></span>
               </div>
               <div class="val-group">
                 <span class="val-lbl">Ogr\u00f3d</span>
-                <span class="val-num">${fmt(d1og)}<span class="val-unit">m\u00b3</span></span>
+                <span class="val-num">${fmt(d1og)}<span class="val-unit">&nbsp;m\u00b3</span></span>
               </div>
             </div>
           </div>
@@ -2978,11 +2997,11 @@ class SzamboAppleCard extends HTMLElement {
             <div class="dom-vals">
               <div class="val-group">
                 <span class="val-lbl">Woda</span>
-                <span class="val-num">${fmt(d2sz)}<span class="val-unit">m\u00b3</span></span>
+                <span class="val-num">${fmt(d2sz)}<span class="val-unit">&nbsp;m\u00b3</span></span>
               </div>
               <div class="val-group">
                 <span class="val-lbl">Ogr\u00f3d</span>
-                <span class="val-num">${fmt(d2og)}<span class="val-unit">m\u00b3</span></span>
+                <span class="val-num">${fmt(d2og)}<span class="val-unit">&nbsp;m\u00b3</span></span>
               </div>
             </div>
           </div>
@@ -2995,7 +3014,12 @@ class SzamboAppleCard extends HTMLElement {
             <span class="billing-sep">/</span>
             <span class="billing-val">${fmtZl(dom2zl)}&nbsp;z\u0142</span>
           </div>` : ''}
+        </div>
 
+        <div class="metric">
+          <div class="metric-val">${fmt(total)}</div>
+          <div class="metric-unit">m\u00b3</div>
+          <div class="metric-pct">${totalPct}%</div>
         </div>
       </div>
     `;
