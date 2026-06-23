@@ -145,20 +145,34 @@
       target:
         entity_id: input_boolean.tryb_noc
 
-    - action: input_boolean.turn_on
-      target:
-        entity_id: input_boolean.pergola_auto
-
     - action: logbook.log
       data:
         name: "Tryb nocny"
         entity_id: input_boolean.tryb_noc
-        message: "RESET | wschód słońca +30min — tryb nocny wyłączony, pergola auto przywrócona"
+        message: "RESET | wschód słońca +30min — tryb nocny wyłączony automatycznie"
 
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"tryb_noc",
           "akcja":"OFF","info":"reset o wschodzie słońca +30min"}
+
+  mode: single
+
+- id: tryb_noc_pergola_przywroc
+  alias: "Tryb nocny: przywróć pergola_auto przy wyłączeniu"
+  description: >
+    Gdy tryb_noc zostaje wyłączony (ręcznie lub automatycznie o wschodzie),
+    przywraca input_boolean.pergola_auto = ON.
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.tryb_noc
+      to: "off"
+
+  action:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.pergola_auto
 
   mode: single
