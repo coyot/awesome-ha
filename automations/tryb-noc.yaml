@@ -5,6 +5,7 @@
     — sprawdza otwarte kontaktrony i informuje
     — zamyka rolety 1,2,3,4,5,8,9,10,11,12,13
     — zamyka lamele pergoli (jeśli otwarte)
+    — blokuje automatyzacje pergoli (pergola_auto OFF)
     — wyłącza prąd w biurze (jeśli włączony)
     — wyłącza wiatrak biuro (jeśli włączony)
     — wysyła powiadomienie "Dobranoc" z podsumowaniem
@@ -55,6 +56,10 @@
           target:
             entity_id: cover.teleco_leds2
 
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.pergola_auto
+
     - if:
         - condition: template
           value_template: "{{ biuro_wlaczone and not is_state('input_boolean.tk_is_working', 'on') }}"
@@ -76,7 +81,7 @@
         name: "Tryb nocny"
         entity_id: input_boolean.tryb_noc
         message: >
-          AKTYWOWANO | rolety zamknięte |
+          AKTYWOWANO | rolety zamknięte | pergola auto OFF |
           {% if biuro_wlaczone %}biuro wyłączone | {% endif %}
           {% if wiatrak_wlaczony %}wiatrak wyłączony | {% endif %}
           {% if pergola_otwarta %}pergola zamknięta | {% endif %}
@@ -140,11 +145,15 @@
       target:
         entity_id: input_boolean.tryb_noc
 
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.pergola_auto
+
     - action: logbook.log
       data:
         name: "Tryb nocny"
         entity_id: input_boolean.tryb_noc
-        message: "RESET | wschód słońca +30min — tryb nocny wyłączony automatycznie"
+        message: "RESET | wschód słońca +30min — tryb nocny wyłączony, pergola auto przywrócona"
 
     - action: script.log_push
       data:
