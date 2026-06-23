@@ -16,6 +16,7 @@
  *   edge_entity:           (optional) switch.*
  *   blade_runtime_entity:  (optional) sensor.*
  *   blade_warn_days:       (optional) default 90
+ *   blade_reset_entity:    (optional) button.* — przycisk reset licznika noży
  */
 
 // ─────────────────────────────────────────────
@@ -250,6 +251,20 @@ const KOS_STYLES = `
   .toggle-btn:hover  { opacity: 0.65; }
   .toggle-btn:active { transform: scale(0.92); }
 
+  .blade-reset-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 500; font-family: -apple-system, system-ui, sans-serif;
+    color: rgba(255,255,255,0.60);
+    background: rgba(255,255,255,0.07);
+    border: 0.5px solid rgba(255,255,255,0.12);
+    border-radius: 8px; padding: 6px 10px;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .blade-reset-btn:hover  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+  .blade-reset-btn:active { transform: scale(0.95); }
+
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 2px 8px; border-radius: 99px;
@@ -334,6 +349,7 @@ class KosiarkaCard extends HTMLElement {
       edge_entity:           config.edge_entity           || null,
       blade_runtime_entity:  config.blade_runtime_entity  || null,
       blade_warn_days:       config.blade_warn_days       || 90,
+      blade_reset_entity:    config.blade_reset_entity    || null,
     };
   }
 
@@ -671,7 +687,29 @@ class KosiarkaCard extends HTMLElement {
       sections.push(`<div class="section">${chipsHtml}</div>`);
     }
 
-    // Section 5: Error (optional)
+    // Section 5: Blade reset (optional)
+    if (this._config.blade_reset_entity) {
+      const { bladeDays, bladeLabel, bladeWarn, bladePre } = d;
+      const bladeWarnDays = this._config.blade_warn_days;
+      const col = bladeWarn ? '#E24B4A' : bladePre ? '#EF9F27' : 'rgba(255,255,255,0.45)';
+      const bladeInfo = bladeDays !== null ? `<span style="font-size:11px;color:${col};font-variant-numeric:tabular-nums;">${bladeLabel}</span>` : '';
+      sections.push('<div class="sep"></div>');
+      sections.push(`
+        <div class="section" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.4px;">Noże — przebieg</span>
+            ${bladeInfo}
+          </div>
+          <button class="blade-reset-btn" title="Reset licznika noży">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+            </svg>
+            Reset noży
+          </button>
+        </div>`);
+    }
+
+    // Section 6: Error (optional)
     if (isError && error) {
       sections.push('<div class="sep"></div>');
       sections.push(`
@@ -814,6 +852,10 @@ class KosiarkaCard extends HTMLElement {
     this.shadowRoot.querySelector('.toggle-btn')?.addEventListener('click', e => {
       e.stopPropagation();
       this._toggleMode();
+    });
+    this.shadowRoot.querySelector('.blade-reset-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      this._hass.callService('button', 'press', { entity_id: this._config.blade_reset_entity });
     });
     this.shadowRoot.querySelector('.card')?.addEventListener('click', e => {
       if (!e.target.closest('button')) this._moreInfo();
