@@ -8060,7 +8060,7 @@ class AhaTempGaugeCard extends HTMLElement {
 
   _tempState(t) {
     if (t === null) return {
-      key: 'offline', cardBg: '#1c1c1e', cardBorder: 'rgba(255,255,255,0.07)',
+      key: 'offline', cardBg: 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)', cardBorder: 'rgba(255,255,255,0.07)',
       glowCss: '', tempColor: '#3a3a3c', iconBg: 'rgba(255,255,255,0.06)',
       arcG0: 'rgba(255,255,255,0.18)', arcG1: 'rgba(255,255,255,0.06)', label: 'offline',
     };
@@ -8077,7 +8077,7 @@ class AhaTempGaugeCard extends HTMLElement {
       arcG0: '#c0ecff', arcG1: '#5ab8ee', label: 'zimno',
     };
     if (t < 26) return {
-      key: 'comfort', cardBg: '#1c1c1e', cardBorder: 'rgba(255,255,255,0.08)',
+      key: 'comfort', cardBg: 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)', cardBorder: 'rgba(255,255,255,0.08)',
       glowCss: '',
       tempColor: '#ffffff', iconBg: 'rgba(255,255,255,0.08)',
       arcG0: '#5cf087', arcG1: '#1c9e40', label: 'komfort',
