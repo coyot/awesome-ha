@@ -16129,9 +16129,10 @@ class AhaWeatherCard extends HTMLElement {
     if (['sun','extreme-heat'].includes(type)) {
       const rayCount=temp!==null&&temp>=35?12:10, rayCol=temp!==null&&temp>=38?'#FF6030':'#FFD060';
       const duration=temp!==null&&temp>=38?'35s':'50s', rayLength=temp!==null&&temp>=35?'20px':'26px';
+      const iconFilter=type==='extreme-heat'?'filter:drop-shadow(0 0 16px rgba(255,80,0,0.85));':'';
       return `<div style="position:relative;width:48px;height:48px;">
         ${sunburstRays(rayCount,rayCol,duration,rayLength)}
-        <div style="position:absolute;inset:0;animation:wc-breathe 4s ease-in-out infinite;transform:scale(1.05);">${iconHtml}</div>
+        <div style="position:absolute;inset:0;${iconFilter}animation:wc-breathe 4s ease-in-out infinite;transform:scale(1.05);">${iconHtml}</div>
       </div>`;
     }
     if (['dawn-clear','morning-clear','golden-clear'].includes(type)) {
@@ -16541,7 +16542,7 @@ class AhaWeatherCard extends HTMLElement {
 
   // ── extra effects ────────────────────────────────────────────────────────────
   _buildExtras(type, temp) {
-    let godRays='', horizonGlow='', moonGlow='', lightning='', heatHaze='';
+    let godRays='', horizonGlow='', moonGlow='', lightning='', heatHaze='', mirageStrip='', iceCornerGlow='';
     if (['dawn-clear','morning-clear','golden-clear'].includes(type)) {
       const rayCol=type==='golden-clear'?'rgba(255,112,32,0.18)':'rgba(255,148,48,0.18)';
       const rays=[];
@@ -16595,10 +16596,19 @@ class AhaWeatherCard extends HTMLElement {
       heatHaze=`<div style="position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden;">
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 70% 5%,${heatCol}35 0%,transparent 60%);animation:wc-heatwave 2.5s cubic-bezier(0.4,0,0.2,1) infinite;"></div>
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,${heatCol}18 0%,transparent 50%);animation:wc-heatwave 3.2s 0.8s cubic-bezier(0.4,0,0.2,1) infinite;"></div>
-        <div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,${heatCol}22 0%,transparent 100%);animation:wc-heatwave 2.8s 0.4s cubic-bezier(0.4,0,0.2,1) infinite;"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,${heatCol}48 0%,transparent 100%);animation:wc-heatwave 2.8s 0.4s cubic-bezier(0.4,0,0.2,1) infinite;"></div>
       </div>`;
+      mirageStrip=`<div style="position:absolute;left:-6%;right:-6%;top:44%;height:32px;
+        pointer-events:none;z-index:2;border-radius:50%;
+        background:linear-gradient(transparent,rgba(255,140,40,0.10),transparent);
+        animation:wc-mirage-drift 4.5s ease-in-out infinite;"></div>`;
     }
-    return { godRays, horizonGlow, moonGlow, lightning, heatHaze };
+    if (type==='blizzard') {
+      iceCornerGlow=`<div style="position:absolute;inset:0;pointer-events:none;z-index:1;border-radius:24px;
+        background:radial-gradient(ellipse at 20% 10%,rgba(120,190,255,0.20) 0%,rgba(90,200,250,0.06) 40%,transparent 62%);
+        animation:wc-ice-glow 3.0s ease-in-out infinite;"></div>`;
+    }
+    return { godRays, horizonGlow, moonGlow, lightning, heatHaze, mirageStrip, iceCornerGlow };
   }
 
   // ── main render ──────────────────────────────────────────────────────────────
@@ -16620,7 +16630,7 @@ class AhaWeatherCard extends HTMLElement {
     // background color
     const BG = {
       'sun':              _tempDayBg(temp),
-      'extreme-heat':     '#1E0303',
+      'extreme-heat':     'radial-gradient(ellipse at 50% 0%,#2a0500 0%,#1E0303 55%,#120200 100%)',
       'dawn-clear':       '#0C1525',
       'morning-clear':    '#131820',
       'astro-dawn':       '#090E1A',
@@ -16641,7 +16651,7 @@ class AhaWeatherCard extends HTMLElement {
       'rain-night':       '#070A14',
       'snow':             '#0E1624',
       'snow-night':       '#0A1220',
-      'blizzard':         '#080E1C',
+      'blizzard':         'radial-gradient(ellipse at 20% 10%,#0a1a2e 0%,#080E1C 65%)',
       'freezing-rain':    '#070C18',
       'storm':            '#080C10',
       'storm-dawn':       '#0A0E14',
@@ -16715,10 +16725,18 @@ class AhaWeatherCard extends HTMLElement {
       @keyframes wc-fog         {0%,100%{opacity:.58;transform:translateX(0)}50%{opacity:.30;transform:translateX(15px)}}
       @keyframes wc-fog-roll    {0%{transform:translateY(10px);opacity:.3}50%{transform:translateY(-5px);opacity:.6}100%{transform:translateY(10px);opacity:.3}}
       @keyframes wc-aurora      {0%,100%{opacity:.58;transform:scaleX(1) translateY(0)}50%{opacity:.82;transform:scaleX(1.10) translateY(-6px)}}
-      @keyframes wc-god-ray     {0%,100%{opacity:.15}50%{opacity:.35}}
-      @keyframes breathe        {0%,100%{opacity:1}50%{opacity:.75}}
-      @keyframes breathe-slow   {0%,100%{opacity:1}50%{opacity:.80}}
-      @keyframes ring-pulse     {0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.3);opacity:0}}
+      @keyframes wc-god-ray       {0%,100%{opacity:.15}50%{opacity:.35}}
+      @keyframes breathe          {0%,100%{opacity:1}50%{opacity:.75}}
+      @keyframes breathe-slow     {0%,100%{opacity:1}50%{opacity:.80}}
+      @keyframes ring-pulse       {0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.3);opacity:0}}
+      @keyframes wc-fire-border   {0%,100%{box-shadow:0 0 0 0 rgba(255,80,0,0);}50%{box-shadow:0 0 0 6px rgba(255,80,0,0.24),0 0 28px rgba(255,60,0,0.18);}}
+      @keyframes wc-bliz-border   {0%,100%{box-shadow:0 0 0 0 rgba(174,228,248,0);}50%{box-shadow:0 0 0 5px rgba(174,228,248,0.22),0 0 22px rgba(100,180,255,0.14);}}
+      @keyframes wc-storm-border  {0%,93%{box-shadow:none;}94%{box-shadow:0 0 0 3px rgba(255,215,50,0.28);}95%{box-shadow:none;}96%{box-shadow:0 0 0 3px rgba(255,215,50,0.16);}97%,100%{box-shadow:none;}}
+      @keyframes wc-aurora-border {0%,100%{box-shadow:0 0 0 0 rgba(0,200,100,0);}50%{box-shadow:0 0 0 4px rgba(0,200,100,0.16),0 0 22px rgba(120,0,220,0.12);}}
+      @keyframes wc-frz-border    {0%,100%{box-shadow:0 0 0 0 rgba(100,200,255,0);}50%{box-shadow:0 0 0 4px rgba(100,200,255,0.18);}}
+      @keyframes wc-heat-hue      {0%,100%{filter:hue-rotate(0deg);}50%{filter:hue-rotate(6deg);}}
+      @keyframes wc-mirage-drift  {0%,100%{opacity:0;transform:scaleX(0.85);}45%{opacity:1;transform:scaleX(1.08);}90%{opacity:0;transform:scaleX(1.0);}}
+      @keyframes wc-ice-glow      {0%,100%{opacity:.07;}50%{opacity:.19;}}
 
       .card {
         background: ${bg};
@@ -16730,6 +16748,11 @@ class AhaWeatherCard extends HTMLElement {
         display: flex;
         flex-direction: column;
         ${hasFertilToday ? 'border:1.5px solid rgba(80,200,90,.40);' : ''}
+        ${type==='extreme-heat'  ? 'animation:wc-fire-border 2.2s ease-in-out infinite,wc-heat-hue 3.5s ease-in-out infinite;' : ''}
+        ${type==='blizzard'      ? 'animation:wc-bliz-border 3.5s ease-in-out infinite;' : ''}
+        ${type==='storm-night'   ? 'animation:wc-storm-border 10s ease-out infinite;' : ''}
+        ${type==='aurora'        ? 'animation:wc-aurora-border 5.0s ease-in-out infinite;' : ''}
+        ${type==='freezing-rain' ? 'animation:wc-frz-border 4.0s ease-in-out infinite;' : ''}
       }
       .content { position:relative; z-index:10; display:flex; flex-direction:column; flex:1; }
       .header  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
@@ -16742,7 +16765,10 @@ class AhaWeatherCard extends HTMLElement {
 
       .middle { flex:1; display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:14px; }
       .temp-block { display:flex; flex-direction:column; justify-content:center; gap:0; }
-      .temp-val   { font-size:80px; font-weight:700; letter-spacing:-5px; line-height:.90; color:${tColor}; }
+      .temp-val   { font-size:80px; font-weight:700; letter-spacing:-5px; line-height:.90; color:${tColor};
+        ${type==='extreme-heat'  ? 'text-shadow:0 0 30px rgba(255,120,0,0.80);' : ''}
+        ${type==='blizzard'||type==='freezing-rain' ? 'filter:drop-shadow(0 0 12px rgba(150,220,255,0.80));' : ''}
+        ${type==='storm-night'   ? 'text-shadow:0 0 18px rgba(160,200,255,0.60);' : ''} }
       .feels-row  { font-size:12px; font-weight:500; color:rgba(255,255,255,.30); margin-top:6px; letter-spacing:.01em; }
       .trend-row  { font-size:11px; font-weight:600; color:${trendCol}; margin-top:3px; letter-spacing:.01em; }
       .icon-wrap  { width:52px; height:52px; display:flex; align-items:center; justify-content:center; opacity:.88; margin-top:2px; }
@@ -16786,6 +16812,8 @@ class AhaWeatherCard extends HTMLElement {
         ${particles.auroraFx}
         ${extras.godRays}
         ${extras.heatHaze}
+        ${extras.mirageStrip}
+        ${extras.iceCornerGlow}
         ${extras.moonGlow}
         ${extras.horizonGlow}
         ${extras.lightning}
