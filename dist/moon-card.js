@@ -227,7 +227,7 @@ class AhaMoonCard extends HTMLElement {
       <style>
         :host { display: block; }
         .card {
-          background: #080D1A;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 26px;
           padding: 16px 14px 14px;
           position: relative;
@@ -301,7 +301,7 @@ class AhaMoonCard extends HTMLElement {
       <style>
         :host { display: block; }
         .card {
-          background: #080D1A;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 26px;
           padding: 22px 18px 18px;
           position: relative;

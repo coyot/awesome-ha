@@ -535,7 +535,7 @@ const CARD_STYLES = `
   }
 
   .card {
-    background: #1C1C1E;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     font-family: -apple-system, system-ui, sans-serif;
     position: relative;
@@ -614,7 +614,7 @@ const CARD_STYLES = `
     align-items: center;
     gap: 2px;
     padding: 8px 4px;
-    background: #242426;
+    background: rgba(255,255,255,0.06);
     border-radius: 10px;
   }
   .stat-value {

@@ -22,7 +22,7 @@ const LH_STYLES = `
   * { box-sizing: border-box; }
 
   .card {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 20px;
     padding: 16px;
     font-family: -apple-system, system-ui, sans-serif;

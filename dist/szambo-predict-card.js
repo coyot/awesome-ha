@@ -460,7 +460,7 @@ class SzamboPredictCard extends HTMLElement {
         display: block;
       }
       .card {
-        background: #2C2C2E;
+        background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
         border-radius: 18px;
         padding: 16px 18px;
         box-sizing: border-box;

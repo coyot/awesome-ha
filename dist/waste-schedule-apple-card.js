@@ -364,7 +364,7 @@ class WasteScheduleAppleCard extends HTMLElement {
         :host { display: block; }
 
         .card {
-          background: linear-gradient(145deg, rgba(28,28,30,0.97), rgba(18,18,20,0.99));
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 20px;

@@ -451,7 +451,7 @@
       return `
       :host { display: block; font-family: -apple-system, system-ui, sans-serif; }
       .card {
-        background: linear-gradient(160deg, #0e1a2e 0%, #091220 100%);
+        background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
         border-radius: 22px;
         border: 1px solid rgba(255,255,255,0.07);
         overflow: hidden;

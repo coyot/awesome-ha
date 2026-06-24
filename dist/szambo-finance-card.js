@@ -76,7 +76,7 @@ class SzamboFinanceCard extends HTMLElement {
       <style>
         :host { display: block; }
         .card {
-          background: #2C2C2E;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 18px;
           padding: 16px 18px;
           box-sizing: border-box;
@@ -89,7 +89,7 @@ class SzamboFinanceCard extends HTMLElement {
         }
         .header-ic {
           width: 30px; height: 30px; border-radius: 9px;
-          background: #1C1C1E;
+          background: rgba(255,255,255,0.06);
           display: flex; align-items: center; justify-content: center;
           color: #8E8E93;
         }

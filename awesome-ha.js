@@ -1464,7 +1464,7 @@ class GardenMetersCard extends HTMLElement {
         }
         .field-inner {
           display: flex; align-items: center;
-          background: #3A3A3C; border-radius: 10px;
+          background: rgba(255,255,255,0.08); border-radius: 10px;
           padding: 9px 12px 9px 12px;
           border: 1px solid rgba(255,255,255,0.08);
           transition: border-color .2s, box-shadow .2s;
@@ -3567,7 +3567,7 @@ class SzamboPredictCard extends HTMLElement {
         display: block;
       }
       .card {
-        background: #2C2C2E;
+        background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
         border-radius: 18px;
         padding: 16px 18px;
         box-sizing: border-box;
@@ -3818,7 +3818,7 @@ class SzamboFinanceCard extends HTMLElement {
       <style>
         :host { display: block; }
         .card {
-          background: #2C2C2E;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 18px;
           padding: 16px 18px;
           box-sizing: border-box;
@@ -3831,7 +3831,7 @@ class SzamboFinanceCard extends HTMLElement {
         }
         .header-ic {
           width: 30px; height: 30px; border-radius: 9px;
-          background: #1C1C1E;
+          background: rgba(255,255,255,0.06);
           display: flex; align-items: center; justify-content: center;
           color: #8E8E93;
         }
@@ -4408,7 +4408,7 @@ class WasteScheduleAppleCard extends HTMLElement {
         :host { display: block; }
 
         .card {
-          background: linear-gradient(145deg, rgba(28,28,30,0.97), rgba(18,18,20,0.99));
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-radius: 20px;
@@ -4914,7 +4914,7 @@ class AstronomicalEventsCard extends HTMLElement {
     const css = `
       :host { display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
       .card {
-        background: linear-gradient(160deg, #06090f 0%, #0c1020 100%);
+        background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
         border-radius: 16px;
         overflow: hidden;
         padding: 14px;
@@ -9228,7 +9228,7 @@ const KOS_STYLES = `
     transition: border-color 0.4s ease, background 0.4s ease;
   }
   .card.slim    { border: 0.5px solid rgba(255,255,255,0.08); }
-  .card.verbose { border: 1px solid rgba(255,255,255,0.08); }
+  .card.verbose { border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%); }
   .card:active  { transform: scale(0.97); transition: transform 0.12s ease; }
 
   .toggle-btn {
@@ -10501,7 +10501,7 @@ const LH_STYLES = `
   * { box-sizing: border-box; }
 
   .card {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 20px;
     padding: 16px;
     font-family: -apple-system, system-ui, sans-serif;
@@ -11781,7 +11781,7 @@ const CARD_STYLES = `
   }
 
   .card {
-    background: #1C1C1E;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     font-family: -apple-system, system-ui, sans-serif;
     position: relative;
@@ -11860,7 +11860,7 @@ const CARD_STYLES = `
     align-items: center;
     gap: 2px;
     padding: 8px 4px;
-    background: #242426;
+    background: rgba(255,255,255,0.06);
     border-radius: 10px;
   }
   .stat-value {
@@ -15014,7 +15014,7 @@ window.customCards.push({
       return `
       :host { display: block; font-family: -apple-system, system-ui, sans-serif; }
       .card {
-        background: linear-gradient(160deg, #0e1a2e 0%, #091220 100%);
+        background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
         border-radius: 22px;
         border: 1px solid rgba(255,255,255,0.07);
         overflow: hidden;
@@ -17797,7 +17797,7 @@ class AhaMoonCard extends HTMLElement {
       <style>
         :host { display: block; }
         .card {
-          background: #080D1A;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 26px;
           padding: 16px 14px 14px;
           position: relative;
@@ -17871,7 +17871,7 @@ class AhaMoonCard extends HTMLElement {
       <style>
         :host { display: block; }
         .card {
-          background: #080D1A;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 26px;
           padding: 22px 18px 18px;
           position: relative;
