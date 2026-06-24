@@ -165,10 +165,18 @@ class AstronomicalEventsCard extends HTMLElement {
     if (!this._hass) return [];
     const entityId = this._config.launches_entity || 'sensor.upcoming_launches';
     const entity = this._hass.states[entityId];
-    if (!entity) return [];
+    if (!entity) { this._launchStatus = 'missing'; return []; }
+    if (entity.state === 'unavailable' || entity.state === 'unknown') {
+      this._launchStatus = 'unavailable:' + entity.state; return [];
+    }
 
-    const results = entity.attributes.results;
-    if (!Array.isArray(results)) return [];
+    // HA może serializować json_attributes jako string zamiast parsowanego obiektu
+    let results = entity.attributes.results;
+    if (typeof results === 'string') {
+      try { results = JSON.parse(results); } catch(e) {}
+    }
+    if (!Array.isArray(results)) { this._launchStatus = 'no_results'; return []; }
+    this._launchStatus = 'ok:' + results.length;
 
     const now = new Date(); now.setHours(0, 0, 0, 0);
 
@@ -558,9 +566,16 @@ class AstronomicalEventsCard extends HTMLElement {
         </div>`;
     }).join('');
 
+    const _status = this._launchStatus || 'none';
+    const _statusHint =
+      _status === 'missing'       ? 'brak sensor.upcoming_launches' :
+      _status.startsWith('unavailable') ? `sensor ${_status.split(':')[1]}` :
+      _status === 'no_results'    ? 'sensor OK, brak atrybutu results' :
+      _status.startsWith('ok:0')  ? 'sensor OK, 0 wyników' : '';
+
     const launchInfo = launchCount > 0
       ? `<span class="launch-pill">🚀 ${launchCount} start${launchCount > 1 ? 'ów' : ''}</span>`
-      : `<span class="no-launches" title="Dodaj sensor.upcoming_launches">brak danych o startach</span>`;
+      : `<span class="no-launches" title="${_statusHint || 'sprawdź sensor.upcoming_launches'}">${_statusHint ? '⚠ ' + _statusHint : 'brak danych o startach'}</span>`;
 
     const html = `
       <style>${css}</style>

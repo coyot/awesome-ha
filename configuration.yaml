@@ -709,7 +709,7 @@ notify:
 sensor:                                                                                                                                                                                                                                                                    
   - platform: rest                                                                                                                                                                                                                                                         
     name: upcoming_launches
-    resource: https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5&agency_launch_attempt_count=true                                                                                                                                                                  
+    resource: https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10&format=json
     value_template: "{{ value_json.count | default(0) }}"                                                                                                                                                                                                                                  
     json_attributes:
       - results                                                                                                                                                                                                                                                            
