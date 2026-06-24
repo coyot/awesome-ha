@@ -8048,6 +8048,14 @@ class AhaTempGaugeCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    const c = this._config;
+    const sig = [
+      c.temp_entity     ? hass.states[c.temp_entity]?.state     : '',
+      c.humidity_entity ? hass.states[c.humidity_entity]?.state : '',
+      c.battery_entity  ? hass.states[c.battery_entity]?.state  : '',
+    ].join('|');
+    if (sig === this._lastSig) return;
+    this._lastSig = sig;
     this._render();
   }
 
@@ -8192,7 +8200,7 @@ class AhaTempGaugeCard extends HTMLElement {
     -webkit-tap-highlight-color: transparent; user-select: none; cursor: default;
     background: ${st.cardBg};
     border: 1px solid ${st.cardBorder};
-    transition: background .5s ease, border-color .5s ease, transform .15s ease;
+    transition: border-color .5s ease, transform .15s ease;
   }
   .card:active { transform: scale(0.97); }
 
