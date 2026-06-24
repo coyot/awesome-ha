@@ -154,7 +154,7 @@ class GardenMetersCard extends HTMLElement {
         :host { display: block; }
 
         .card {
-          background: #1C1C1E;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 20px;
           border: 0.5px solid rgba(255,255,255,0.08);
           overflow: hidden;
@@ -176,7 +176,7 @@ class GardenMetersCard extends HTMLElement {
 
         /* ── block ──────────────────────────────────────────────── */
         .block {
-          background: #2C2C2E;
+          background: rgba(255,255,255,0.06);
           border: 1px solid rgba(255,255,255,0.07);
           border-radius: 14px;
           padding: 13px 14px 12px;

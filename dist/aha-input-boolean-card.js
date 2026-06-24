@@ -28,7 +28,7 @@ const IB_STYLES = `
   }
 
   .ib-tile {
-    background: #1C1C1E;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     border: 0.5px solid rgba(255,255,255,0.08);
     padding: 14px;

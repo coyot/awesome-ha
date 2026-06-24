@@ -88,7 +88,7 @@ const STYLES = `
 
   /* ── STATE: closed (normal / inactive) ── */
   .card.closed {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
   }
   .card.closed .glow {
     background: none;

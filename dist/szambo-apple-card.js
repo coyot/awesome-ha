@@ -1121,7 +1121,7 @@ class SzamboAppleCard extends HTMLElement {
         }
 
         .card {
-          background: #1C1C1E;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 16px;
           padding: 14px 16px;
           box-sizing: border-box;

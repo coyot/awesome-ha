@@ -228,7 +228,7 @@ const KOS_STYLES = `
   }
 
   .card {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     font-family: -apple-system, system-ui, sans-serif;
     cursor: pointer;
@@ -237,7 +237,7 @@ const KOS_STYLES = `
     transition: border-color 0.4s ease, background 0.4s ease;
   }
   .card.slim    { border: 0.5px solid rgba(255,255,255,0.08); }
-  .card.verbose { border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%); }
+  .card.verbose { border: 1px solid rgba(255,255,255,0.08); }
   .card:active  { transform: scale(0.97); transition: transform 0.12s ease; }
 
   .toggle-btn {

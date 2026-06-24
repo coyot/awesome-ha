@@ -34,7 +34,7 @@ const SW_STYLES = `
   .card:active { transform: scale(0.96); }
 
   /* ── OFF — identyczny z kontaktron .closed ── */
-  .card.off { background: #1c1c1e; }
+  .card.off { background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%); }
   .card.off .glow { background: none; }
 
   /* ── ON — żółty glow ── */

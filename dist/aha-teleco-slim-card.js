@@ -80,7 +80,7 @@ class TelecoSlimCard extends HTMLElement {
   }
 
   .card{
-    background:#1c1c1e;border-radius:14px;
+    background:linear-gradient(150deg, #0b1120 0%, #0d1828 100%);border-radius:14px;
     padding:11px 12px 9px;
     position:relative;overflow:hidden;
   }

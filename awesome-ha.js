@@ -1405,7 +1405,7 @@ class GardenMetersCard extends HTMLElement {
         :host { display: block; }
 
         .card {
-          background: #1C1C1E;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 20px;
           border: 0.5px solid rgba(255,255,255,0.08);
           overflow: hidden;
@@ -1427,7 +1427,7 @@ class GardenMetersCard extends HTMLElement {
 
         /* ── block ──────────────────────────────────────────────── */
         .block {
-          background: #2C2C2E;
+          background: rgba(255,255,255,0.06);
           border: 1px solid rgba(255,255,255,0.07);
           border-radius: 14px;
           padding: 13px 14px 12px;
@@ -2756,7 +2756,7 @@ class SzamboAppleCard extends HTMLElement {
         }
 
         .card {
-          background: #1C1C1E;
+          background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
           border-radius: 16px;
           padding: 14px 16px;
           box-sizing: border-box;
@@ -3418,7 +3418,7 @@ class SzamboPredictCard extends HTMLElement {
     return `
       :host { display: block; }
       .card {
-        background: #1C1C1E;
+        background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
         border-radius: 16px;
         padding: 14px 16px;
         box-sizing: border-box;
@@ -7051,7 +7051,7 @@ class TelecoSlimCard extends HTMLElement {
   }
 
   .card{
-    background:#1c1c1e;border-radius:14px;
+    background:linear-gradient(150deg, #0b1120 0%, #0d1828 100%);border-radius:14px;
     padding:11px 12px 9px;
     position:relative;overflow:hidden;
   }
@@ -8627,7 +8627,7 @@ const STYLES = `
 
   /* ── STATE: closed (normal / inactive) ── */
   .card.closed {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
   }
   .card.closed .glow {
     background: none;
@@ -9219,7 +9219,7 @@ const KOS_STYLES = `
   }
 
   .card {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     font-family: -apple-system, system-ui, sans-serif;
     cursor: pointer;
@@ -9228,7 +9228,7 @@ const KOS_STYLES = `
     transition: border-color 0.4s ease, background 0.4s ease;
   }
   .card.slim    { border: 0.5px solid rgba(255,255,255,0.08); }
-  .card.verbose { border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%); }
+  .card.verbose { border: 1px solid rgba(255,255,255,0.08); }
   .card:active  { transform: scale(0.97); transition: transform 0.12s ease; }
 
   .toggle-btn {
@@ -9946,7 +9946,7 @@ const POW_STYLES = `
   }
 
   .card {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,0.06);
     padding: 14px 16px 12px;
@@ -10290,7 +10290,7 @@ const SW_STYLES = `
   .card:active { transform: scale(0.96); }
 
   /* ── OFF — identyczny z kontaktron .closed ── */
-  .card.off { background: #1c1c1e; }
+  .card.off { background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%); }
   .card.off .glow { background: none; }
 
   /* ── ON — żółty glow ── */
@@ -16865,7 +16865,7 @@ const IB_STYLES = `
   }
 
   .ib-tile {
-    background: #1C1C1E;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     border: 0.5px solid rgba(255,255,255,0.08);
     padding: 14px;
@@ -17196,7 +17196,7 @@ const AC_STYLES = `
     gap: 0 14px;
     align-items: stretch;
     padding: 14px 16px;
-    background: #1C1C1E;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     border: 0.5px solid rgba(255,255,255,0.08);
     cursor: pointer;

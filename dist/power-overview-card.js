@@ -37,7 +37,7 @@ const POW_STYLES = `
   }
 
   .card {
-    background: #1c1c1e;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,0.06);
     padding: 14px 16px 12px;

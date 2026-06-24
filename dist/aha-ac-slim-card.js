@@ -102,7 +102,7 @@ const AC_STYLES = `
     gap: 0 14px;
     align-items: stretch;
     padding: 14px 16px;
-    background: #1C1C1E;
+    background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     border: 0.5px solid rgba(255,255,255,0.08);
     cursor: pointer;
