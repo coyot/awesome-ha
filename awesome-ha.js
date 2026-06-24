@@ -8073,8 +8073,8 @@ class AhaTempGaugeCard extends HTMLElement {
       arcG0: 'rgba(255,255,255,0.18)', arcG1: 'rgba(255,255,255,0.06)', label: 'offline',
     };
     if (t < 5) return {
-      key: 'frost', cardBg: '#07101c', cardBorder: 'rgba(90,200,250,0.55)',
-      glowCss: 'radial-gradient(ellipse at 40% 20%, rgba(90,200,250,0.30) 0%, rgba(90,200,250,0.10) 48%, transparent 70%)',
+      key: 'frost', cardBg: '#07101c', cardBorder: 'rgba(90,200,250,0.62)',
+      glowCss: 'radial-gradient(ellipse at 18% 12%, rgba(100,180,255,0.24) 0%, rgba(90,200,250,0.09) 40%, transparent 62%), radial-gradient(ellipse at 42% 22%, rgba(90,200,250,0.18) 0%, rgba(90,200,250,0.05) 48%, transparent 70%)',
       tempColor: '#5AC8FA', iconBg: 'rgba(90,200,250,0.15)',
       arcG0: '#8FDDFF', arcG1: '#1f7fd8', label: 'mróz',
     };
@@ -8097,10 +8097,10 @@ class AhaTempGaugeCard extends HTMLElement {
       arcG0: '#FFE066', arcG1: '#e87800', label: 'za ciepło',
     };
     return {
-      key: 'fire', cardBg: '#150200', cardBorder: 'rgba(255,69,58,0.65)',
-      glowCss: 'radial-gradient(ellipse at 50% 85%, rgba(255,80,0,0.45) 0%, rgba(200,20,0,0.20) 52%, transparent 70%)',
-      tempColor: '#FF453A', iconBg: 'rgba(255,69,58,0.17)',
-      arcG0: '#FF6B6B', arcG1: '#cc1500', label: 'upał',
+      key: 'fire', cardBg: '#150200', cardBorder: 'rgba(255,69,58,0.72)',
+      glowCss: 'radial-gradient(ellipse at 50% 94%, rgba(255,110,0,0.62) 0%, rgba(210,30,0,0.28) 52%, transparent 72%)',
+      tempColor: '#FF9F4A', iconBg: 'rgba(255,69,58,0.17)',
+      arcG0: '#FFAA55', arcG1: '#cc1500', label: 'upał',
     };
   }
 
@@ -8220,16 +8220,19 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   @keyframes fire-card {
     0%,100% { box-shadow: 0 0 0 0   rgba(255,69,58,0); }
-    50%     { box-shadow: 0 0 0 5px rgba(255,69,58,0.22); }
+    50%     { box-shadow: 0 0 0 6px rgba(255,69,58,0.30), 0 0 22px 3px rgba(255,100,0,0.20); }
   }
   @keyframes frost-pulse  { 0%,100%{opacity:.5}  50%{opacity:.95} }
   @keyframes frost-arc    { 0%,100%{filter:brightness(1)}  50%{filter:brightness(1.28) saturate(1.3)} }
-  @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.32) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
+  @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.55) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
   @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.07)} }
+  @keyframes heat-hue     { 0%,100%{filter:hue-rotate(0deg)} 50%{filter:hue-rotate(8deg)} }
+  @keyframes mirage-drift { 0%,100%{opacity:0;transform:scaleX(0.88)} 45%{opacity:1;transform:scaleX(1.06)} 90%{opacity:0;transform:scaleX(1.01)} }
+  @keyframes ice-crystal-glow { 0%,100%{opacity:.07} 50%{opacity:.19} }
 
   .card.frost { animation: frost-card 3.0s ease-in-out infinite; }
   .card.warm  { animation: warm-card  3.5s ease-in-out infinite; }
-  .card.fire  { animation: fire-card  2.0s ease-in-out infinite; }
+  .card.fire  { animation: fire-card  2.0s ease-in-out infinite, heat-hue 3.0s ease-in-out infinite; }
   .card.frost .arc-temp-fill { animation: frost-arc 3.0s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.0s ease-in-out infinite; }
 
@@ -8257,7 +8260,23 @@ class AhaTempGaugeCard extends HTMLElement {
   .card.cold  .state-label { color: rgba(125,212,248,0.55); }
   .card.frost .state-label { color: rgba(90,200,250,0.90); }
   .card.warm  .state-label { color: rgba(255,159,10,0.90); }
-  .card.fire  .state-label { color: rgba(255,255,255,0.92); text-shadow: 0 0 8px rgba(200,30,0,0.70); }
+  .card.fire  .state-label { color: rgba(255,255,255,0.95); text-shadow: 0 0 12px rgba(255,120,0,0.92); }
+
+  .mirage-overlay {
+    display: none; position: absolute; left: -6%; right: -6%; top: 35%; height: 32px;
+    pointer-events: none; z-index: 2; border-radius: 50%;
+    background: linear-gradient(transparent, rgba(255,140,40,0.13), transparent);
+  }
+  .card.fire .mirage-overlay { display: block; animation: mirage-drift 4.2s ease-in-out infinite; }
+
+  .ice-glow-overlay {
+    display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; border-radius: 19px;
+    background: radial-gradient(ellipse at 18% 12%, rgba(100,180,255,0.24) 0%, rgba(90,200,250,0.08) 40%, transparent 62%);
+  }
+  .card.frost .ice-glow-overlay { display: block; animation: ice-crystal-glow 3.5s ease-in-out infinite; }
+
+  .card.frost .center-val { filter: drop-shadow(0 0 10px rgba(120,200,255,0.88)); }
+  .card.frost #g-temp     { filter: drop-shadow(0 0 5px  rgba(100,190,255,0.52)); }
 
   /* ── room name HTML at bottom ── */
   .room-name {
@@ -8374,6 +8393,12 @@ class AhaTempGaugeCard extends HTMLElement {
       <rect width="200" height="200" fill="url(#hr-${uid})"/>
     </svg>
   </div>
+
+  <!-- mirage heat strip (fire) — C proposal -->
+  <div class="mirage-overlay"></div>
+
+  <!-- ice crystal glow (frost) — Z proposal -->
+  <div class="ice-glow-overlay"></div>
 
   ${batHTML}
 
