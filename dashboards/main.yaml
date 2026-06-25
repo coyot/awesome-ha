@@ -1288,14 +1288,11 @@ views:
                 color: "#ff9f0a"
               - entity: input_boolean.tryb_noc
                 color: "#A86AC2"
-                confirm_sensors:
-                  - binary_sensor.kontraktron_taras
-                  - binary_sensor.kontraktron_drzwi
-                  - binary_sensor.garaz
-                  - binary_sensor.garaz_tyl
-                  - binary_sensor.domek_ogrodowy
-                  - binary_sensor.okno_biuro
-                  - binary_sensor.okno_sypialnia
+                confirm_sensor_class:
+                  - door
+                  - window
+                  - opening
+                  - garage_door
           - type: custom:aha-waste-schedule-apple-card
             title: Wywóz śmieci
             show_calendar: true
