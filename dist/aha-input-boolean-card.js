@@ -19,7 +19,7 @@
 
 const IB_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  :host { display: block; }
+  :host { display: block; position: relative; }
 
   .ib-grid {
     display: grid;
@@ -127,6 +127,62 @@ const IB_STYLES = `
     transition: color 0.3s ease;
   }
   .ib-tile.on .ib-status { color: var(--c-status); }
+
+  /* ── Overlay potwierdzenia (otwarte czujniki) ── */
+  @keyframes ib-fade-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+
+  .ib-confirm-overlay {
+    position: absolute; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.72);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+    animation: ib-fade-in 0.15s ease;
+  }
+  .ib-confirm-modal {
+    background: linear-gradient(150deg, #0f1c2e 0%, #0b1420 100%);
+    border: 1px solid rgba(255,200,50,0.28);
+    border-radius: 14px;
+    padding: 15px 16px 14px;
+    width: calc(100% - 20px);
+    font-family: -apple-system, system-ui, sans-serif;
+    box-shadow: 0 0 20px rgba(255,180,0,0.12);
+  }
+  .ib-confirm-title {
+    font-size: 12px; font-weight: 700; letter-spacing: .01em;
+    color: rgba(255,205,55,0.95);
+    margin-bottom: 9px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ib-confirm-sensor {
+    font-size: 11px; line-height: 1.6;
+    color: rgba(255,255,255,0.55);
+    padding-left: 4px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ib-confirm-sensor::before { content: "·"; color: rgba(255,205,55,0.55); font-size: 14px; }
+  .ib-confirm-list { margin-bottom: 13px; }
+  .ib-confirm-btns { display: flex; gap: 8px; }
+  .ib-confirm-cancel {
+    flex: 1; padding: 8px 0; border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.45);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background .15s;
+  }
+  .ib-confirm-cancel:active { background: rgba(255,255,255,0.11); }
+  .ib-confirm-ok {
+    flex: 1; padding: 8px 0; border-radius: 10px;
+    background: rgba(255,205,55,0.14);
+    border: 1px solid rgba(255,205,55,0.35);
+    color: rgba(255,210,60,0.95);
+    font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: background .15s;
+  }
+  .ib-confirm-ok:active { background: rgba(255,205,55,0.24); }
 `;
 
 class AhaInputBooleanCard extends HTMLElement {
@@ -207,9 +263,9 @@ class AhaInputBooleanCard extends HTMLElement {
 
     tile.querySelector('.ib-toggle').addEventListener('click', e => {
       e.stopPropagation();
-      this._toggle(item.entity);
+      this._toggle(item.entity, item);
     });
-    tile.addEventListener('click', () => this._toggle(item.entity));
+    tile.addEventListener('click', () => this._toggle(item.entity, item));
 
     return tile;
   }
@@ -234,8 +290,74 @@ class AhaInputBooleanCard extends HTMLElement {
     }
   }
 
-  _toggle(entityId) {
+  _getOpenSensors(item) {
+    // item-level config ma pierwszeństwo nad card-level
+    const cfg = {
+      confirm_sensors:       item.confirm_sensors       ?? this._config.confirm_sensors,
+      confirm_sensor_class:  item.confirm_sensor_class  ?? this._config.confirm_sensor_class,
+    };
+    const st = this._hass.states;
+    if (cfg.confirm_sensors && cfg.confirm_sensors.length) {
+      return cfg.confirm_sensors
+        .map(id => st[id])
+        .filter(s => s && s.state === 'on')
+        .map(s => s.attributes.friendly_name || s.entity_id);
+    }
+    const classes = cfg.confirm_sensor_class;
+    if (!classes || !classes.length) return [];
+    return Object.values(st)
+      .filter(s => s.entity_id.startsWith('binary_sensor.')
+                && classes.includes(s.attributes.device_class)
+                && s.state === 'on')
+      .map(s => s.attributes.friendly_name || s.entity_id);
+  }
+
+  _toggle(entityId, item) {
+    const stateObj = this._hass.states[entityId];
+    const isOn     = stateObj && stateObj.state === 'on';
+    // Potwierdzenie tylko przy włączaniu (ON), nie przy wyłączaniu
+    if (!isOn) {
+      const open = this._getOpenSensors(item || {});
+      if (open.length > 0) { this._showConfirm(entityId, open); return; }
+    }
     this._hass.callService('input_boolean', 'toggle', { entity_id: entityId });
+  }
+
+  _showConfirm(entityId, openSensors) {
+    const existing = this.shadowRoot.querySelector('.ib-confirm-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ib-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="ib-confirm-modal">
+        <div class="ib-confirm-title">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <path d="M8 2.5L13.5 13H2.5L8 2.5Z" stroke="rgba(255,205,55,0.90)" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,205,55,0.10)"/>
+            <line x1="8" y1="7" x2="8" y2="10.2" stroke="rgba(255,205,55,0.90)" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="8" cy="12" r="0.75" fill="rgba(255,205,55,0.90)"/>
+          </svg>
+          Otwarte czujniki (${openSensors.length})
+        </div>
+        <div class="ib-confirm-list">
+          ${openSensors.map(n => `<div class="ib-confirm-sensor">${n}</div>`).join('')}
+        </div>
+        <div class="ib-confirm-btns">
+          <button class="ib-confirm-cancel">Anuluj</button>
+          <button class="ib-confirm-ok">Włącz mimo to</button>
+        </div>
+      </div>`;
+
+    overlay.querySelector('.ib-confirm-cancel').addEventListener('click', e => {
+      e.stopPropagation(); overlay.remove();
+    });
+    overlay.querySelector('.ib-confirm-ok').addEventListener('click', e => {
+      e.stopPropagation(); overlay.remove();
+      this._hass.callService('input_boolean', 'turn_on', { entity_id: entityId });
+    });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    this.shadowRoot.appendChild(overlay);
   }
 
   getCardSize() {
