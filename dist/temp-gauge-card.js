@@ -117,7 +117,8 @@ class AhaTempGaugeCard extends HTMLElement {
     const minT = parseFloat(cfg.min_temp ?? -10);
     const maxT = parseFloat(cfg.max_temp ?? 40);
 
-    const tempStr = isOffline ? '—' : temp.toFixed(1) + '°';
+    const tempStr  = isOffline ? '—' : temp.toFixed(1) + '°';
+    const isDeath  = temp !== null && temp >= 38;
     const humStr  = hum !== null ? hum.toFixed(0) + '%' : '—';
 
     const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / (maxT - minT) * 100));
@@ -216,6 +217,8 @@ class AhaTempGaugeCard extends HTMLElement {
   @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.55) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
   @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.07)} }
   @keyframes heat-hue     { 0%,100%{filter:hue-rotate(0deg)} 50%{filter:hue-rotate(8deg)} }
+  @keyframes death-pulse  { 0%,100%{opacity:.75} 50%{opacity:1} }
+  .death-skull { animation: death-pulse 2.2s ease-in-out infinite; }
   @keyframes mirage-drift { 0%,100%{opacity:0;transform:scaleX(0.88)} 45%{opacity:1;transform:scaleX(1.06)} 90%{opacity:0;transform:scaleX(1.01)} }
   @keyframes ice-crystal-glow { 0%,100%{opacity:.07} 50%{opacity:.19} }
 
@@ -411,9 +414,28 @@ class AhaTempGaugeCard extends HTMLElement {
       <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
+      <!-- death skull — widoczna przy ≥38°C -->
+      ${isDeath ? `
+      <g class="death-skull" transform="translate(${CX},${CY - 22})">
+        <!-- głowa -->
+        <ellipse cx="0" cy="0" rx="11" ry="10.5"
+          fill="rgba(255,55,0,0.14)" stroke="rgba(255,80,0,0.80)" stroke-width="1.3"/>
+        <!-- oczy -->
+        <ellipse cx="-4.2" cy="-1.5" rx="2.6" ry="3.0" fill="rgba(255,60,0,0.85)"/>
+        <ellipse cx=" 4.2" cy="-1.5" rx="2.6" ry="3.0" fill="rgba(255,60,0,0.85)"/>
+        <!-- nos -->
+        <path d="M-1 3 L0 5.2 L1 3" fill="rgba(255,60,0,0.55)" stroke="rgba(255,60,0,0.40)" stroke-width="0.6"/>
+        <!-- szczęka / zęby -->
+        <rect x="-8" y="6.5" width="16" height="4" rx="2"
+          fill="rgba(255,55,0,0.12)" stroke="rgba(255,80,0,0.72)" stroke-width="1"/>
+        <line x1="-2.8" y1="6.5" x2="-2.8" y2="10.5" stroke="rgba(255,80,0,0.65)" stroke-width="0.9"/>
+        <line x1=" 0"   y1="6.5" x2=" 0"   y2="10.5" stroke="rgba(255,80,0,0.65)" stroke-width="0.9"/>
+        <line x1=" 2.8" y1="6.5" x2=" 2.8" y2="10.5" stroke="rgba(255,80,0,0.65)" stroke-width="0.9"/>
+      </g>` : ''}
+
       <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
       <text id="temp-hit" class="center-val"
-        x="${CX}" y="${CY}"
+        x="${CX}" y="${isDeath ? CY + 10 : CY}"
         text-anchor="middle" dominant-baseline="central">${tempStr}</text>
 
       <!-- ══ TEMP ARC GROUP ══ -->
