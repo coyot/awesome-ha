@@ -8459,7 +8459,7 @@ class AhaTempGaugeCard extends HTMLElement {
       <text id="temp-hit" class="center-val"
         x="${CX}" y="${isDeath ? CY + 55 : CY}"
         text-anchor="middle" dominant-baseline="central"
-        ${isDeath ? `style="font-size:18px;fill:rgba(255,85,25,0.92)"` : ''}>${tempStr}</text>
+        ${isDeath ? `style="font-size:26px;font-weight:700;fill:rgba(255,85,25,0.95)"` : ''}>${tempStr}</text>
 
       <!-- ══ TEMP ARC GROUP ══ -->
       <g id="g-temp" style="cursor:pointer">
