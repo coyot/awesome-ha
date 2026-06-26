@@ -421,50 +421,13 @@ class AhaTempGaugeCard extends HTMLElement {
       <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- death skull ☠ — emoji-style pirate przy ≥38°C -->
+      <!-- death skull ☠️ — emoji przy ≥38°C -->
       ${isDeath ? `
-      <g class="death-skull">
-        <!-- hellish glow aura -->
-        <ellipse cx="${CX}" cy="72" rx="50" ry="52" fill="url(#sg-${uid})"/>
-
-        <!-- CROSSBONES (za czaszką) -->
-        <!-- kość 1: lewy-góra → prawy-dół -->
-        <line x1="71" y1="88" x2="129" y2="132"
-          stroke="rgba(238,208,172,0.88)" stroke-width="8" stroke-linecap="round"/>
-        <circle cx="71"  cy="88"  r="8" fill="rgba(238,208,172,0.88)"/>
-        <circle cx="129" cy="132" r="8" fill="rgba(238,208,172,0.88)"/>
-        <!-- kość 2: prawy-góra → lewy-dół -->
-        <line x1="129" y1="88" x2="71" y2="132"
-          stroke="rgba(238,208,172,0.88)" stroke-width="8" stroke-linecap="round"/>
-        <circle cx="129" cy="88"  r="8" fill="rgba(238,208,172,0.88)"/>
-        <circle cx="71"  cy="132" r="8" fill="rgba(238,208,172,0.88)"/>
-
-        <!-- CZASZKA — cranium (duże, okrągłe jak emoji) -->
-        <ellipse cx="${CX}" cy="57" rx="29" ry="27" fill="rgba(240,212,180,0.97)"/>
-        <!-- dolna część głowy / kości policzkowe -->
-        <rect x="74" y="71" width="52" height="16" rx="6" fill="rgba(240,212,180,0.97)"/>
-
-        <!-- LEWY OCZODÓŁ -->
-        <circle cx="88"  cy="55" r="10.5" fill="rgba(6,2,0,0.97)"/>
-        <circle cx="88"  cy="56" r="5.5"  fill="rgba(190,0,0,0.32)"/>
-
-        <!-- PRAWY OCZODÓŁ -->
-        <circle cx="112" cy="55" r="10.5" fill="rgba(6,2,0,0.97)"/>
-        <circle cx="112" cy="56" r="5.5"  fill="rgba(190,0,0,0.32)"/>
-
-        <!-- NOS — trójkąt odwrócony -->
-        <path d="M${CX},66 L96,74 L104,74 Z" fill="rgba(6,2,0,0.92)"/>
-
-        <!-- SZCZĘKA — linia podziału + przerwy między zębami -->
-        <line x1="77" y1="71" x2="123" y2="71"
-          stroke="rgba(160,110,70,0.55)" stroke-width="1.5"/>
-        <line x1="88"  y1="71" x2="88"  y2="87"
-          stroke="rgba(6,2,0,0.90)" stroke-width="3"/>
-        <line x1="${CX}" y1="71" x2="${CX}" y2="87"
-          stroke="rgba(6,2,0,0.90)" stroke-width="3"/>
-        <line x1="112" y1="71" x2="112" y2="87"
-          stroke="rgba(6,2,0,0.90)" stroke-width="3"/>
-      </g>` : ''}
+      <text class="death-skull"
+        x="${CX}" y="88"
+        text-anchor="middle" dominant-baseline="central"
+        font-size="72" style="font-family:-apple-system,system-ui,sans-serif">☠️</text>
+      ` : ''}
 
       <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
       <text id="temp-hit" class="center-val"
