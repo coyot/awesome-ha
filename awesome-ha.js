@@ -8447,71 +8447,49 @@ class AhaTempGaugeCard extends HTMLElement {
       <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- death skull — widoczna przy ≥38°C (Dark Mark / pirate style) -->
+      <!-- death skull ☠ — emoji-style pirate przy ≥38°C -->
       ${isDeath ? `
       <g class="death-skull">
-        <!-- glow aura za czaszką -->
-        <ellipse cx="${CX}" cy="67" rx="38" ry="46" fill="url(#sg-${uid})"/>
+        <!-- hellish glow aura -->
+        <ellipse cx="${CX}" cy="72" rx="50" ry="52" fill="url(#sg-${uid})"/>
 
-        <!-- CZASZKA — cranium -->
-        <path d="M${CX},38
-          C76,38 66,53 66,68
-          C66,80 72,90 80,96
-          L80,102 L120,102 L120,96
-          C128,90 134,80 134,68
-          C134,53 124,38 ${CX},38 Z"
-          fill="rgba(235,200,170,0.92)"
-          stroke="rgba(255,75,10,0.65)" stroke-width="1.6"/>
+        <!-- CROSSBONES (za czaszką) -->
+        <!-- kość 1: lewy-góra → prawy-dół -->
+        <line x1="71" y1="88" x2="129" y2="132"
+          stroke="rgba(238,208,172,0.88)" stroke-width="8" stroke-linecap="round"/>
+        <circle cx="71"  cy="88"  r="8" fill="rgba(238,208,172,0.88)"/>
+        <circle cx="129" cy="132" r="8" fill="rgba(238,208,172,0.88)"/>
+        <!-- kość 2: prawy-góra → lewy-dół -->
+        <line x1="129" y1="88" x2="71" y2="132"
+          stroke="rgba(238,208,172,0.88)" stroke-width="8" stroke-linecap="round"/>
+        <circle cx="129" cy="88"  r="8" fill="rgba(238,208,172,0.88)"/>
+        <circle cx="71"  cy="132" r="8" fill="rgba(238,208,172,0.88)"/>
 
-        <!-- kość jarzmowa — cień po bokach -->
-        <ellipse cx="74" cy="90" rx="8" ry="6" fill="rgba(180,120,80,0.35)"/>
-        <ellipse cx="126" cy="90" rx="8" ry="6" fill="rgba(180,120,80,0.35)"/>
+        <!-- CZASZKA — cranium (duże, okrągłe jak emoji) -->
+        <ellipse cx="${CX}" cy="57" rx="29" ry="27" fill="rgba(240,212,180,0.97)"/>
+        <!-- dolna część głowy / kości policzkowe -->
+        <rect x="74" y="71" width="52" height="16" rx="6" fill="rgba(240,212,180,0.97)"/>
 
-        <!-- LEWE oczodół -->
-        <ellipse cx="87" cy="66" rx="10" ry="11" fill="rgba(0,0,0,0.96)"/>
-        <ellipse cx="87" cy="67" rx="5.5" ry="6" fill="rgba(210,0,0,0.38)"/>
+        <!-- LEWY OCZODÓŁ -->
+        <circle cx="88"  cy="55" r="10.5" fill="rgba(6,2,0,0.97)"/>
+        <circle cx="88"  cy="56" r="5.5"  fill="rgba(190,0,0,0.32)"/>
 
-        <!-- PRAWE oczodół -->
-        <ellipse cx="113" cy="66" rx="10" ry="11" fill="rgba(0,0,0,0.96)"/>
-        <ellipse cx="113" cy="67" rx="5.5" ry="6" fill="rgba(210,0,0,0.38)"/>
+        <!-- PRAWY OCZODÓŁ -->
+        <circle cx="112" cy="55" r="10.5" fill="rgba(6,2,0,0.97)"/>
+        <circle cx="112" cy="56" r="5.5"  fill="rgba(190,0,0,0.32)"/>
 
-        <!-- NOS — jama nosowa -->
-        <path d="${CX},76 L96,86 L104,86 Z" fill="rgba(0,0,0,0.90)"/>
+        <!-- NOS — trójkąt odwrócony -->
+        <path d="M${CX},66 L96,74 L104,74 Z" fill="rgba(6,2,0,0.92)"/>
 
-        <!-- SZCZĘKA -->
-        <path d="M80,100 Q79,110 83,116 Q${CX},124 117,116 Q121,110 120,100"
-          fill="rgba(215,175,145,0.88)"
-          stroke="rgba(255,75,10,0.50)" stroke-width="1.3"/>
-
-        <!-- ZĘBY (4 szt.) -->
-        <rect x="84"  y="101" width="8"  height="12" rx="2.5"
-          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
-        <rect x="94"  y="101" width="8"  height="13" rx="2.5"
-          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
-        <rect x="104" y="101" width="8"  height="13" rx="2.5"
-          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
-        <rect x="114" y="101" width="7"  height="12" rx="2.5"
-          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
-
-        <!-- WĄŻ — ciało (wychodzi z ust, wije się w dół) -->
-        <path d="M${CX},120 Q86,128 92,138 Q100,148 88,156"
-          fill="none"
-          stroke="rgba(200,80,0,0.95)" stroke-width="6" stroke-linecap="round"/>
-        <!-- łuski — overlay -->
-        <path d="M${CX},120 Q86,128 92,138 Q100,148 88,156"
-          fill="none"
-          stroke="rgba(255,170,40,0.42)" stroke-width="3.5" stroke-linecap="round"
-          stroke-dasharray="5,7"/>
-
-        <!-- WĄŻ — głowa -->
-        <ellipse cx="86" cy="159" rx="9" ry="6" transform="rotate(-20,86,159)"
-          fill="rgba(200,80,0,0.96)" stroke="rgba(255,150,0,0.85)" stroke-width="1.2"/>
-        <!-- oko węża -->
-        <ellipse cx="81" cy="157" rx="2.5" ry="2.8" fill="rgba(255,240,0,0.96)"/>
-        <ellipse cx="81" cy="157.4" rx="1.1" ry="1.4" fill="rgba(0,0,0,0.94)"/>
-        <!-- język rozwidlony -->
-        <path d="M79,160 L72,164 M79,160 L71,158"
-          fill="none" stroke="rgba(230,0,0,0.96)" stroke-width="1.4" stroke-linecap="round"/>
+        <!-- SZCZĘKA — linia podziału + przerwy między zębami -->
+        <line x1="77" y1="71" x2="123" y2="71"
+          stroke="rgba(160,110,70,0.55)" stroke-width="1.5"/>
+        <line x1="88"  y1="71" x2="88"  y2="87"
+          stroke="rgba(6,2,0,0.90)" stroke-width="3"/>
+        <line x1="${CX}" y1="71" x2="${CX}" y2="87"
+          stroke="rgba(6,2,0,0.90)" stroke-width="3"/>
+        <line x1="112" y1="71" x2="112" y2="87"
+          stroke="rgba(6,2,0,0.90)" stroke-width="3"/>
       </g>` : ''}
 
       <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
