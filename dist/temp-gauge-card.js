@@ -217,8 +217,10 @@ class AhaTempGaugeCard extends HTMLElement {
   @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.55) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
   @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.07)} }
   @keyframes heat-hue     { 0%,100%{filter:hue-rotate(0deg)} 50%{filter:hue-rotate(8deg)} }
-  @keyframes death-pulse  { 0%,100%{opacity:.75} 50%{opacity:1} }
-  .death-skull { animation: death-pulse 2.2s ease-in-out infinite; }
+  @keyframes death-pulse  { 0%,100%{opacity:.70} 50%{opacity:1} }
+  @keyframes death-flicker { 0%,100%{opacity:1} 45%{opacity:.85} 50%{opacity:.60} 55%{opacity:.90} }
+  .death-skull { animation: death-pulse 2.8s ease-in-out infinite; }
+  .death-skull ellipse[fill="url(#sg)"], .death-skull ellipse:first-child { animation: death-flicker 3.5s ease-in-out infinite; }
   @keyframes mirage-drift { 0%,100%{opacity:0;transform:scaleX(0.88)} 45%{opacity:1;transform:scaleX(1.06)} 90%{opacity:0;transform:scaleX(1.01)} }
   @keyframes ice-crystal-glow { 0%,100%{opacity:.07} 50%{opacity:.19} }
 
@@ -409,34 +411,88 @@ class AhaTempGaugeCard extends HTMLElement {
           <stop offset="0%"   stop-color="${isOffline ? 'transparent' : st.arcG1 + '18'}"/>
           <stop offset="100%" stop-color="transparent"/>
         </radialGradient>
+        <radialGradient id="sg-${uid}" cx="50%" cy="38%" r="58%">
+          <stop offset="0%"   stop-color="rgba(255,70,0,0.30)"/>
+          <stop offset="60%"  stop-color="rgba(200,20,0,0.10)"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
       </defs>
 
       <!-- ambient glow in center -->
       <circle cx="${CX}" cy="${CY}" r="${R2 - SW2/2 - 4}" fill="url(#cg-${uid})"/>
 
-      <!-- death skull — widoczna przy ≥38°C -->
+      <!-- death skull — widoczna przy ≥38°C (Dark Mark / pirate style) -->
       ${isDeath ? `
-      <g class="death-skull" transform="translate(${CX},${CY - 22})">
-        <!-- głowa -->
-        <ellipse cx="0" cy="0" rx="11" ry="10.5"
-          fill="rgba(255,55,0,0.14)" stroke="rgba(255,80,0,0.80)" stroke-width="1.3"/>
-        <!-- oczy -->
-        <ellipse cx="-4.2" cy="-1.5" rx="2.6" ry="3.0" fill="rgba(255,60,0,0.85)"/>
-        <ellipse cx=" 4.2" cy="-1.5" rx="2.6" ry="3.0" fill="rgba(255,60,0,0.85)"/>
-        <!-- nos -->
-        <path d="M-1 3 L0 5.2 L1 3" fill="rgba(255,60,0,0.55)" stroke="rgba(255,60,0,0.40)" stroke-width="0.6"/>
-        <!-- szczęka / zęby -->
-        <rect x="-8" y="6.5" width="16" height="4" rx="2"
-          fill="rgba(255,55,0,0.12)" stroke="rgba(255,80,0,0.72)" stroke-width="1"/>
-        <line x1="-2.8" y1="6.5" x2="-2.8" y2="10.5" stroke="rgba(255,80,0,0.65)" stroke-width="0.9"/>
-        <line x1=" 0"   y1="6.5" x2=" 0"   y2="10.5" stroke="rgba(255,80,0,0.65)" stroke-width="0.9"/>
-        <line x1=" 2.8" y1="6.5" x2=" 2.8" y2="10.5" stroke="rgba(255,80,0,0.65)" stroke-width="0.9"/>
+      <g class="death-skull">
+        <!-- glow aura za czaszką -->
+        <ellipse cx="${CX}" cy="67" rx="38" ry="46" fill="url(#sg-${uid})"/>
+
+        <!-- CZASZKA — cranium -->
+        <path d="M${CX},38
+          C76,38 66,53 66,68
+          C66,80 72,90 80,96
+          L80,102 L120,102 L120,96
+          C128,90 134,80 134,68
+          C134,53 124,38 ${CX},38 Z"
+          fill="rgba(235,200,170,0.92)"
+          stroke="rgba(255,75,10,0.65)" stroke-width="1.6"/>
+
+        <!-- kość jarzmowa — cień po bokach -->
+        <ellipse cx="74" cy="90" rx="8" ry="6" fill="rgba(180,120,80,0.35)"/>
+        <ellipse cx="126" cy="90" rx="8" ry="6" fill="rgba(180,120,80,0.35)"/>
+
+        <!-- LEWE oczodół -->
+        <ellipse cx="87" cy="66" rx="10" ry="11" fill="rgba(0,0,0,0.96)"/>
+        <ellipse cx="87" cy="67" rx="5.5" ry="6" fill="rgba(210,0,0,0.38)"/>
+
+        <!-- PRAWE oczodół -->
+        <ellipse cx="113" cy="66" rx="10" ry="11" fill="rgba(0,0,0,0.96)"/>
+        <ellipse cx="113" cy="67" rx="5.5" ry="6" fill="rgba(210,0,0,0.38)"/>
+
+        <!-- NOS — jama nosowa -->
+        <path d="${CX},76 L96,86 L104,86 Z" fill="rgba(0,0,0,0.90)"/>
+
+        <!-- SZCZĘKA -->
+        <path d="M80,100 Q79,110 83,116 Q${CX},124 117,116 Q121,110 120,100"
+          fill="rgba(215,175,145,0.88)"
+          stroke="rgba(255,75,10,0.50)" stroke-width="1.3"/>
+
+        <!-- ZĘBY (4 szt.) -->
+        <rect x="84"  y="101" width="8"  height="12" rx="2.5"
+          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
+        <rect x="94"  y="101" width="8"  height="13" rx="2.5"
+          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
+        <rect x="104" y="101" width="8"  height="13" rx="2.5"
+          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
+        <rect x="114" y="101" width="7"  height="12" rx="2.5"
+          fill="rgba(248,228,208,0.96)" stroke="rgba(220,160,100,0.55)" stroke-width="0.8"/>
+
+        <!-- WĄŻ — ciało (wychodzi z ust, wije się w dół) -->
+        <path d="M${CX},120 Q86,128 92,138 Q100,148 88,156"
+          fill="none"
+          stroke="rgba(200,80,0,0.95)" stroke-width="6" stroke-linecap="round"/>
+        <!-- łuski — overlay -->
+        <path d="M${CX},120 Q86,128 92,138 Q100,148 88,156"
+          fill="none"
+          stroke="rgba(255,170,40,0.42)" stroke-width="3.5" stroke-linecap="round"
+          stroke-dasharray="5,7"/>
+
+        <!-- WĄŻ — głowa -->
+        <ellipse cx="86" cy="159" rx="9" ry="6" transform="rotate(-20,86,159)"
+          fill="rgba(200,80,0,0.96)" stroke="rgba(255,150,0,0.85)" stroke-width="1.2"/>
+        <!-- oko węża -->
+        <ellipse cx="81" cy="157" rx="2.5" ry="2.8" fill="rgba(255,240,0,0.96)"/>
+        <ellipse cx="81" cy="157.4" rx="1.1" ry="1.4" fill="rgba(0,0,0,0.94)"/>
+        <!-- język rozwidlony -->
+        <path d="M79,160 L72,164 M79,160 L71,158"
+          fill="none" stroke="rgba(230,0,0,0.96)" stroke-width="1.4" stroke-linecap="round"/>
       </g>` : ''}
 
       <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
       <text id="temp-hit" class="center-val"
-        x="${CX}" y="${isDeath ? CY + 10 : CY}"
-        text-anchor="middle" dominant-baseline="central">${tempStr}</text>
+        x="${CX}" y="${isDeath ? CY + 55 : CY}"
+        text-anchor="middle" dominant-baseline="central"
+        ${isDeath ? `style="font-size:18px;fill:rgba(255,85,25,0.92)"` : ''}>${tempStr}</text>
 
       <!-- ══ TEMP ARC GROUP ══ -->
       <g id="g-temp" style="cursor:pointer">
