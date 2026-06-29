@@ -50,7 +50,7 @@ Every device card exists in two variants — always develop/fix both in the same
 Reference implementations: `cards/vacuum.yaml`, `cards/ac.yaml`
 
 Layout: `4px color-bar | body (name + badge + chips + progress bar) | right metric`
-- Background: `#1C1C1E`, border-radius: `16px`, padding: `14px 16px`
+- Background: `linear-gradient(150deg, #0b1120 0%, #0d1828 100%)`, border-radius: `16px`, padding: `14px 16px`
 - Border: `0.5px solid rgba(255,255,255,0.08)` idle; colored + pulsing `box-shadow` when active
 - Active pulse animation: `0 0 0 5px rgba(R,G,B,0.18)` at 50%, named `*-pulse-*`
 - Badge: inline-flex pill with animated dot (blink) when active, static dot when idle
@@ -63,7 +63,7 @@ Layout: `4px color-bar | body (name + badge + chips + progress bar) | right metr
 Reference implementations: `dist/temp-gauge-card.js`, `dist/kontaktron-card.js`, `dist/kosiarka-card.js`
 
 Layout: `flex column`, padding `10px 10px 8px`, aspect-ratio `1/1` or auto height
-- Background: `#1c1c1e` base, state-driven darker tints
+- Background: `linear-gradient(150deg, #0b1120 0%, #0d1828 100%)` base, state-driven color overlays on top
 - Border: `1px solid` with state-driven color + opacity
 - Extreme states (frost/fire/alarm): pulsing `box-shadow` outset animation
 - State label: absolute, lightweight (not pill), uppercase, top-center — does NOT shift content
@@ -82,7 +82,7 @@ Layout: `flex column`, padding `10px 10px 8px`, aspect-ratio `1/1` or auto heigh
 ## Releasing
 
 When publishing a new version:
-1. Rebuild the bundle: `cat dist/aha-shared.js dist/action-apple-card.js dist/entries-apple-card.js dist/garden-meters-card.js dist/szambo-apple-card.js dist/szambo-predict-card.js dist/szambo-finance-card.js dist/waste-schedule-apple-card.js dist/astronomical-events-card.js dist/climate-apple-card.js dist/solar-clock-card.js dist/teleco-card.js dist/aha-teleco-slim-card.js dist/temp-humidity-card.js dist/temp-slim-card.js dist/temp-gauge-card.js dist/kontaktron-card.js dist/kosiarka-card.js dist/kosiarka-slim-card.js dist/power-overview-card.js dist/switch-socket-card.js dist/log-history-card.js dist/roborock-vacuum-card.js dist/briefing-card.js dist/garden-calendar-card.js dist/forecast-card.js dist/weather-card.js dist/aha-input-boolean-card.js > awesome-ha.js`
+1. Rebuild the bundle: `cat dist/aha-shared.js dist/action-apple-card.js dist/entries-apple-card.js dist/garden-meters-card.js dist/szambo-apple-card.js dist/szambo-predict-card.js dist/szambo-finance-card.js dist/waste-schedule-apple-card.js dist/astronomical-events-card.js dist/climate-apple-card.js dist/solar-clock-card.js dist/teleco-card.js dist/aha-teleco-slim-card.js dist/temp-humidity-card.js dist/temp-slim-card.js dist/temp-gauge-card.js dist/kontaktron-card.js dist/kosiarka-card.js dist/kosiarka-slim-card.js dist/power-overview-card.js dist/switch-socket-card.js dist/log-history-card.js dist/roborock-vacuum-card.js dist/briefing-card.js dist/garden-calendar-card.js dist/forecast-card.js dist/weather-card.js dist/aha-input-boolean-card.js dist/aha-ac-slim-card.js dist/moon-card.js dist/teleco-light-card.js > awesome-ha.js`
 2. Commit and tag: `git tag vX.Y.Z && git push origin main --tags`
 3. **Always create a GitHub Release** (not just a git tag) using `gh release create`:
    ```
