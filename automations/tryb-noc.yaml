@@ -20,6 +20,7 @@
         biuro_wlaczone: "{{ is_state('switch.biuro', 'on') }}"
         wiatrak_wlaczony: "{{ is_state('switch.biuro_wiatrak', 'on') }}"
         pergola_otwarta: "{{ is_state('cover.teleco_leds2', 'open') }}"
+        swiatlo_pergoli_wlaczone: "{{ is_state('light.teleco_shutters', 'on') }}"
         otwarte_lista: >
           {% set sens = states.binary_sensor
              | selectattr('attributes.device_class', 'in', ['door','window','opening','garage_door'])
@@ -56,6 +57,14 @@
           target:
             entity_id: cover.teleco_leds2
 
+    - if:
+        - condition: template
+          value_template: "{{ swiatlo_pergoli_wlaczone }}"
+      then:
+        - action: light.turn_off
+          target:
+            entity_id: light.teleco_shutters
+
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.pergola_auto
@@ -85,6 +94,7 @@
           {% if biuro_wlaczone %}biuro wyłączone | {% endif %}
           {% if wiatrak_wlaczony %}wiatrak wyłączony | {% endif %}
           {% if pergola_otwarta %}pergola zamknięta | {% endif %}
+          {% if swiatlo_pergoli_wlaczone %}światło pergoli wyłączone | {% endif %}
           otwarte czujniki: {{ otwarte_ile }}
 
     - action: script.log_push
@@ -106,6 +116,7 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
+          {% if swiatlo_pergoli_wlaczone %}💡 Światło pergoli wyłączone. {% endif %}
 
     - action: notify.send_message
       target:
@@ -119,6 +130,7 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
+          {% if swiatlo_pergoli_wlaczone %}💡 Światło pergoli wyłączone. {% endif %}
 
   mode: single
 
