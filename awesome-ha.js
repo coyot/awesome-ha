@@ -6715,7 +6715,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
 
       /* ── card ── */
       .card{
-        background:#1c1c1e;
+        background:linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
         border-radius:18px;
         padding:14px 16px 16px;
         position:relative;
