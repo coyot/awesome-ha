@@ -232,31 +232,24 @@
           "akcja":"CLOSE_DESZCZ","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
           "info":"deszcz · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: >
-                {{ not is_state('device_tracker.iphone_tk', 'home') and
-                   not is_state('device_tracker.iphone_monika', 'home') }}
-          sequence:
-            - action: notify.send_message
-              target:
-                entity_id: notify.iphone_tk
-              data:
-                title: "🌿 Pergola — zamknięto"
-                message: >
-                  Lamele zamknięte — zaczął padać deszcz ·
-                  {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
-                  wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
-            - action: notify.send_message
-              target:
-                entity_id: notify.iphone_monika
-              data:
-                title: "🌿 Pergola — zamknięto"
-                message: >
-                  Lamele zamknięte — zaczął padać deszcz ·
-                  {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
-                  wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_tk
+      data:
+        title: "🌧️ Pergola — zamknięto (deszcz)"
+        message: >
+          Lamele zamknięte — zaczął padać deszcz ·
+          {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+          wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
+    - action: notify.send_message
+      target:
+        entity_id: notify.iphone_monika
+      data:
+        title: "🌧️ Pergola — zamknięto (deszcz)"
+        message: >
+          Lamele zamknięte — zaczął padać deszcz ·
+          {{ states('sensor.pergola_new_temperature') | round(1) }}°C ·
+          wilg. {{ states('sensor.pergola_new_humidity') | round(0) }}%
   mode: single
 
 
