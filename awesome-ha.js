@@ -18262,7 +18262,7 @@ class TelecoLightCard extends HTMLElement {
         display:flex;align-items:center;justify-content:center;flex-shrink:0;
         background:rgba(142,142,147,.07);
         border:.5px solid rgba(142,142,147,.15);
-        transition:background .35s,border-color .35s;
+        transition:background .35s,border-color .35s,box-shadow .45s;
       }
 
       .mid{flex:1;min-width:0}
@@ -18450,8 +18450,12 @@ class TelecoLightCard extends HTMLElement {
     if (fillEl)   { fillEl.style.width = bri + '%'; fillEl.style.background = on ? '#ffd65a' : 'rgba(142,142,147,.4)'; }
     if (glowEl)   glowEl.classList.toggle('on', on);
     if (iconbox) {
+      const t = bri / 100;
       iconbox.style.background = on ? 'rgba(255,214,90,.10)' : 'rgba(142,142,147,.07)';
       iconbox.style.border     = `.5px solid ${on ? 'rgba(255,214,90,.22)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.style.boxShadow  = on
+        ? `0 0 ${Math.round(22 * t)}px ${Math.round(5 * t)}px rgba(255,214,90,${(0.50 * t).toFixed(2)})`
+        : 'none';
     }
     if (iconEl) iconEl.innerHTML = this._drawBulb(bri, glyphColor);
 
