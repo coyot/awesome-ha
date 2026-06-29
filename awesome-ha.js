@@ -18226,8 +18226,8 @@ class TelecoLightCard extends HTMLElement {
   }
 
   _render() {
-    const PRESETS = [0, 25, 50, 75, 100];
-    const PRESET_LABELS = ['Wył.', 'Słabo', 'Średnio', 'Mocno', 'Max'];
+    const PRESETS = [0, 33, 66, 100];
+    const PRESET_LABELS = ['Wył.', 'Słabo', 'Mocno', 'Max'];
 
     this.shadowRoot.innerHTML = `
     <style>
