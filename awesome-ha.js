@@ -18511,7 +18511,9 @@ window.customCards.push({
     this._lastTilt = 0;
     this._lastBri = 0;
     this._coverLastChanged = null;
+    this._lightLastChanged = null;
     this._ticker = null;
+    this._lightTicker = null;
   }
 
   setConfig(config) {
@@ -18538,6 +18540,7 @@ window.customCards.push({
       const on = lit.state === 'on';
       const briRaw = lit.attributes.brightness;
       const bri = on ? Math.round(((briRaw ?? 255) / 255) * 100) : 0;
+      this._lightLastChanged = lit.last_changed;
       this._updateLight(bri, on, lit.state);
     }
   }
@@ -18810,9 +18813,9 @@ window.customCards.push({
     this._raf = requestAnimationFrame(step);
   }
 
-  _elapsed() {
-    if (!this._coverLastChanged || this._lastTilt === 0) return null;
-    const mins = Math.round((Date.now() - new Date(this._coverLastChanged).getTime()) / 60000);
+  _elapsedSince(ts, active) {
+    if (!ts || !active) return null;
+    const mins = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
     if (mins < 1)  return 'przed chwil\u0105';
     if (mins < 60) return `${mins} min`;
     const h = Math.floor(mins / 60), m = mins % 60;
@@ -18824,14 +18827,25 @@ window.customCards.push({
     this._ticker = setInterval(() => {
       const statusEl = this.shadowRoot && this.shadowRoot.getElementById('l-status');
       if (!statusEl || this._lastTilt === 0) return;
-      const t = this._elapsed();
+      const t = this._elapsedSince(this._coverLastChanged, this._lastTilt > 0);
       if (t) statusEl.textContent = `${this._louverLabel(this._lastTilt, null)} \u00b7 ${t}`;
     }, 60000);
   }
 
+  _startLightTicker() {
+    if (this._lightTicker) return;
+    this._lightTicker = setInterval(() => {
+      const statusEl = this.shadowRoot && this.shadowRoot.getElementById('b-status');
+      if (!statusEl || this._lastBri === 0) return;
+      const t = this._elapsedSince(this._lightLastChanged, this._lastBri > 0);
+      if (t) statusEl.textContent = `${this._lightLabel(this._lastBri, null)} \u00b7 ${t}`;
+    }, 60000);
+  }
+
   disconnectedCallback() {
-    if (this._ticker) { clearInterval(this._ticker); this._ticker = null; }
-    if (this._raf)    { cancelAnimationFrame(this._raf); this._raf = null; }
+    if (this._ticker)      { clearInterval(this._ticker);      this._ticker = null; }
+    if (this._lightTicker) { clearInterval(this._lightTicker); this._lightTicker = null; }
+    if (this._raf)         { cancelAnimationFrame(this._raf);  this._raf = null; }
   }
 
   _updateBadge() {
@@ -18854,7 +18868,7 @@ window.customCards.push({
     const iconbox = r.getElementById('l-iconbox');
 
     if (statusEl){
-      const elapsed = on ? this._elapsed() : null;
+      const elapsed = on ? this._elapsedSince(this._coverLastChanged, on) : null;
       statusEl.textContent = elapsed ? `${this._louverLabel(tilt, st)} \u00b7 ${elapsed}` : this._louverLabel(tilt, st);
       statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366';
     }
@@ -18887,7 +18901,13 @@ window.customCards.push({
     const iconbox = r.getElementById('b-iconbox');
     const iconEl = r.getElementById('b-icon');
 
-    if (statusEl){ statusEl.textContent = this._lightLabel(bri, st); statusEl.style.color = on ? 'rgba(255,214,90,.72)' : '#636366'; }
+    if (statusEl){
+      const elapsed = on ? this._elapsedSince(this._lightLastChanged, on) : null;
+      statusEl.textContent = elapsed ? `${this._lightLabel(bri, st)} \u00b7 ${elapsed}` : this._lightLabel(bri, st);
+      statusEl.style.color = on ? 'rgba(255,214,90,.72)' : '#636366';
+    }
+    if (on) this._startLightTicker();
+    else if (this._lightTicker) { clearInterval(this._lightTicker); this._lightTicker = null; }
     if (glowEl) glowEl.classList.toggle('lit', on);
     if (iconbox){
       const t = bri / 100;
