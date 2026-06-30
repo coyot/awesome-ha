@@ -18679,8 +18679,10 @@ window.customCards.push({
       .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
       .hdr .title{font-size:15px;font-weight:700;color:rgba(255,255,255,.92);letter-spacing:-.2px}
       .hdr .title .room{font-size:11px;font-weight:400;color:#636366}
-      .hdr .badge{font-size:11px;color:#636366;display:flex;align-items:center;gap:6px}
-      .hdr .badge .dot{width:7px;height:7px;border-radius:50%;background:#30d158;box-shadow:0 0 8px #30d158}
+      .hdr .badge{font-size:11px;color:#636366;display:flex;align-items:center;gap:6px;transition:color .3s}
+      .hdr .badge.active{color:rgba(255,255,255,.55)}
+      .hdr .badge .dot{width:7px;height:7px;border-radius:50%;background:rgba(142,142,147,.35);transition:background .3s,box-shadow .3s}
+      .hdr .badge .dot.active{background:#30d158;box-shadow:0 0 8px #30d158}
 
       /* compact row */
       .row{display:flex;align-items:center;gap:13px;padding:14px 0}
@@ -18733,7 +18735,7 @@ window.customCards.push({
       <div class="card">
         <div class="hdr">
           <div class="title">${this._name}${this._room ? `<span class="room"> \u00b7 ${this._room}</span>` : ''}</div>
-          <div class="badge"><span class="dot"></span>2 obwody</div>
+          <div class="badge" id="badge"><span class="dot" id="badge-dot"></span><span id="badge-txt">0/2 obwody</span></div>
         </div>
 
         <!-- LAMELE -->
@@ -18805,6 +18807,17 @@ window.customCards.push({
     this._raf = requestAnimationFrame(step);
   }
 
+  _updateBadge() {
+    const active = (this._lastTilt > 0 ? 1 : 0) + (this._lastBri > 0 ? 1 : 0);
+    const r = this.shadowRoot;
+    const badge = r.getElementById('badge');
+    const dot   = r.getElementById('badge-dot');
+    const txt   = r.getElementById('badge-txt');
+    if (badge) badge.classList.toggle('active', active > 0);
+    if (dot)   dot.classList.toggle('active', active > 0);
+    if (txt)   txt.textContent = `${active}/2 obwody`;
+  }
+
   _updateLouver(tilt, st) {
     this._lastTilt = tilt;
     const r = this.shadowRoot;
@@ -18819,6 +18832,7 @@ window.customCards.push({
       iconbox.style.border = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
       iconbox.classList.toggle('louver-active', on);
     }
+    this._updateBadge();
     r.querySelectorAll('#l-seg button').forEach(b => {
       const v = parseInt(b.dataset.tilt);
       const active = v === tilt;
@@ -18851,6 +18865,7 @@ window.customCards.push({
       iconbox.classList.toggle('light-active', on);
     }
     if (iconEl) iconEl.innerHTML = this._drawSpot(bri);
+    this._updateBadge();
     r.querySelectorAll('#b-seg button').forEach(b => {
       const v = parseInt(b.dataset.bri);
       const active = v === bri;
