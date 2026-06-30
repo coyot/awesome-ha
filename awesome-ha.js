@@ -10549,7 +10549,7 @@ window.customCards.push({
  * Log History Card — Timeline · Ikony · Avatary · Paginacja
  *
  * Czyta wpisy JSON z input_text.log_h1 … input_text.log_hN
- * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kwiaty | wiatrak_biuro | biuro_prad | nawodnienie_ogrod2
+ * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kontaktrony_deszcz | kwiaty | wiatrak_biuro | biuro_prad | nawodnienie_ogrod2
  *
  * Config:
  *   slots:     (optional) liczba slotów do odczytu, default: 50
@@ -10765,6 +10765,18 @@ function iconSvg(e) {
       <circle cx="12" cy="9" r="2.5" fill="${c}"/>`);
   }
 
+  if (e.typ === 'kontaktrony_deszcz') {
+    const col = 'rgba(90,170,255,0.85)';
+    return s(col, c => `
+      <path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 15.25" stroke="${c}" stroke-width="1.7"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <line x1="8" y1="19" x2="8" y2="21" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/>
+      <line x1="8" y1="13" x2="8" y2="15" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/>
+      <line x1="12" y1="21" x2="12" y2="23" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/>
+      <line x1="12" y1="15" x2="12" y2="17" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/>
+      <line x1="16" y1="19" x2="16" y2="21" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/>`);
+  }
+
   if (e.typ === 'kwiaty') {
     const col = e.akcja === 'OPEN' ? 'rgba(52,199,89,0.88)' : 'rgba(142,142,147,0.55)';
     return s(col, c => `
@@ -10876,6 +10888,8 @@ function nodeStyle(e) {
     return e.otwarte > 0
       ? { bg: 'rgba(255,69,58,0.14)',  outline: 'rgba(255,69,58,0.25)' }
       : { bg: 'rgba(52,199,89,0.14)',  outline: 'rgba(52,199,89,0.22)' };
+  if (e.typ === 'kontaktrony_deszcz')
+    return { bg: 'rgba(90,170,255,0.13)', outline: 'rgba(90,170,255,0.25)' };
   if (e.typ === 'kwiaty')
     return e.akcja === 'OPEN'
       ? { bg: 'rgba(52,199,89,0.13)',  outline: 'rgba(52,199,89,0.22)' }
@@ -10955,6 +10969,17 @@ function titleAndDetail(e, PEOPLE) {
       titleColor: col,
       titleText: txt,
       detail: lista,
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'kontaktrony_deszcz') {
+    const n     = e.otwarte ?? 0;
+    const lista = e.lista ? e.lista.split(' | ').join('\n') : '';
+    const src   = e.trigger === 'deszcz_start' ? 'start deszczu' : 'otwarcie czujnika';
+    return {
+      titleColor: 'rgba(90,170,255,0.90)',
+      titleText:  `Deszcz — otwarte czujniki (${n})`,
+      detail:     `${lista}\n${src}`.trim(),
       avatarPeople: null,
     };
   }
