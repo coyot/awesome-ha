@@ -7,6 +7,8 @@ class PergolaCard extends HTMLElement {
     this._raf = null;
     this._lastTilt = 0;
     this._lastBri = 0;
+    this._coverLastChanged = null;
+    this._ticker = null;
   }
 
   setConfig(config) {
@@ -25,6 +27,7 @@ class PergolaCard extends HTMLElement {
     const cov = hass.states[this._coverEntity];
     if (cov) {
       const tilt = cov.attributes.current_tilt_position ?? 0;
+      this._coverLastChanged = cov.last_changed;
       this._updateLouver(tilt, cov.state);
     }
     const lit = hass.states[this._lightEntity];
@@ -304,6 +307,30 @@ class PergolaCard extends HTMLElement {
     this._raf = requestAnimationFrame(step);
   }
 
+  _elapsed() {
+    if (!this._coverLastChanged || this._lastTilt === 0) return null;
+    const mins = Math.round((Date.now() - new Date(this._coverLastChanged).getTime()) / 60000);
+    if (mins < 1)  return 'przed chwil\u0105';
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return m > 0 ? `${h} h ${m} min` : `${h} h`;
+  }
+
+  _startTicker() {
+    if (this._ticker) return;
+    this._ticker = setInterval(() => {
+      const statusEl = this.shadowRoot && this.shadowRoot.getElementById('l-status');
+      if (!statusEl || this._lastTilt === 0) return;
+      const t = this._elapsed();
+      if (t) statusEl.textContent = `${this._louverLabel(this._lastTilt, null)} \u00b7 ${t}`;
+    }, 60000);
+  }
+
+  disconnectedCallback() {
+    if (this._ticker) { clearInterval(this._ticker); this._ticker = null; }
+    if (this._raf)    { cancelAnimationFrame(this._raf); this._raf = null; }
+  }
+
   _updateBadge() {
     const active = (this._lastTilt > 0 ? 1 : 0) + (this._lastBri > 0 ? 1 : 0);
     const r = this.shadowRoot;
@@ -323,7 +350,13 @@ class PergolaCard extends HTMLElement {
     const statusEl = r.getElementById('l-status');
     const iconbox = r.getElementById('l-iconbox');
 
-    if (statusEl){ statusEl.textContent = this._louverLabel(tilt, st); statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366'; }
+    if (statusEl){
+      const elapsed = on ? this._elapsed() : null;
+      statusEl.textContent = elapsed ? `${this._louverLabel(tilt, st)} \u00b7 ${elapsed}` : this._louverLabel(tilt, st);
+      statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366';
+    }
+    if (on) this._startTicker();
+    else if (this._ticker) { clearInterval(this._ticker); this._ticker = null; }
     if (iconbox){
       iconbox.style.background = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
       iconbox.style.border = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
