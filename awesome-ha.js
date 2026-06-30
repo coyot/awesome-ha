@@ -4745,6 +4745,56 @@ const RAW = [
   { date:'2031-12-14', type:'meteors',       name:'Geminidy 2031',                   desc:'Zamykają dekadę 2026–2031. Asteroida 3200 Phaethon — unikat wśród rojów.',                                                                    how:'Wyjdź po 21:00. Radiant Bliźnięta. Termos, ciepłe ubranie.',                                                      tip:'Pora: 21:00–04:00 · Bez sprzętu' },
 ];
 
+// ── Filtr ważności startu ─────────────────────────────────────────────────────
+function isImportantLaunch(l) {
+  const agency  = (l.launch_service_provider?.name ?? '').toLowerCase();
+  const rocket  = (l.rocket?.configuration?.name ?? '').toLowerCase();
+  const mission = (l.mission?.name ?? l.name ?? '').toLowerCase();
+  const mType   = (l.mission?.type ?? '').toLowerCase();
+  const orbit   = (l.mission?.orbit?.abbrev ?? '').toLowerCase();
+
+  // ── Wyklucz rutynowe konstelacje ──────────────────────────────────────────
+  if (mission.includes('starlink'))              return false;
+  if (mission.includes('oneweb'))                return false;
+  if (mission.includes('o3b'))                   return false;
+  if (mission.includes('transporter') && agency.includes('spacex')) return false; // rideshare
+
+  // ── Przełomowe rakiety — zawsze ───────────────────────────────────────────
+  if (rocket.includes('starship'))               return true;
+  if (rocket.includes('falcon heavy'))           return true;
+  if (rocket.includes('sls'))                    return true;
+  if (rocket.includes('vulcan'))                 return true;
+  if (rocket.includes('new glenn'))              return true;
+  if (rocket.includes('ariane 6'))               return true;
+  if (rocket.includes('h3'))                     return true;  // JAXA H3
+
+  // ── Misje załogowe ────────────────────────────────────────────────────────
+  if (mType.includes('human'))                   return true;
+  if (mission.includes('crew'))                  return true;
+  if (mission.includes('starliner'))             return true;
+  if (/soyuz ms-\d/.test(mission))               return true;
+
+  // ── Księżyc / Mars / głęboka przestrzeń ──────────────────────────────────
+  if (mType.includes('lunar'))                   return true;
+  if (mType.includes('mars'))                    return true;
+  if (mType.includes('planetary'))               return true;
+  if (mType.includes('deep space'))              return true;
+  if (['tli','lunar','mars','halo','nrho','sel2','l2'].some(o => orbit.includes(o))) return true;
+
+  // ── Agencje rządowe / naukowe ─────────────────────────────────────────────
+  if (agency.includes('nasa'))                   return true;
+  if (agency.includes('esa') || agency.includes('european')) return true;
+  if (agency.includes('jaxa'))                   return true;
+  if (agency.includes('isro'))                   return true;
+  if (agency.includes('cnsa') || agency.includes('chinese')) return true;
+  if (agency.includes('roscosmos'))              return true;
+
+  // ── SpaceX (non-Starlink już odfiltrowany) ────────────────────────────────
+  if (agency.includes('spacex'))                 return true;
+
+  return false;
+}
+
 // ── Pomocnicze ────────────────────────────────────────────────────────────────
 
 function fmtDate(d) {
@@ -4828,11 +4878,16 @@ class AstronomicalEventsCard extends HTMLElement {
       try { results = JSON.parse(results); } catch(e) {}
     }
     if (!Array.isArray(results)) { this._launchStatus = 'no_results'; return []; }
-    this._launchStatus = 'ok:' + results.length;
+
+    const filterAll = (this._config.launches_filter === 'all');
+    const upcoming  = results.filter(l => l.net && new Date(l.net) >= new Date());
+    const filtered  = filterAll ? upcoming : upcoming.filter(isImportantLaunch);
+    this._launchSkipped = upcoming.length - filtered.length;
+    this._launchStatus = 'ok:' + filtered.length;
 
     const now = new Date(); now.setHours(0, 0, 0, 0);
 
-    return results
+    return filtered
       .filter(l => l.net && new Date(l.net) >= now)
       .map(l => {
         const net    = new Date(l.net);
@@ -5225,8 +5280,10 @@ class AstronomicalEventsCard extends HTMLElement {
       _status === 'no_results'    ? 'sensor OK, brak atrybutu results' :
       _status.startsWith('ok:0')  ? 'sensor OK, 0 wyników' : '';
 
+    const skipped = this._launchSkipped ?? 0;
+    const filterAll = (this._config.launches_filter === 'all');
     const launchInfo = launchCount > 0
-      ? `<span class="launch-pill">🚀 ${launchCount} start${launchCount > 1 ? 'ów' : ''}</span>`
+      ? `<span class="launch-pill" title="${!filterAll && skipped > 0 ? `pominięto ${skipped} rutynowych (Starlink itp.) · dodaj launches_filter: all by zobaczyć wszystko` : ''}">🚀 ${launchCount} start${launchCount > 1 ? 'ów' : ''}${!filterAll && skipped > 0 ? ` <span style="opacity:.55;font-weight:400">+${skipped} ukryte</span>` : ''}</span>`
       : `<span class="no-launches" title="${_statusHint || 'sprawdź sensor.upcoming_launches'}">${_statusHint ? '⚠ ' + _statusHint : 'brak danych o startach'}</span>`;
 
     const html = `
