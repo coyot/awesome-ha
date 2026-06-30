@@ -330,11 +330,11 @@ class PergolaCard extends HTMLElement {
       iconbox.classList.toggle('louver-active', on);
     }
     this._updateBadge();
+    const tiltSnap = [0,33,66,100].reduce((a,b) => Math.abs(b-tilt) < Math.abs(a-tilt) ? b : a);
     r.querySelectorAll('#l-seg button').forEach(b => {
       const v = parseInt(b.dataset.tilt);
-      const active = v === tilt;
-      b.classList.toggle('on', active);
-      b.classList.toggle('zero', active && v === 0);
+      b.classList.toggle('on', v === tiltSnap);
+      b.classList.toggle('zero', v === tiltSnap && v === 0);
     });
 
     const targetDeg = this._deg(tilt);
@@ -363,11 +363,11 @@ class PergolaCard extends HTMLElement {
     }
     if (iconEl) iconEl.innerHTML = this._drawSpot(bri);
     this._updateBadge();
+    const briSnap = on ? [0,33,66,100].reduce((a,b) => Math.abs(b-bri) < Math.abs(a-bri) ? b : a) : 0;
     r.querySelectorAll('#b-seg button').forEach(b => {
       const v = parseInt(b.dataset.bri);
-      const active = v === bri;
-      b.classList.toggle('on', active);
-      b.classList.toggle('zero', active && v === 0);
+      b.classList.toggle('on', v === briSnap);
+      b.classList.toggle('zero', v === briSnap && v === 0);
     });
   }
 
