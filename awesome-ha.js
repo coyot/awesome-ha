@@ -18493,7 +18493,7 @@ class TelecoLightCard extends HTMLElement {
 }
 
 customElements.define('aha-teleco-light-card', TelecoLightCard);
-if (!customElements.get('teleco-light-card')) customElements.define('teleco-light-card', TelecoLightCard);
+if (!customElements.get('teleco-light-card')) customElements.define('teleco-light-card', class extends TelecoLightCard {});
 
 window.customCards = window.customCards || [];
 window.customCards.push({
