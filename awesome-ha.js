@@ -18582,31 +18582,40 @@ window.customCards.push({
     return 'Otwarte';
   }
 
-  // ── light glyph (rays) — from teleco-light-card, unchanged ──
-  _drawBulb(bri, color) {
-    const cx = 16, cy = 15;
+  // ── spot LED glyph — ceiling-mount strip radiating downward (garden_lamps concept) ──
+  // bar (housing) + glowpt (emitter face, colour+bloom scale with t) + 2× ellipse (downward radiation)
+  _drawSpot(bri) {
+    const t  = Math.max(0, Math.min(1, bri / 100));
     const on = bri > 0;
-    const t   = Math.max(0, Math.min(1, bri / 100));
-    const rInner = 8.5;
-    const rOuter = 8.5 + 4.5 * t;
-    const rays = [];
-    const N = 8;
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 - Math.PI / 2;
-      const x1 = cx + Math.cos(a) * rInner;
-      const y1 = cy + Math.sin(a) * rInner;
-      const x2 = cx + Math.cos(a) * rOuter;
-      const y2 = cy + Math.sin(a) * rOuter;
-      const op = on ? (0.25 + 0.65 * t).toFixed(2) : '0';
-      rays.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="1.7" stroke-linecap="round" opacity="${op}"/>`);
-    }
-    const coreR = 4.2 + 1.4 * t;
-    const coreOp = on ? (0.45 + 0.55 * t).toFixed(2) : '1';
-    const coreFill = on ? color : 'none';
-    const coreStroke = on ? 'none' : color;
-    return `${rays.join('')}
-      <circle cx="${cx}" cy="${cy}" r="${coreR.toFixed(1)}" fill="${coreFill}" stroke="${coreStroke}" stroke-width="1.7" opacity="${coreOp}"/>
-      ${on ? `<circle cx="${cx}" cy="${cy}" r="${(coreR*0.5).toFixed(1)}" fill="rgba(255,255,255,.55)" opacity="${(0.3+0.5*t).toFixed(2)}"/>` : ''}`;
+
+    // emitter colour: dark → amber (#ffd98a @ 33%) → warm white (#fff0c0 @ 100%)
+    const sG = on ? Math.round(200 + 40  * t) : 28;
+    const sB = on ? Math.round(80  + 112 * t) : 40;
+    const stripFill = on ? `rgb(255,${sG},${sB})` : '#1c1c28';
+
+    // layered bloom halos around the emitter (3 rects, decreasing opacity outward)
+    const h1 = on ? (0.55 + 0.30 * t).toFixed(2) : '0';   // tightest
+    const h2 = on ? (0.28 + 0.18 * t).toFixed(2) : '0';
+    const h3 = on ? (0.12 + 0.10 * t).toFixed(2) : '0';   // widest
+
+    // white hotspot at centre — appears above 50%
+    const hotOp = on && t > 0.5 ? ((t - 0.5) * 0.9).toFixed(2) : '0';
+
+    // downward ellipses: ry and opacity both scale with brightness
+    const ry1 = (5.5 + 7.0 * t).toFixed(1);               // inner tight
+    const ry2 = (8.0 + 9.0 * t).toFixed(1);               // outer diffuse
+    const e1  = on ? (0.45 + 0.27 * t).toFixed(2) : '0';
+    const e2  = on ? (0.20 + 0.15 * t).toFixed(2) : '0';
+
+    return `
+      <rect x="4" y="5" width="24" height="8" rx="3.5" fill="#1c1c28" stroke="rgba(255,255,255,.10)" stroke-width=".8"/>
+      <rect x="5.5" y="6.5" width="21" height="5"   rx="2.5" fill="rgba(255,200,100,${h3})"/>
+      <rect x="7"   y="7.5" width="18" height="3"   rx="1.5" fill="rgba(255,200,100,${h2})"/>
+      <rect x="8.5" y="8"   width="15" height="2"   rx="1"   fill="rgba(255,200,100,${h1})"/>
+      <rect x="9"   y="8.5" width="14" height="1.5" rx=".75" fill="${stripFill}"/>
+      <rect x="12"  y="8.5" width="8"  height="1.5" rx=".75" fill="rgba(255,255,255,${hotOp})"/>
+      <ellipse cx="16" cy="15" rx="12" ry="${ry2}" fill="rgba(255,200,100,${e2})"/>
+      <ellipse cx="16" cy="14" rx="8"  ry="${ry1}" fill="rgba(255,200,100,${e1})"/>`;
   }
   _lightLabel(bri, st) {
     if (st === 'unavailable') return 'Niedost\u0119pne';
@@ -18760,7 +18769,7 @@ window.customCards.push({
     const lIcon = this.shadowRoot.getElementById('l-icon');
     if (lIcon) lIcon.innerHTML = this._drawSlat(0, 'rgba(142,142,147,.65)');
     const bIcon = this.shadowRoot.getElementById('b-icon');
-    if (bIcon) bIcon.innerHTML = this._drawBulb(0, 'rgba(142,142,147,.65)');
+    if (bIcon) bIcon.innerHTML = this._drawSpot(0);
 
     this.shadowRoot.querySelectorAll('#l-seg button').forEach(btn => {
       this._bindPress(btn, 'pressed');
@@ -18841,7 +18850,7 @@ window.customCards.push({
       iconbox.style.setProperty('--lb-op',     on ? (0.45 * t).toFixed(2) : '0');
       iconbox.classList.toggle('light-active', on);
     }
-    if (iconEl) iconEl.innerHTML = this._drawBulb(bri, glyphColor);
+    if (iconEl) iconEl.innerHTML = this._drawSpot(bri);
     r.querySelectorAll('#b-seg button').forEach(b => {
       const v = parseInt(b.dataset.bri);
       const active = v === bri;
