@@ -479,7 +479,10 @@
           ? (hass.states[p.picture_entity]?.attributes?.entity_picture || null)
           : (s?.attributes?.entity_picture || null);
         const initial = (p.name || '?')[0].toUpperCase();
-        return { name: p.name, isHome, sinceStr, bat, img: picSrc, initial };
+        const isWorking = p.working_entity
+          ? hass.states[p.working_entity]?.state === 'on'
+          : false;
+        return { name: p.name, isHome, sinceStr, bat, img: picSrc, initial, isWorking };
       });
 
       // Reminders
@@ -506,6 +509,7 @@
           </div>
           <span class="person-name">${p.name}</span>
           <span class="person-status">${homeLabel}</span>
+          ${p.isWorking ? `<span class="person-work">pracuje</span>` : ''}
           ${batHtml}
         </div>`;
       }).join('');
@@ -763,6 +767,13 @@
         text-align: center;
       }
       .person-bat { font-size: 9.5px; font-weight: 600; }
+      .person-work {
+        font-size: 9px; font-weight: 600; letter-spacing: .03em;
+        color: rgba(255,214,90,.75);
+        background: rgba(255,214,90,.10);
+        border: .5px solid rgba(255,214,90,.22);
+        border-radius: 5px; padding: 1px 5px;
+      }
 
       /* Reminders */
       .reminders { display: flex; flex-direction: column; gap: 5px; }
