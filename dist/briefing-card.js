@@ -474,10 +474,23 @@
         }
         const batRaw = p.battery_entity ? parseFloat(hass.states[p.battery_entity]?.state) : NaN;
         const bat    = !isNaN(batRaw) ? Math.round(batRaw) : null;
-        // Avatar: try picture_entity, then tracker entity_picture
-        const picSrc = p.picture_entity
-          ? (hass.states[p.picture_entity]?.attributes?.entity_picture || null)
-          : (s?.attributes?.entity_picture || null);
+        // Avatar: try picture_entity → person_entity → auto-find person.* → tracker entity_picture
+        let picSrc = null;
+        if (p.picture_entity) {
+          picSrc = hass.states[p.picture_entity]?.attributes?.entity_picture || null;
+        } else if (p.person_entity) {
+          picSrc = hass.states[p.person_entity]?.attributes?.entity_picture || null;
+        } else {
+          // auto-discover: find person.* whose user_id or source_list includes this tracker
+          const personEntry = Object.values(hass.states).find(st =>
+            st.entity_id.startsWith('person.') &&
+            (st.attributes?.source === p.entity ||
+             (Array.isArray(st.attributes?.source_list) && st.attributes.source_list.includes(p.entity)))
+          );
+          picSrc = personEntry?.attributes?.entity_picture
+            || s?.attributes?.entity_picture
+            || null;
+        }
         const initial = (p.name || '?')[0].toUpperCase();
         const isWorking = p.working_entity
           ? hass.states[p.working_entity]?.state === 'on'
