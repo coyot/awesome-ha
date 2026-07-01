@@ -519,10 +519,10 @@
           <div class="person-avatar">
             ${avatarInner}
             <div class="person-presence ${p.isHome ? 'dot-home' : 'dot-away'}"></div>
+            ${p.isWorking ? `<div class="person-work-dot"></div>` : ''}
           </div>
           <span class="person-name">${p.name}</span>
           <span class="person-status">${homeLabel}</span>
-          ${p.isWorking ? `<span class="person-work">pracuje</span>` : ''}
           ${batHtml}
         </div>`;
       }).join('');
@@ -792,12 +792,12 @@
         text-align: center;
       }
       .person-bat { font-size: 9.5px; font-weight: 600; }
-      .person-work {
-        font-size: 9px; font-weight: 600; letter-spacing: .03em;
-        color: rgba(255,214,90,.75);
-        background: rgba(255,214,90,.10);
-        border: .5px solid rgba(255,214,90,.22);
-        border-radius: 5px; padding: 1px 5px;
+      .person-work-dot {
+        position: absolute; bottom: 0; left: 0;
+        width: 10px; height: 10px; border-radius: 50%;
+        border: 2px solid #0d1828;
+        background: #ffd65a;
+        box-shadow: 0 0 6px rgba(255,214,90,0.70);
       }
 
       /* Reminders */
