@@ -14370,16 +14370,22 @@ window.customCards.push({
             <div class="time">${timeText}</div>
           </div>
 
-          <!-- Weather -->
-          <div class="wx-row">
-            <div class="wx-left">
-              ${wxIconSVG(wxCond, 52)}
-              <div class="wx-text">
-                <div class="wx-cond">${wxLabel}</div>
-                <div class="wx-temp" style="color:${tempC}">${tempStr}</div>
+          <!-- Weather + People side by side -->
+          <div class="wx-people-row">
+            <div class="wx-col">
+              <div class="wx-left">
+                ${wxIconSVG(wxCond, 46)}
+                <div class="wx-text">
+                  <div class="wx-cond">${wxLabel}</div>
+                  <div class="wx-temp" style="color:${tempC}">${tempStr}</div>
+                </div>
               </div>
+              ${chips.length ? `<div class="chips">${chipsHtml}</div>` : ''}
             </div>
-            ${chips.length ? `<div class="chips">${chipsHtml}</div>` : ''}
+            ${people.length ? `
+            <div class="people-col">
+              <div class="people">${peopleHtml}</div>
+            </div>` : ''}
           </div>
 
           <!-- Forecast summary (animated carousel when 2 parts) -->
@@ -14410,10 +14416,6 @@ window.customCards.push({
             </div>
           </div>` : ''}
 
-          <!-- People (horizontal) -->
-          ${people.length ? `
-            <div class="sep"></div>
-            <div class="people">${peopleHtml}</div>` : ''}
 
           <!-- Reminders -->
           ${remindersHtml ? `
@@ -14474,23 +14476,33 @@ window.customCards.push({
         padding-top: 2px;
       }
 
-      /* Weather row */
-      .wx-row {
-        display: flex; align-items: center; justify-content: space-between;
+      /* Weather + People two-column row */
+      .wx-people-row {
+        display: flex; align-items: stretch; gap: 0;
         margin-bottom: 10px;
       }
-      .wx-left { display: flex; align-items: center; gap: 12px; }
+      .wx-col {
+        flex: 1; min-width: 0;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .people-col {
+        flex: 1; min-width: 0;
+        display: flex; align-items: center; justify-content: center;
+        border-left: .5px solid rgba(255,255,255,.07);
+        padding-left: 14px;
+      }
+      .wx-left { display: flex; align-items: center; gap: 10px; }
       .wx-text {}
       .wx-cond {
-        font-size: 12px; color: rgba(255,255,255,0.38);
+        font-size: 11px; color: rgba(255,255,255,0.38);
         margin-bottom: 2px; font-weight: 500;
       }
       .wx-temp {
-        font-size: 34px; font-weight: 700; letter-spacing: -.8px; line-height: 1;
+        font-size: 30px; font-weight: 700; letter-spacing: -.8px; line-height: 1;
       }
 
-      /* Chips (right side of wx row) */
-      .chips { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+      /* Chips (below temp in wx-col) */
+      .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; }
       .chip {
         display: flex; align-items: center; gap: 5px;
         background: rgba(255,255,255,0.06);
@@ -14551,8 +14563,8 @@ window.customCards.push({
         margin-bottom: 7px;
       }
 
-      /* People — horizontal row */
-      .people { display: flex; flex-direction: row; gap: 18px; }
+      /* People — grid w prawej kolumnie */
+      .people { display: flex; flex-direction: row; flex-wrap: wrap; gap: 14px; justify-content: center; }
       .person {
         display: flex; flex-direction: column; align-items: center; gap: 3px;
       }
