@@ -18914,6 +18914,31 @@ window.customCards.push({
       @media(hover:hover){
         .seg button:hover:not(.on){background:rgba(255,255,255,.07);color:rgba(255,255,255,.65)}
       }
+
+      /* ── wyłącz wszystkie ── */
+      .all-off-row{
+        border-top:.5px solid rgba(255,255,255,.07);
+        margin-top:4px;padding-top:10px;
+        display:flex;justify-content:center;
+      }
+      .all-off-btn{
+        display:inline-flex;align-items:center;gap:5px;
+        background:none;border:none;
+        font-family:inherit;font-size:11px;font-weight:600;
+        color:rgba(255,255,255,.28);
+        cursor:pointer;touch-action:manipulation;
+        -webkit-tap-highlight-color:transparent;user-select:none;
+        padding:6px 12px;border-radius:8px;
+        transition:color .15s,background .15s,transform .1s;
+      }
+      .all-off-btn.pressed{
+        transform:scale(.95);
+        background:rgba(255,255,255,.07);
+        color:rgba(255,255,255,.65);
+      }
+      @media(hover:hover){
+        .all-off-btn:hover{color:rgba(255,255,255,.55);background:rgba(255,255,255,.05)}
+      }
     </style>
 
     <div class="glow" id="glow">
@@ -18993,6 +19018,17 @@ window.customCards.push({
         </div>` : ''}
         ` : ''}
 
+        <!-- Wyłącz wszystkie -->
+        <div class="all-off-row">
+          <button class="all-off-btn" id="btn-all-off" type="button">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1.5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M3.5 4a5 5 0 1 0 7 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            Wy\u0142\u0105cz wszystkie lampy
+          </button>
+        </div>
+
       </div>
     </div>`;
 
@@ -19037,7 +19073,20 @@ window.customCards.push({
       });
     }
 
+    // bind all-off
+    const btnAllOff = this.shadowRoot.getElementById('btn-all-off');
+    if (btnAllOff) {
+      this._bindPress(btnAllOff, 'pressed');
+      btnAllOff.addEventListener('click', () => this._allOff());
+    }
+
     this._updateBadge();
+  }
+
+  _allOff() {
+    this._svcLight('turn_off');
+    if (this._orbsEntity)  this._svcOrbs(false);
+    if (this._spotGEntity) this._svcSpotG(false);
   }
 
   _animateTo(target) {
