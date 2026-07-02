@@ -245,19 +245,11 @@ class PergolaCard extends HTMLElement {
 
       /* ── pergola group (lamele + spot LED, wiersze z subtelną ramką) ── */
       .perg-group{
-        position:relative;
         border-radius:13px;
-        overflow:hidden;
         border:.5px solid rgba(255,255,255,.09);
         background:rgba(255,255,255,.022);
         margin-bottom:${hasGarden ? '10px' : '0'};
-        padding:0 12px 0 16px;
-      }
-      /* lewy pasek gradientu pomarańcz→żółty */
-      .perg-group::before{
-        content:'';
-        position:absolute;left:0;top:0;bottom:0;width:2.5px;
-        background:linear-gradient(180deg,rgba(255,159,10,.65) 0%,rgba(255,214,90,.65) 100%);
+        padding:0 12px;
       }
 
       .iconbox{
@@ -357,6 +349,9 @@ class PergolaCard extends HTMLElement {
           <div class="title">${this._name}${this._room ? `<span class="room"> \u00b7 ${this._room}</span>` : ''}</div>
           <div class="badge" id="badge"><span class="dot" id="badge-dot"></span><span id="badge-txt"></span></div>
         </div>
+
+        <!-- separator Pergola -->
+        <div class="sect-sep"><span>Pergola</span></div>
 
         <!-- PERGOLA GROUP — lamele + spot LED, zgrupowane -->
         <div class="perg-group">
