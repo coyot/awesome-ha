@@ -18839,30 +18839,21 @@ window.customCards.push({
       .hdr .badge .dot{width:7px;height:7px;border-radius:50%;background:rgba(142,142,147,.35);transition:background .3s,box-shadow .3s}
       .hdr .badge .dot.active{background:#30d158;box-shadow:0 0 8px #30d158}
 
-      /* ── pergola panel (lamele + spot LED side by side) ── */
-      .perg-panel{
+      /* ── pergola group (lamele + spot LED, wiersze z subtelną ramką) ── */
+      .perg-group{
         position:relative;
-        display:grid;
-        grid-template-columns:1fr 1px 1fr;
-        background:rgba(255,255,255,.025);
-        border:.5px solid rgba(255,255,255,.10);
-        border-radius:14px;
+        border-radius:13px;
         overflow:hidden;
+        border:.5px solid rgba(255,255,255,.09);
+        background:rgba(255,255,255,.022);
         margin-bottom:${hasGarden ? '10px' : '0'};
+        padding:0 12px 0 16px;
       }
-      .perg-panel::before{
+      /* lewy pasek gradientu pomarańcz→żółty */
+      .perg-group::before{
         content:'';
-        position:absolute;top:0;left:0;right:0;height:1px;
-        background:linear-gradient(90deg,rgba(255,159,10,.55) 0%,rgba(255,214,90,.55) 100%);
-      }
-
-      /* vertical divider between columns */
-      .p-div{ background:rgba(255,255,255,.07); }
-
-      /* each pergola column */
-      .p-col{
-        display:flex;flex-direction:column;align-items:center;
-        gap:6px;padding:14px 10px 12px;
+        position:absolute;left:0;top:0;bottom:0;width:2.5px;
+        background:linear-gradient(180deg,rgba(255,159,10,.65) 0%,rgba(255,214,90,.65) 100%);
       }
 
       .iconbox{
@@ -18871,49 +18862,6 @@ window.customCards.push({
         background:rgba(142,142,147,.07);
         border:.5px solid rgba(142,142,147,.15);
         transition:background .35s,border-color .35s,box-shadow .45s;
-      }
-
-      .p-name{
-        font-size:12px;font-weight:600;
-        color:rgba(255,255,255,.80);
-        text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-        max-width:100%;
-      }
-      .p-status{
-        font-size:10.5px;color:#636366;
-        text-align:center;min-height:13px;
-        transition:color .3s;
-      }
-
-      /* compact seg inside p-col */
-      .p-seg{
-        display:flex;gap:2px;width:100%;
-        background:rgba(255,255,255,.04);
-        border:.5px solid rgba(255,255,255,.07);
-        border-radius:9px;padding:2px;
-      }
-      .p-seg button{
-        flex:1;min-width:0;height:28px;
-        display:flex;align-items:center;justify-content:center;
-        border:none;background:none;border-radius:6px;
-        font-family:inherit;font-size:9.5px;font-weight:700;
-        color:rgba(255,255,255,.38);
-        cursor:pointer;touch-action:manipulation;
-        -webkit-tap-highlight-color:transparent;user-select:none;
-        appearance:none;-webkit-appearance:none;padding:0;
-        transition:background .15s,color .15s,transform .1s;
-      }
-      .p-seg button.pressed{transform:scale(.88);background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
-
-      /* louver accent */
-      .louver .p-seg button.on      { background:rgba(255,159,10,.20); color:#ff9f0a; }
-      .louver .p-seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.70); }
-      /* light accent */
-      .light .p-seg button.on       { background:rgba(255,214,90,.20); color:#ffd65a; }
-      .light .p-seg button.on.zero  { background:rgba(255,255,255,.08); color:rgba(255,255,255,.70); }
-
-      @media(hover:hover){
-        .p-seg button:hover:not(.on){background:rgba(255,255,255,.07);color:rgba(255,255,255,.60)}
       }
 
       /* ── garden section ── */
@@ -18977,31 +18925,33 @@ window.customCards.push({
           <div class="badge" id="badge"><span class="dot" id="badge-dot"></span><span id="badge-txt"></span></div>
         </div>
 
-        <!-- PERGOLA PANEL — lamele + spot LED obok siebie -->
-        <div class="perg-panel">
+        <!-- PERGOLA GROUP — lamele + spot LED, zgrupowane -->
+        <div class="perg-group">
 
           <!-- Lamele -->
-          <div class="p-col louver">
+          <div class="row louver">
             <div class="iconbox" id="l-iconbox">
               <svg id="l-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
             </div>
-            <div class="p-name">${this._coverName}</div>
-            <div class="p-status" id="l-status">\u2014</div>
-            <div class="p-seg" id="l-seg">
+            <div class="mid">
+              <div class="name">${this._coverName}</div>
+              <div class="status" id="l-status">\u2014</div>
+            </div>
+            <div class="seg" id="l-seg">
               ${PRESETS.map(t => `<button type="button" data-tilt="${t}">${t}%</button>`).join('')}
             </div>
           </div>
 
-          <div class="p-div"></div>
-
           <!-- Spot LED -->
-          <div class="p-col light">
+          <div class="row light">
             <div class="iconbox" id="b-iconbox">
               <svg id="b-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
             </div>
-            <div class="p-name">${this._lightName}</div>
-            <div class="p-status" id="b-status">\u2014</div>
-            <div class="p-seg" id="b-seg">
+            <div class="mid">
+              <div class="name">${this._lightName}</div>
+              <div class="status" id="b-status">\u2014</div>
+            </div>
+            <div class="seg" id="b-seg">
               ${PRESETS.map(b => `<button type="button" data-bri="${b}">${b}%</button>`).join('')}
             </div>
           </div>
