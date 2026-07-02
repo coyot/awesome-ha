@@ -18906,6 +18906,10 @@ window.customCards.push({
       }
       .seg button.pressed{transform:scale(.9);background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
 
+      .louver .seg button.on      { background:rgba(255,159,10,.18); color:#ff9f0a; box-shadow:0 0 12px rgba(255,159,10,.22) inset; }
+      .louver .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
+      .light  .seg button.on      { background:rgba(255,214,90,.18); color:#ffd65a; box-shadow:0 0 12px rgba(255,214,90,.22) inset; }
+      .light  .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
       .orbs  .seg button.on      { background:rgba(255,179,71,.18); color:#ffb347; box-shadow:0 0 12px rgba(255,179,71,.22) inset; }
       .orbs  .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
       .spotg .seg button.on      { background:rgba(255,184,77,.18); color:#ffb84d; box-shadow:0 0 12px rgba(255,184,77,.22) inset; }
