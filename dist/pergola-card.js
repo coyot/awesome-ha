@@ -20,7 +20,7 @@ class PergolaCard extends HTMLElement {
     this._coverEntity = config.cover_entity || config.entity || 'cover.pergola_lamele';
     this._coverName   = config.cover_name   || 'Lamele';
     this._lightEntity = config.light_entity || 'light.pergola_spot';
-    this._lightName   = config.light_name   || 'Spot LED w pergoli';
+    this._lightName   = config.light_name   || 'Spot LED';
     this._name        = config.name  || 'Pergola';
     this._room        = config.room  || '';
     this._orbsEntity  = config.orbs_entity || null;
@@ -106,7 +106,7 @@ class PergolaCard extends HTMLElement {
     return 'Otwarte';
   }
 
-  // ── orbs glyph — dwie kule (big + small), ciepły blask gdy włączone ──
+  // ── orbs glyph ──
   _drawOrbs(on) {
     const fill  = on ? '#ffb347' : '#1e1e2a';
     const high  = on ? '#fff3d6' : 'rgba(255,255,255,.05)';
@@ -114,26 +114,24 @@ class PergolaCard extends HTMLElement {
     const ss    = on ? 'rgba(255,200,120,.35)' : 'rgba(255,255,255,.06)';
     const g1    = on ? 'drop-shadow(0 0 5px rgba(255,179,71,.70))' : 'none';
     const g2    = on ? 'drop-shadow(0 0 3px rgba(255,179,71,.55))' : 'none';
-    const hiOp1 = on ? '.62' : '.8';
-    const hiOp2 = on ? '.55' : '.8';
     return `
       <circle cx="13" cy="19" r="9"   fill="${fill}" stroke="${bs}" stroke-width=".8" style="filter:${g1}"/>
-      <circle cx="11" cy="17" r="4.5" fill="${high}" opacity="${hiOp1}"/>
+      <circle cx="11" cy="17" r="4.5" fill="${high}" opacity="${on ? '.62' : '.8'}"/>
       <circle cx="24" cy="23" r="6"   fill="${fill}" stroke="${ss}" stroke-width=".6" style="filter:${g2}"/>
-      <circle cx="23" cy="21.5" r="3" fill="${high}" opacity="${hiOp2}"/>`;
+      <circle cx="23" cy="21.5" r="3" fill="${high}" opacity="${on ? '.55' : '.8'}"/>`;
   }
 
-  // ── ground spot glyph — skośny reflektor ogrodowy, świeci ku górze ──
+  // ── ground spot glyph ──
   _drawGroundSpot(on) {
-    const face   = on ? '#fff2d0' : '#15151c';
-    const faceB  = on ? 'rgba(255,210,140,.60)' : 'rgba(255,255,255,.12)';
-    const glow   = on ? 'drop-shadow(0 0 4px rgba(255,184,77,.85))' : 'none';
-    const bOp    = on ? '1' : '0';
+    const face  = on ? '#fff2d0' : '#15151c';
+    const faceB = on ? 'rgba(255,210,140,.60)' : 'rgba(255,255,255,.12)';
+    const glow  = on ? 'drop-shadow(0 0 4px rgba(255,184,77,.85))' : 'none';
+    const bOp   = on ? '1' : '0';
     return `
       <g transform="rotate(35, 16, 20)">
-        <rect x="15"  y="25"  width="2.5" height="8"  rx="1.2" fill="#14141e"/>
-        <rect x="13.5" y="17" width="5"   height="10" rx="2.5" fill="#1e1e2e"/>
-        <rect x="10.5" y="5"  width="11"  height="14" rx="5"   fill="#252535" stroke="rgba(255,255,255,.10)" stroke-width=".7"/>
+        <rect x="15"   y="25"  width="2.5" height="8"  rx="1.2" fill="#14141e"/>
+        <rect x="13.5" y="17"  width="5"   height="10" rx="2.5" fill="#1e1e2e"/>
+        <rect x="10.5" y="5"   width="11"  height="14" rx="5"   fill="#252535" stroke="rgba(255,255,255,.10)" stroke-width=".7"/>
         <ellipse cx="16" cy="6.5" rx="5" ry="2.8" fill="${face}" stroke="${faceB}" stroke-width=".6" style="filter:${glow}"/>
         <path d="M11 5 L4 -8 L28 -8 L21 5 Z" fill="rgba(255,200,100,.26)" opacity="${bOp}" style="filter:blur(3px)"/>
         <ellipse cx="16" cy="1" rx="7.5" ry="5" fill="rgba(255,210,120,.38)" opacity="${bOp}" style="filter:blur(2.5px)"/>
@@ -169,9 +167,9 @@ class PergolaCard extends HTMLElement {
     if (st === 'unavailable') return 'Niedost\u0119pne';
     if (bri === 0)  return 'Wy\u0142\u0105czone';
     if (bri < 30)   return 'Przyciemnione';
-    if (bri < 70)   return '\u015arednia jasno\u015b\u0107';
+    if (bri < 70)   return '\u015arednia';
     if (bri < 100)  return 'Jasno';
-    return 'Maksymalna jasno\u015b\u0107';
+    return 'Maksymalnie';
   }
 
   _bindPress(el, cls) {
@@ -185,6 +183,7 @@ class PergolaCard extends HTMLElement {
 
   _render() {
     const PRESETS = [0, 33, 66, 100];
+    const hasGarden = this._orbsEntity || this._spotGEntity;
 
     this.shadowRoot.innerHTML = `
     <style>
@@ -203,7 +202,7 @@ class PergolaCard extends HTMLElement {
         background:linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
         border:.5px solid rgba(255,255,255,.08);
         border-radius:18px;
-        padding:14px 16px;
+        padding:14px 16px 16px;
         position:relative;
         overflow:hidden;
       }
@@ -213,6 +212,7 @@ class PergolaCard extends HTMLElement {
         pointer-events:none;
       }
 
+      /* ── animations ── */
       @keyframes louver-pulse {
         0%,100%{ box-shadow:0 0 0 0px rgba(255,159,10,0) }
         50%    { box-shadow:0 0 0 5px rgba(255,159,10,.18) }
@@ -226,7 +226,7 @@ class PergolaCard extends HTMLElement {
         50%    { box-shadow:0 0 0 5px rgba(255,184,77,.18) }
       }
       @keyframes light-pulse {
-        0%,100%{ box-shadow:0 0 0 0px rgba(255,214,90,0),       0 0 0px  0px rgba(255,214,90,0) }
+        0%,100%{ box-shadow:0 0 0 0px rgba(255,214,90,0), 0 0 0px 0px rgba(255,214,90,0) }
         50%    { box-shadow:0 0 0 5px rgba(255,214,90,.15), 0 0 var(--lb-spread,0px) var(--lb-spread,0px) rgba(255,214,90,var(--lb-op,0)) }
       }
       .iconbox.louver-active { animation:louver-pulse 2.5s ease-in-out infinite; }
@@ -234,7 +234,8 @@ class PergolaCard extends HTMLElement {
       .iconbox.spotg-active  { animation:spotg-pulse  3.2s ease-in-out infinite; }
       .iconbox.light-active  { animation:light-pulse  3.0s ease-in-out infinite; }
 
-      .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+      /* ── header ── */
+      .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
       .hdr .title{font-size:15px;font-weight:700;color:rgba(255,255,255,.92);letter-spacing:-.2px}
       .hdr .title .room{font-size:11px;font-weight:400;color:#636366}
       .hdr .badge{font-size:11px;color:#636366;display:flex;align-items:center;gap:6px;transition:color .3s}
@@ -242,8 +243,31 @@ class PergolaCard extends HTMLElement {
       .hdr .badge .dot{width:7px;height:7px;border-radius:50%;background:rgba(142,142,147,.35);transition:background .3s,box-shadow .3s}
       .hdr .badge .dot.active{background:#30d158;box-shadow:0 0 8px #30d158}
 
-      .row{display:flex;align-items:center;gap:13px;padding:14px 0}
-      .row + .row{border-top:.5px solid rgba(255,255,255,.07)}
+      /* ── pergola panel (lamele + spot LED side by side) ── */
+      .perg-panel{
+        position:relative;
+        display:grid;
+        grid-template-columns:1fr 1px 1fr;
+        background:rgba(255,255,255,.025);
+        border:.5px solid rgba(255,255,255,.10);
+        border-radius:14px;
+        overflow:hidden;
+        margin-bottom:${hasGarden ? '10px' : '0'};
+      }
+      .perg-panel::before{
+        content:'';
+        position:absolute;top:0;left:0;right:0;height:1px;
+        background:linear-gradient(90deg,rgba(255,159,10,.55) 0%,rgba(255,214,90,.55) 100%);
+      }
+
+      /* vertical divider between columns */
+      .p-div{ background:rgba(255,255,255,.07); }
+
+      /* each pergola column */
+      .p-col{
+        display:flex;flex-direction:column;align-items:center;
+        gap:6px;padding:14px 10px 12px;
+      }
 
       .iconbox{
         width:44px;height:44px;border-radius:12px;flex-shrink:0;
@@ -252,11 +276,73 @@ class PergolaCard extends HTMLElement {
         border:.5px solid rgba(142,142,147,.15);
         transition:background .35s,border-color .35s,box-shadow .45s;
       }
+
+      .p-name{
+        font-size:12px;font-weight:600;
+        color:rgba(255,255,255,.80);
+        text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+        max-width:100%;
+      }
+      .p-status{
+        font-size:10.5px;color:#636366;
+        text-align:center;min-height:13px;
+        transition:color .3s;
+      }
+
+      /* compact seg inside p-col */
+      .p-seg{
+        display:flex;gap:2px;width:100%;
+        background:rgba(255,255,255,.04);
+        border:.5px solid rgba(255,255,255,.07);
+        border-radius:9px;padding:2px;
+      }
+      .p-seg button{
+        flex:1;min-width:0;height:28px;
+        display:flex;align-items:center;justify-content:center;
+        border:none;background:none;border-radius:6px;
+        font-family:inherit;font-size:9.5px;font-weight:700;
+        color:rgba(255,255,255,.38);
+        cursor:pointer;touch-action:manipulation;
+        -webkit-tap-highlight-color:transparent;user-select:none;
+        appearance:none;-webkit-appearance:none;padding:0;
+        transition:background .15s,color .15s,transform .1s;
+      }
+      .p-seg button.pressed{transform:scale(.88);background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+
+      /* louver accent */
+      .louver .p-seg button.on      { background:rgba(255,159,10,.20); color:#ff9f0a; }
+      .louver .p-seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.70); }
+      /* light accent */
+      .light .p-seg button.on       { background:rgba(255,214,90,.20); color:#ffd65a; }
+      .light .p-seg button.on.zero  { background:rgba(255,255,255,.08); color:rgba(255,255,255,.70); }
+
+      @media(hover:hover){
+        .p-seg button:hover:not(.on){background:rgba(255,255,255,.07);color:rgba(255,255,255,.60)}
+      }
+
+      /* ── garden section ── */
+      .sect-sep{
+        display:flex;align-items:center;gap:8px;
+        margin-bottom:4px;
+      }
+      .sect-sep::before,.sect-sep::after{
+        content:'';flex:1;height:.5px;
+        background:rgba(255,255,255,.07);
+      }
+      .sect-sep span{
+        font-size:9px;font-weight:700;letter-spacing:.12em;
+        text-transform:uppercase;color:rgba(255,255,255,.20);
+        white-space:nowrap;
+      }
+
+      /* garden rows */
+      .row{display:flex;align-items:center;gap:13px;padding:12px 0}
+      .row + .row{border-top:.5px solid rgba(255,255,255,.07)}
+
       .mid{flex:1;min-width:0}
       .name{font-size:14px;font-weight:600;color:rgba(255,255,255,.90);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .status{font-size:12px;color:#636366;margin-top:2px;transition:color .3s}
 
-      /* segmented control */
       .seg{
         display:flex;gap:3px;flex-shrink:0;
         background:rgba(255,255,255,.04);
@@ -264,7 +350,7 @@ class PergolaCard extends HTMLElement {
         border-radius:11px;padding:3px;
       }
       .seg button{
-        min-width:38px;min-height:38px;
+        min-width:44px;min-height:38px;
         display:flex;align-items:center;justify-content:center;
         border:none;background:none;border-radius:8px;
         font-family:inherit;font-size:11px;font-weight:700;
@@ -274,21 +360,12 @@ class PergolaCard extends HTMLElement {
         appearance:none;-webkit-appearance:none;padding:0;
         transition:background .15s,color .15s,transform .1s;
       }
-      .seg.toggle button { min-width:44px; }
       .seg button.pressed{transform:scale(.9);background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
 
-      /* louver (orange) */
-      .louver .seg button.on      { background:rgba(255,159,10,.18); color:#ff9f0a; box-shadow:0 0 12px rgba(255,159,10,.22) inset; }
-      .louver .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
-      /* orbs (warm) */
-      .orbs .seg button.on        { background:rgba(255,179,71,.18); color:#ffb347; box-shadow:0 0 12px rgba(255,179,71,.22) inset; }
-      .orbs .seg button.on.zero   { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
-      /* ground spot (amber) */
-      .spotg .seg button.on       { background:rgba(255,184,77,.18); color:#ffb84d; box-shadow:0 0 12px rgba(255,184,77,.22) inset; }
-      .spotg .seg button.on.zero  { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
-      /* spot LED (yellow) */
-      .light .seg button.on       { background:rgba(255,214,90,.18); color:#ffd65a; box-shadow:0 0 12px rgba(255,214,90,.22) inset; }
-      .light .seg button.on.zero  { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
+      .orbs  .seg button.on      { background:rgba(255,179,71,.18); color:#ffb347; box-shadow:0 0 12px rgba(255,179,71,.22) inset; }
+      .orbs  .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
+      .spotg .seg button.on      { background:rgba(255,184,77,.18); color:#ffb84d; box-shadow:0 0 12px rgba(255,184,77,.22) inset; }
+      .spotg .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
 
       @media(hover:hover){
         .seg button:hover:not(.on){background:rgba(255,255,255,.07);color:rgba(255,255,255,.65)}
@@ -297,27 +374,49 @@ class PergolaCard extends HTMLElement {
 
     <div class="glow" id="glow">
       <div class="card">
+
+        <!-- HEADER -->
         <div class="hdr">
           <div class="title">${this._name}${this._room ? `<span class="room"> \u00b7 ${this._room}</span>` : ''}</div>
           <div class="badge" id="badge"><span class="dot" id="badge-dot"></span><span id="badge-txt"></span></div>
         </div>
 
-        <!-- LAMELE -->
-        <div class="row louver">
-          <div class="iconbox" id="l-iconbox">
-            <svg id="l-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+        <!-- PERGOLA PANEL — lamele + spot LED obok siebie -->
+        <div class="perg-panel">
+
+          <!-- Lamele -->
+          <div class="p-col louver">
+            <div class="iconbox" id="l-iconbox">
+              <svg id="l-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+            </div>
+            <div class="p-name">${this._coverName}</div>
+            <div class="p-status" id="l-status">\u2014</div>
+            <div class="p-seg" id="l-seg">
+              ${PRESETS.map(t => `<button type="button" data-tilt="${t}">${t}%</button>`).join('')}
+            </div>
           </div>
-          <div class="mid">
-            <div class="name">${this._coverName}</div>
-            <div class="status" id="l-status">\u2014</div>
+
+          <div class="p-div"></div>
+
+          <!-- Spot LED -->
+          <div class="p-col light">
+            <div class="iconbox" id="b-iconbox">
+              <svg id="b-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+            </div>
+            <div class="p-name">${this._lightName}</div>
+            <div class="p-status" id="b-status">\u2014</div>
+            <div class="p-seg" id="b-seg">
+              ${PRESETS.map(b => `<button type="button" data-bri="${b}">${b}%</button>`).join('')}
+            </div>
           </div>
-          <div class="seg" id="l-seg">
-            ${PRESETS.map(t => `<button type="button" data-tilt="${t}">${t}%</button>`).join('')}
-          </div>
+
         </div>
 
+        ${hasGarden ? `
+        <!-- OGRÓD — separator + wiersze -->
+        <div class="sect-sep"><span>Ogr\u00f3d</span></div>
+
         ${this._orbsEntity ? `
-        <!-- KULE ŚWIECĄCE -->
         <div class="row orbs">
           <div class="iconbox" id="o-iconbox">
             <svg id="o-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
@@ -326,14 +425,13 @@ class PergolaCard extends HTMLElement {
             <div class="name">${this._orbsName}</div>
             <div class="status" id="o-status">\u2014</div>
           </div>
-          <div class="seg toggle" id="o-seg">
+          <div class="seg" id="o-seg">
             <button type="button" data-val="off">Wy\u0142</button>
             <button type="button" data-val="on">W\u0142</button>
           </div>
         </div>` : ''}
 
         ${this._spotGEntity ? `
-        <!-- SPOT NA DRZEWA -->
         <div class="row spotg">
           <div class="iconbox" id="g-iconbox">
             <svg id="g-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
@@ -342,25 +440,13 @@ class PergolaCard extends HTMLElement {
             <div class="name">${this._spotGName}</div>
             <div class="status" id="g-status">\u2014</div>
           </div>
-          <div class="seg toggle" id="g-seg">
+          <div class="seg" id="g-seg">
             <button type="button" data-val="off">Wy\u0142</button>
             <button type="button" data-val="on">W\u0142</button>
           </div>
         </div>` : ''}
+        ` : ''}
 
-        <!-- SPOT LED -->
-        <div class="row light">
-          <div class="iconbox" id="b-iconbox">
-            <svg id="b-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
-          </div>
-          <div class="mid">
-            <div class="name">${this._lightName}</div>
-            <div class="status" id="b-status">\u2014</div>
-          </div>
-          <div class="seg" id="b-seg">
-            ${PRESETS.map(b => `<button type="button" data-bri="${b}">${b}%</button>`).join('')}
-          </div>
-        </div>
       </div>
     </div>`;
 
@@ -484,7 +570,9 @@ class PergolaCard extends HTMLElement {
 
     if (statusEl) {
       const elapsed = on ? this._elapsedSince(this._coverLastChanged, on) : null;
-      statusEl.textContent = elapsed ? `${this._louverLabel(tilt, st)} \u00b7 ${elapsed}` : this._louverLabel(tilt, st);
+      statusEl.textContent = elapsed
+        ? `${this._louverLabel(tilt, st)} \u00b7 ${elapsed}`
+        : this._louverLabel(tilt, st);
       statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366';
     }
     if (on) this._startTicker();
@@ -516,7 +604,9 @@ class PergolaCard extends HTMLElement {
 
     if (statusEl) {
       const elapsed = on ? this._elapsedSince(this._lightLastChanged, on) : null;
-      statusEl.textContent = elapsed ? `${this._lightLabel(bri, st)} \u00b7 ${elapsed}` : this._lightLabel(bri, st);
+      statusEl.textContent = elapsed
+        ? `${this._lightLabel(bri, st)} \u00b7 ${elapsed}`
+        : this._lightLabel(bri, st);
       statusEl.style.color = on ? 'rgba(255,214,90,.72)' : '#636366';
     }
     if (on) this._startLightTicker();
@@ -546,7 +636,6 @@ class PergolaCard extends HTMLElement {
     const iconbox  = r.getElementById('o-iconbox');
     const iconEl   = r.getElementById('o-icon');
     const statusEl = r.getElementById('o-status');
-
     if (iconEl)   iconEl.innerHTML = this._drawOrbs(on);
     if (statusEl) {
       statusEl.textContent = on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone';
@@ -571,7 +660,6 @@ class PergolaCard extends HTMLElement {
     const iconbox  = r.getElementById('g-iconbox');
     const iconEl   = r.getElementById('g-icon');
     const statusEl = r.getElementById('g-status');
-
     if (iconEl)   iconEl.innerHTML = this._drawGroundSpot(on);
     if (statusEl) {
       statusEl.textContent = on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone';
@@ -600,5 +688,5 @@ window.customCards.push({
   type:        'aha-pergola-card',
   name:        'Pergola Card',
   preview:     false,
-  description: 'Sterowanie pergol\u0105 w stylu Apple Home: lamele + kule + spot na drzewa + spot LED.',
+  description: 'Sterowanie pergol\u0105 i ogr\u00f3dem: lamele + spot LED (razem) + kule + reflektor ogrodowy.',
 });
