@@ -1721,4 +1721,102 @@
 
   mode: single
 
+- id: garden_ambient_wlacz
+  alias: "Garden Ambient: włącz oświetlenie ogrodu"
+  description: >
+    Gdy input_boolean.garden_ambient → ON:
+    włącza switch.ogrod_lampy0, switch.ogrod_lampy1
+    oraz light.teleco_shutters na 33%.
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.garden_ambient
+      to: "on"
+
+  action:
+    - action: switch.turn_on
+      target:
+        entity_id:
+          - switch.ogrod_lampy0
+          - switch.ogrod_lampy1
+
+    - action: light.turn_on
+      target:
+        entity_id: light.teleco_shutters
+      data:
+        brightness_pct: 33
+
+    - action: logbook.log
+      data:
+        name: "Garden Ambient"
+        entity_id: input_boolean.garden_ambient
+        message: "ON | kule + spot + teleco 33%"
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"garden_ambient",
+          "akcja":"ON","info":"oświetlenie ogrodu włączone"}
+
+  mode: single
+
+- id: garden_ambient_wylacz
+  alias: "Garden Ambient: wyłącz oświetlenie ogrodu"
+  description: >
+    Gdy input_boolean.garden_ambient → OFF:
+    wyłącza switch.ogrod_lampy0, switch.ogrod_lampy1
+    oraz light.teleco_shutters.
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.garden_ambient
+      to: "off"
+
+  action:
+    - action: switch.turn_off
+      target:
+        entity_id:
+          - switch.ogrod_lampy0
+          - switch.ogrod_lampy1
+
+    - action: light.turn_off
+      target:
+        entity_id: light.teleco_shutters
+
+    - action: logbook.log
+      data:
+        name: "Garden Ambient"
+        entity_id: input_boolean.garden_ambient
+        message: "OFF | wszystkie lampy ogrodu wyłączone"
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"garden_ambient",
+          "akcja":"OFF","info":"oświetlenie ogrodu wyłączone"}
+
+  mode: single
+
+- id: garden_ambient_tryb_noc
+  alias: "Garden Ambient: wyłącz przy trybie nocnym"
+  description: >
+    Gdy tryb_noc się aktywuje i garden_ambient jest włączony —
+    wyłącza garden_ambient (co wyzwala automatyzację garden_ambient_wylacz).
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.tryb_noc
+      to: "on"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.garden_ambient
+      state: "on"
+
+  action:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.garden_ambient
+
+  mode: single
 
