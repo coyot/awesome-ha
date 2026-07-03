@@ -74,25 +74,3 @@
 
   mode: single
 
-- id: garden_ambient_tryb_noc
-  alias: "Garden Ambient: wyłącz przy trybie nocnym"
-  description: >
-    Gdy tryb_noc się aktywuje i garden_ambient jest włączony —
-    wyłącza garden_ambient (co wyzwala automatyzację garden_ambient_wylacz).
-
-  trigger:
-    - platform: state
-      entity_id: input_boolean.tryb_noc
-      to: "on"
-
-  condition:
-    - condition: state
-      entity_id: input_boolean.garden_ambient
-      state: "on"
-
-  action:
-    - action: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.garden_ambient
-
-  mode: single

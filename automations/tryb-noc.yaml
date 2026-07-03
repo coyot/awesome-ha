@@ -20,6 +20,7 @@
         biuro_wlaczone: "{{ is_state('switch.biuro', 'on') }}"
         wiatrak_wlaczony: "{{ is_state('switch.biuro_wiatrak', 'on') }}"
         pergola_otwarta: "{{ is_state('cover.teleco_leds2', 'open') }}"
+        garden_ambient_wlaczone: "{{ is_state('input_boolean.garden_ambient', 'on') }}"
         swiatlo_pergoli_wlaczone: "{{ is_state('light.teleco_shutters', 'on') }}"
         otwarte_lista: >
           {% set sens = states.binary_sensor
@@ -85,6 +86,14 @@
           target:
             entity_id: switch.biuro_wiatrak
 
+    - if:
+        - condition: template
+          value_template: "{{ garden_ambient_wlaczone }}"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.garden_ambient
+
     - action: logbook.log
       data:
         name: "Tryb nocny"
@@ -95,6 +104,7 @@
           {% if wiatrak_wlaczony %}wiatrak wyłączony | {% endif %}
           {% if pergola_otwarta %}pergola zamknięta | {% endif %}
           {% if swiatlo_pergoli_wlaczone %}światło pergoli wyłączone | {% endif %}
+          {% if garden_ambient_wlaczone %}garden ambient wyłączony | {% endif %}
           otwarte czujniki: {{ otwarte_ile }}
 
     - action: script.log_push

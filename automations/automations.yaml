@@ -1566,6 +1566,7 @@
         biuro_wlaczone: "{{ is_state('switch.biuro', 'on') }}"
         wiatrak_wlaczony: "{{ is_state('switch.biuro_wiatrak', 'on') }}"
         pergola_otwarta: "{{ is_state('cover.teleco_leds2', 'open') }}"
+        garden_ambient_wlaczone: "{{ is_state('input_boolean.garden_ambient', 'on') }}"
         otwarte_lista: >
           {% set sens = states.binary_sensor
              | selectattr('attributes.device_class', 'in', ['door','window','opening','garage_door'])
@@ -1622,6 +1623,14 @@
           target:
             entity_id: switch.biuro_wiatrak
 
+    - if:
+        - condition: template
+          value_template: "{{ garden_ambient_wlaczone }}"
+      then:
+        - action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.garden_ambient
+
     - action: logbook.log
       data:
         name: "Tryb nocny"
@@ -1631,6 +1640,7 @@
           {% if biuro_wlaczone %}biuro wyłączone | {% endif %}
           {% if wiatrak_wlaczony %}wiatrak wyłączony | {% endif %}
           {% if pergola_otwarta %}pergola zamknięta | {% endif %}
+          {% if garden_ambient_wlaczone %}garden ambient wyłączony | {% endif %}
           otwarte czujniki: {{ otwarte_ile }}
 
     - action: script.log_push
@@ -1797,26 +1807,4 @@
 
   mode: single
 
-- id: garden_ambient_tryb_noc
-  alias: "Garden Ambient: wyłącz przy trybie nocnym"
-  description: >
-    Gdy tryb_noc się aktywuje i garden_ambient jest włączony —
-    wyłącza garden_ambient (co wyzwala automatyzację garden_ambient_wylacz).
-
-  trigger:
-    - platform: state
-      entity_id: input_boolean.tryb_noc
-      to: "on"
-
-  condition:
-    - condition: state
-      entity_id: input_boolean.garden_ambient
-      state: "on"
-
-  action:
-    - action: input_boolean.turn_off
-      target:
-        entity_id: input_boolean.garden_ambient
-
-  mode: single
 
