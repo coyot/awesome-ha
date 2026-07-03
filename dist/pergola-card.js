@@ -23,10 +23,13 @@ class PergolaCard extends HTMLElement {
     this._lightName   = config.light_name   || 'Spot LED';
     this._name        = config.name  || 'Pergola';
     this._room        = config.room  || '';
-    this._orbsEntity  = config.orbs_entity || null;
-    this._orbsName    = config.orbs_name   || 'Kule świecące';
-    this._spotGEntity = config.spot_entity || null;
-    this._spotGName   = config.spot_name   || 'Spot na drzewa';
+    this._orbsEntity  = config.orbs_entity  || null;
+    this._orbsName    = config.orbs_name    || 'Kule świecące';
+    this._spotGEntity = config.spot_entity  || null;
+    this._spotGName   = config.spot_name    || 'Spot na drzewa';
+    this._lightPowerEntity = config.light_power_entity || null;
+    this._orbsPowerEntity  = config.orbs_power_entity  || null;
+    this._spotGPowerEntity = config.spot_power_entity  || null;
   }
 
   set hass(hass) {
@@ -49,12 +52,20 @@ class PergolaCard extends HTMLElement {
     }
     if (this._orbsEntity) {
       const orbs = hass.states[this._orbsEntity];
-      if (orbs) this._updateOrbs(orbs.state === 'on');
+      if (orbs) {
+        const orbsPower = this._orbsPowerEntity ? parseFloat(hass.states[this._orbsPowerEntity]?.state) : NaN;
+        this._updateOrbs(orbs.state === 'on', isNaN(orbsPower) ? null : orbsPower);
+      }
     }
     if (this._spotGEntity) {
       const spotg = hass.states[this._spotGEntity];
-      if (spotg) this._updateSpotG(spotg.state === 'on');
+      if (spotg) {
+        const spotGPower = this._spotGPowerEntity ? parseFloat(hass.states[this._spotGPowerEntity]?.state) : NaN;
+        this._updateSpotG(spotg.state === 'on', isNaN(spotGPower) ? null : spotGPower);
+      }
     }
+    const lightPower = this._lightPowerEntity ? parseFloat(hass.states[this._lightPowerEntity]?.state) : NaN;
+    this._lightPower = isNaN(lightPower) ? null : lightPower;
   }
 
   _svcCover(service, data = {}) {
@@ -64,10 +75,12 @@ class PergolaCard extends HTMLElement {
     this._hass.callService('light', service, { entity_id: this._lightEntity, ...data });
   }
   _svcOrbs(on) {
-    this._hass.callService('homeassistant', on ? 'turn_on' : 'turn_off', { entity_id: this._orbsEntity });
+    const domain = this._orbsEntity.split('.')[0];
+    this._hass.callService(domain, on ? 'turn_on' : 'turn_off', { entity_id: this._orbsEntity });
   }
   _svcSpotG(on) {
-    this._hass.callService('homeassistant', on ? 'turn_on' : 'turn_off', { entity_id: this._spotGEntity });
+    const domain = this._spotGEntity.split('.')[0];
+    this._hass.callService(domain, on ? 'turn_on' : 'turn_off', { entity_id: this._spotGEntity });
   }
 
   // ── louver glyph ──
@@ -602,9 +615,10 @@ class PergolaCard extends HTMLElement {
 
     if (statusEl) {
       const elapsed = on ? this._elapsedSince(this._lightLastChanged, on) : null;
-      statusEl.textContent = elapsed
-        ? `${this._lightLabel(bri, st)} \u00b7 ${elapsed}`
-        : this._lightLabel(bri, st);
+      const pw = (on && this._lightPower !== null && this._lightPower !== undefined)
+        ? ` \u00b7 ${Math.round(this._lightPower)} W` : '';
+      const base = elapsed ? `${this._lightLabel(bri, st)} \u00b7 ${elapsed}` : this._lightLabel(bri, st);
+      statusEl.textContent = base + pw;
       statusEl.style.color = on ? 'rgba(255,214,90,.72)' : '#636366';
     }
     if (on) this._startLightTicker();
@@ -628,7 +642,7 @@ class PergolaCard extends HTMLElement {
     this._updateBadge();
   }
 
-  _updateOrbs(on) {
+  _updateOrbs(on, watts = null) {
     this._lastOrbs = on;
     const r = this.shadowRoot;
     const iconbox  = r.getElementById('o-iconbox');
@@ -636,7 +650,8 @@ class PergolaCard extends HTMLElement {
     const statusEl = r.getElementById('o-status');
     if (iconEl)   iconEl.innerHTML = this._drawOrbs(on);
     if (statusEl) {
-      statusEl.textContent = on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone';
+      const pw = (on && watts !== null) ? ` \u00b7 ${Math.round(watts)} W` : '';
+      statusEl.textContent = (on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone') + pw;
       statusEl.style.color = on ? 'rgba(255,179,71,.75)' : '#636366';
     }
     if (iconbox) {
@@ -652,7 +667,7 @@ class PergolaCard extends HTMLElement {
     this._updateBadge();
   }
 
-  _updateSpotG(on) {
+  _updateSpotG(on, watts = null) {
     this._lastSpotG = on;
     const r = this.shadowRoot;
     const iconbox  = r.getElementById('g-iconbox');
@@ -660,7 +675,8 @@ class PergolaCard extends HTMLElement {
     const statusEl = r.getElementById('g-status');
     if (iconEl)   iconEl.innerHTML = this._drawGroundSpot(on);
     if (statusEl) {
-      statusEl.textContent = on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone';
+      const pw = (on && watts !== null) ? ` \u00b7 ${Math.round(watts)} W` : '';
+      statusEl.textContent = (on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone') + pw;
       statusEl.style.color = on ? 'rgba(255,184,77,.75)' : '#636366';
     }
     if (iconbox) {
