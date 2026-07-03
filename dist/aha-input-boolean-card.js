@@ -246,6 +246,16 @@ class AhaInputBooleanCard extends HTMLElement {
       --c-status: rgba(${r},${g},${b},0.85);
     `;
 
+    // status_entities: count how many sub-devices are actually on
+    let statusText = isOn ? 'Włączony' : 'Wyłączony';
+    const subEntities = item.status_entities || [];
+    if (subEntities.length > 0) {
+      const activeCount = subEntities.filter(id => this._hass.states[id]?.state === 'on').length;
+      if (isOn || activeCount > 0) {
+        statusText = `${activeCount}/${subEntities.length} aktywne`;
+      }
+    }
+
     tile.innerHTML = `
       <div class="ib-top">
         <div class="ib-icon">
@@ -257,7 +267,7 @@ class AhaInputBooleanCard extends HTMLElement {
       </div>
       <div class="ib-bottom">
         <div class="ib-name">${name}</div>
-        <div class="ib-status">${isOn ? 'Włączony' : 'Wyłączony'}</div>
+        <div class="ib-status">${statusText}</div>
       </div>
     `;
 

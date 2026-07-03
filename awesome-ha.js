@@ -10606,7 +10606,7 @@ window.customCards.push({
  * Log History Card — Timeline · Ikony · Avatary · Paginacja
  *
  * Czyta wpisy JSON z input_text.log_h1 … input_text.log_hN
- * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kontaktrony_deszcz | kwiaty | wiatrak_biuro | biuro_prad | nawodnienie_ogrod2
+ * Obsługiwane typy: porecz | szambo | wjazd | kontaktrony_22 | kontaktrony_deszcz | kwiaty | wiatrak_biuro | biuro_prad | nawodnienie_ogrod2 | garden_ambient
  *
  * Config:
  *   slots:     (optional) liczba slotów do odczytu, default: 50
@@ -10822,6 +10822,14 @@ function iconSvg(e) {
       <circle cx="12" cy="9" r="2.5" fill="${c}"/>`);
   }
 
+  if (e.typ === 'garden_ambient') {
+    const col = e.akcja === 'ON' ? 'rgba(255,179,71,0.85)' : 'rgba(99,99,102,0.75)';
+    return s(col, c => `
+      <circle cx="12" cy="12" r="4" stroke="${c}" stroke-width="1.7" fill="none"/>
+      <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+        stroke="${c}" stroke-width="1.7" stroke-linecap="round"/>`);
+  }
+
   if (e.typ === 'kontaktrony_deszcz') {
     const col = 'rgba(90,170,255,0.85)';
     return s(col, c => `
@@ -10945,6 +10953,10 @@ function nodeStyle(e) {
     return e.otwarte > 0
       ? { bg: 'rgba(255,69,58,0.14)',  outline: 'rgba(255,69,58,0.25)' }
       : { bg: 'rgba(52,199,89,0.14)',  outline: 'rgba(52,199,89,0.22)' };
+  if (e.typ === 'garden_ambient')
+    return e.akcja === 'ON'
+      ? { bg: 'rgba(255,179,71,0.13)', outline: 'rgba(255,179,71,0.25)' }
+      : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'kontaktrony_deszcz')
     return { bg: 'rgba(90,170,255,0.13)', outline: 'rgba(90,170,255,0.25)' };
   if (e.typ === 'kwiaty')
@@ -11026,6 +11038,15 @@ function titleAndDetail(e, PEOPLE) {
       titleColor: col,
       titleText: txt,
       detail: lista,
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'garden_ambient') {
+    const on = e.akcja === 'ON';
+    return {
+      titleColor: on ? 'rgba(255,179,71,0.90)' : 'rgba(142,142,147,0.70)',
+      titleText:  on ? 'Ogród — ambient włączony' : 'Ogród — ambient wyłączony',
+      detail:     e.info ?? '',
       avatarPeople: null,
     };
   }
@@ -17296,6 +17317,16 @@ class AhaInputBooleanCard extends HTMLElement {
       --c-status: rgba(${r},${g},${b},0.85);
     `;
 
+    // status_entities: count how many sub-devices are actually on
+    let statusText = isOn ? 'Włączony' : 'Wyłączony';
+    const subEntities = item.status_entities || [];
+    if (subEntities.length > 0) {
+      const activeCount = subEntities.filter(id => this._hass.states[id]?.state === 'on').length;
+      if (isOn || activeCount > 0) {
+        statusText = `${activeCount}/${subEntities.length} aktywne`;
+      }
+    }
+
     tile.innerHTML = `
       <div class="ib-top">
         <div class="ib-icon">
@@ -17307,7 +17338,7 @@ class AhaInputBooleanCard extends HTMLElement {
       </div>
       <div class="ib-bottom">
         <div class="ib-name">${name}</div>
-        <div class="ib-status">${isOn ? 'Włączony' : 'Wyłączony'}</div>
+        <div class="ib-status">${statusText}</div>
       </div>
     `;
 
