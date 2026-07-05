@@ -329,6 +329,12 @@ input_boolean:
   tryb_noc:
     name: Tryb nocny
     icon: mdi:moon-waning-crescent
+  garden_ambient:
+    name: Ambient w ogrodzie
+    icon: mdi:lightbulb-group-outline
+  rolety_salon_opuszczone:
+    name: Rolety salon opuszczone
+    icon: mdi:blinds-horizontal-closed
 
 input_datetime:
   ogrod_1_ostatnia_aktualizacja:
@@ -710,7 +716,7 @@ sensor:
   - platform: rest                                                                                                                                                                                                                                                         
     name: upcoming_launches
     resource: https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10&format=json
-    value_template: "{{ value_json.count | default(0) }}"                                                                                                                                                                                                                                  
+    value_template: "{{ value_json.results | length }}"                                                                                                                                                                                                                                  
     json_attributes:
       - results                                                                                                                                                                                                                                                            
     scan_interval: 3600
