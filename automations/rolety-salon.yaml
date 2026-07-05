@@ -1,0 +1,37 @@
+# WYMAGANE: dodaj do configuration.yaml (sekcja input_boolean):
+#   rolety_salon_opuszczone:
+#     name: "Rolety salon opuszczone"
+#     icon: mdi:blinds-horizontal-closed
+
+- id: rolety_salon_zamknij_znacznik
+  alias: "Rolety salon: ustaw znacznik opuszczone"
+  description: >
+    Gdy wywołana scena zamknij_rolety — ustawia input_boolean.rolety_salon_opuszczone = ON.
+    Używane przez porecz_wylacz_rano: jeśli rolety zamknięte, poręcz nie gaśnie.
+
+  trigger:
+    - platform: state
+      entity_id: scene.zamknij_rolety
+
+  action:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.rolety_salon_opuszczone
+
+  mode: single
+
+- id: rolety_salon_otworz_znacznik
+  alias: "Rolety salon: ustaw znacznik otwarte"
+  description: >
+    Gdy wywołana scena otworz_rolety — ustawia input_boolean.rolety_salon_opuszczone = OFF.
+
+  trigger:
+    - platform: state
+      entity_id: scene.otworz_rolety
+
+  action:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.rolety_salon_opuszczone
+
+  mode: single
