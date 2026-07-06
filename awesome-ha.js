@@ -10031,13 +10031,7 @@ window.customCards.push({
   preview:     true,
 });
 // kosiarka-slim-card.js — deprecated, use custom:aha-kosiarka-card
-type: custom:aha-pergola-card
-name: Pergola
-room: Taras
-cover_entity: cover.teleco_leds2
-cover_name: Lamele
-light_entity: light.teleco_shutters
-light_name: Spoty LED/**
+/**
  * power-overview-card.js — AHA Power Overview Card
  *
  * Pokazuje sumaryczne zużycie prądu na skonfigurowanych encjach (sensor.*_power).
