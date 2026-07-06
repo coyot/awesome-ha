@@ -85,10 +85,43 @@
   id: biuro_prad_wylacz
 
 
-- alias: "Biuro prąd: wyłącz po pracy (po 22:00)"
+- alias: "Biuro prąd: włącz przy starcie pracy"
   description: >
-    Gdy tk_is_working zmieni się na off po 22:00 i prąd w biurze jest włączony,
-    wyłącz go — prąd był wstrzymany z powodu trybu pracy.
+    Gdy tk_is_working → ON i switch.biuro jest wyłączony — włącz go.
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.tk_is_working
+      to: 'on'
+
+  condition:
+    - condition: state
+      entity_id: switch.biuro
+      state: 'off'
+
+  action:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.biuro
+
+    - action: logbook.log
+      data:
+        name: "Biuro prąd"
+        entity_id: switch.biuro
+        message: "WŁĄCZONO | start trybu pracy"
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"biuro_prad",
+          "akcja":"ON","info":"start trybu pracy"}
+
+  mode: single
+  id: biuro_prad_wlacz_praca
+
+- alias: "Biuro prąd: wyłącz po pracy"
+  description: >
+    Gdy tk_is_working → OFF i prąd w biurze jest włączony — wyłącz od razu.
 
   trigger:
     - platform: state
@@ -96,8 +129,6 @@
       to: 'off'
 
   condition:
-    - condition: time
-      after: '22:00:00'
     - condition: state
       entity_id: switch.biuro
       state: 'on'
@@ -111,13 +142,13 @@
       data:
         name: "Biuro prąd"
         entity_id: switch.biuro
-        message: "WYŁĄCZONO | koniec pracy po 22:00"
+        message: "WYŁĄCZONO | koniec pracy"
 
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"biuro_prad",
-          "akcja":"OFF","info":"koniec pracy po 22:00"}
+          "akcja":"OFF","info":"koniec pracy"}
 
   mode: single
   id: biuro_prad_wylacz_po_pracy
