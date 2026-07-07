@@ -53,6 +53,19 @@
       state: "off"
     - condition: or
       conditions:
+        - condition: numeric_state
+          entity_id: sensor.pergola_new_temperature
+          above: 26
+        - condition: and
+          conditions:
+            - condition: numeric_state
+              entity_id: sensor.pergola_new_humidity
+              above: 75
+            - condition: numeric_state
+              entity_id: sensor.pergola_new_temperature
+              above: 21
+    - condition: or
+      conditions:
         - condition: state
           entity_id: device_tracker.iphone_tk
           state: home
@@ -111,6 +124,19 @@
     - condition: state
       entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
       state: "off"
+    - condition: or
+      conditions:
+        - condition: numeric_state
+          entity_id: sensor.pergola_new_temperature
+          above: 26
+        - condition: and
+          conditions:
+            - condition: numeric_state
+              entity_id: sensor.pergola_new_humidity
+              above: 75
+            - condition: numeric_state
+              entity_id: sensor.pergola_new_temperature
+              above: 21
     - condition: state
       entity_id: device_tracker.iphone_tk
       state: not_home
