@@ -882,7 +882,9 @@ class KosiarkaCard extends HTMLElement {
     });
     this.shadowRoot.querySelector('.party-toggle-btn')?.addEventListener('click', e => {
       e.stopPropagation();
-      this._hass.callService('switch', 'toggle', { entity_id: this._config.party_mode_entity });
+      const partyEntity = this._config.party_mode_entity;
+      const domain = partyEntity.split('.')[0];
+      this._hass.callService(domain, 'toggle', { entity_id: partyEntity });
     });
     this.shadowRoot.querySelector('.card')?.addEventListener('click', e => {
       if (!e.target.closest('button')) this._moreInfo();
