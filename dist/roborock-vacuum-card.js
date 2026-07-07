@@ -861,14 +861,14 @@ class RoboVacuumCard extends HTMLElement {
       entity: config.entity,
       name: config.name || null,
       default_mode: config.default_mode || 'slim',
-      sensors: config.sensors || {},
-      binary_sensors: config.binary_sensors || {},
-      selects: config.selects || {},
+      sensors: { ...(config.sensors || {}) },
+      binary_sensors: { ...(config.binary_sensors || {}) },
+      selects: { ...(config.selects || {}) },
       dock_entity: config.dock_entity || null,
       map_image: config.map_image || null,
       show_dock: config.show_dock !== false,   // default: true
-      dock_sensors: config.dock_sensors || {},
-      dock_binary_sensors: config.dock_binary_sensors || {},
+      dock_sensors: { ...(config.dock_sensors || {}) },
+      dock_binary_sensors: { ...(config.dock_binary_sensors || {}) },
     };
     // Apply default entity IDs if not provided
     const base = 'marty_mccleaner';
