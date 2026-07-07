@@ -871,8 +871,8 @@ class RoboVacuumCard extends HTMLElement {
       dock_binary_sensors: { ...(config.dock_binary_sensors || {}) },
     };
     // Apply default entity IDs if not provided
-    const base = 'marty_mccleaner';
-    const dock = 'saros_10r_dock';
+    const base = config.entity.replace(/^vacuum\./, '');
+    const dock = config.dock_entity ? config.dock_entity.replace(/^[^.]+\./, '') : `${base}_dock`;
     const s = this._config.sensors;
     const bs = this._config.binary_sensors;
     const sel = this._config.selects;
