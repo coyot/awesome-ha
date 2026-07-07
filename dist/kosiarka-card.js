@@ -259,11 +259,22 @@ const KOS_STYLES = `
     border: 0.5px solid rgba(255,255,255,0.12);
     border-radius: 8px; padding: 6px 10px;
     cursor: pointer; flex-shrink: 0;
-    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
     -webkit-tap-highlight-color: transparent;
   }
   .ctrl-btn:hover  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
   .ctrl-btn:active { transform: scale(0.95); }
+  @keyframes party-pulse {
+    0%, 100% { box-shadow: 0 0 0 0px rgba(239,159,39,0.40); }
+    50%       { box-shadow: 0 0 0 5px rgba(239,159,39,0.15); }
+  }
+  .ctrl-btn.party-on {
+    background: rgba(239,159,39,0.18);
+    color: #EF9F27;
+    border-color: rgba(239,159,39,0.45);
+    font-weight: 600;
+    animation: party-pulse 2.2s ease-in-out infinite;
+  }
 
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
@@ -696,14 +707,11 @@ class KosiarkaCard extends HTMLElement {
       const bladeInfo = bladeDays !== null ? `<span style="font-size:11px;color:${bladeCol};font-variant-numeric:tabular-nums;">${bladeLabel}</span>` : '';
 
       const partyOn = partyMode;
-      const partyBtnStyle = partyOn
-        ? 'background:rgba(239,159,39,0.18);color:#EF9F27;border-color:rgba(239,159,39,0.35);'
-        : '';
 
       const btns = [];
       if (hasParty) btns.push(`
-        <button class="ctrl-btn party-toggle-btn" style="${partyBtnStyle}" title="Party mode">
-          🎉 Party${partyOn ? ' ON' : ''}
+        <button class="ctrl-btn party-toggle-btn${partyOn ? ' party-on' : ''}" title="${partyOn ? 'Wyłącz party mode' : 'Włącz party mode'}">
+          🎉 Party ${partyOn ? '<span style="font-size:10px;letter-spacing:.04em;opacity:.85;">ON</span>' : '<span style="font-size:10px;opacity:.45;">OFF</span>'}
         </button>`);
       if (hasBlade) btns.push(`
         <button class="ctrl-btn blade-reset-btn" title="Reset licznika noży">
