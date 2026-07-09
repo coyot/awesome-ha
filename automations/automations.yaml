@@ -1655,6 +1655,10 @@
           - cover.rollershutter_000c
           - cover.rollershutter_000d
 
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.rolety_salon_opuszczone
+
     - if:
         - condition: template
           value_template: "{{ pergola_otwarta }}"
