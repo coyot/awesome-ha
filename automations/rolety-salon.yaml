@@ -24,6 +24,8 @@
   alias: "Rolety salon: ustaw znacznik otwarte"
   description: >
     Gdy wywołana scena otworz_rolety — ustawia input_boolean.rolety_salon_opuszczone = OFF.
+    Jeśli poręcz była przesunięta (rano rolety były zamknięte), porecz_wylacz_po_roletach
+    wykryje zmianę i wyłączy ją.
 
   trigger:
     - platform: state
@@ -33,5 +35,45 @@
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.rolety_salon_opuszczone
+
+  mode: single
+
+- id: porecz_wylacz_po_roletach
+  alias: "Poręcz: wyłącz po otwarciu rolet salonu"
+  description: >
+    Jeśli rano poręcz została przesunięta (rolety były zamknięte) —
+    wyłącz ją gdy rolety zostaną otwarte. Loguje z informacją o przesunięciu.
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.rolety_salon_opuszczone
+      to: 'off'
+
+  condition:
+    - condition: state
+      entity_id: sun.sun
+      state: above_horizon
+    - condition: state
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      state: 'on'
+    - condition: time
+      before: "13:00:00"
+
+  action:
+    - action: switch.turn_off
+      target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+
+    - action: logbook.log
+      data:
+        name: "Poręcz klatka"
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: "WYŁĄCZONO | rolety otwarte | przesunięto z rana (rolety były zamknięte)"
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+          "akcja":"OFF","info":"rolety otwarte o {{ now().strftime('%H:%M') }} · przesunięto z rana"}
 
   mode: single

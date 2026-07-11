@@ -190,6 +190,11 @@ function iconSvg(e) {
       <circle cx="12" cy="12" r="4" fill="${c}"/>
       <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
         stroke="${c.replace('0.9','0.7')}" stroke-width="2" stroke-linecap="round"/>`);
+    if (e.akcja === 'KEEP') return s('rgba(255,159,10,0.80)', c => `
+      <circle cx="12" cy="12" r="4" fill="${c}" opacity=".5"/>
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2"
+        stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M12 7v5l3 3" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>`);
     return s('rgba(150,150,155,0.50)', c => `
       <circle cx="12" cy="12" r="5" stroke="${c}" stroke-width="1.8"/>
       <path d="M12 2v2M12 20v2M2 12h2M20 12h2"
@@ -335,9 +340,9 @@ function iconSvg(e) {
 
 function nodeStyle(e) {
   if (e.typ === 'porecz')
-    return e.akcja === 'ON'
-      ? { bg: 'rgba(255,214,10,0.14)', outline: 'rgba(255,214,10,0.25)' }
-      : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
+    return e.akcja === 'ON'  ? { bg: 'rgba(255,214,10,0.14)', outline: 'rgba(255,214,10,0.25)' }
+         : e.akcja === 'KEEP'? { bg: 'rgba(255,159,10,0.12)', outline: 'rgba(255,159,10,0.22)' }
+         :                     { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'szambo')
     return { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' };
   if (e.typ === 'wjazd') {
@@ -400,13 +405,13 @@ const FIRE_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none">
 
 function titleAndDetail(e, PEOPLE) {
   if (e.typ === 'porecz') {
-    const col = e.akcja === 'ON' ? 'rgba(255,214,10,0.90)' : 'rgba(150,150,155,0.55)';
-    return {
-      titleColor: col,
-      titleText: `Poręcz — ${e.akcja === 'ON' ? 'włączono' : 'wyłączono'}`,
-      detail: e.info ?? '',
-      avatarPeople: null,
-    };
+    const col = e.akcja === 'ON'   ? 'rgba(255,214,10,0.90)'
+              : e.akcja === 'KEEP' ? 'rgba(255,159,10,0.85)'
+              :                      'rgba(150,150,155,0.55)';
+    const title = e.akcja === 'ON'   ? 'Poręcz — włączono'
+                : e.akcja === 'KEEP' ? 'Poręcz — przesunięto'
+                :                      'Poręcz — wyłączono';
+    return { titleColor: col, titleText: title, detail: e.info ?? '', avatarPeople: null };
   }
   if (e.typ === 'szambo') return {
     titleColor: 'rgba(255,159,10,0.90)',

@@ -502,6 +502,47 @@
         data:
           wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz","akcja":"KEEP","info":"rolety salon opuszczone · wschód +90min"}'
   mode: single
+
+- id: porecz_wylacz_po_roletach
+  alias: "Poręcz: wyłącz po otwarciu rolet salonu"
+  description: >
+    Jeśli rano poręcz została przesunięta (rolety były zamknięte) —
+    wyłącz ją gdy rolety zostaną otwarte. Loguje z informacją o przesunięciu.
+
+  trigger:
+    - platform: state
+      entity_id: input_boolean.rolety_salon_opuszczone
+      to: 'off'
+
+  condition:
+    - condition: state
+      entity_id: sun.sun
+      state: above_horizon
+    - condition: state
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      state: 'on'
+    - condition: time
+      before: "13:00:00"
+
+  action:
+    - action: switch.turn_off
+      target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+
+    - action: logbook.log
+      data:
+        name: "Poręcz klatka"
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: "WYŁĄCZONO | rolety otwarte | przesunięto z rana (rolety były zamknięte)"
+
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz",
+          "akcja":"OFF","info":"rolety otwarte o {{ now().strftime('%H:%M') }} · przesunięto z rana"}
+
+  mode: single
+
 - id: porecz_wlacz_powrot
   alias: "Poręcz: włącz przy powrocie (po zmroku)"
   description: 'Gdy ktoś wraca do domu po zachodzie słońca, a oświetlenie jest wyłączone
