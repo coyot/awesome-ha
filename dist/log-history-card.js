@@ -288,9 +288,10 @@ function iconSvg(e) {
   if (e.typ === 'teleco_pergola') {
     const open = e.akcja?.startsWith('OPEN');
     const rain = e.akcja === 'CLOSE_DESZCZ';
-    const col  = open ? 'rgba(255,100,10,0.90)'
-               : rain ? 'rgba(10,132,255,0.85)'
-               :        'rgba(150,150,155,0.50)';
+    const col  = open                    ? 'rgba(255,100,10,0.90)'
+               : rain && e.override      ? 'rgba(255,69,58,0.90)'
+               : rain                    ? 'rgba(10,132,255,0.85)'
+               :                           'rgba(150,150,155,0.50)';
     return open
       ? s(col, c => `
           <line x1="6"  y1="3" x2="6"  y2="21" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/>
@@ -378,9 +379,10 @@ function nodeStyle(e) {
   if (e.typ === 'teleco_pergola') {
     const open = e.akcja?.startsWith('OPEN');
     const rain = e.akcja === 'CLOSE_DESZCZ';
-    return open ? { bg: 'rgba(255,100,10,0.13)',  outline: 'rgba(255,100,10,0.28)' }
-         : rain ? { bg: 'rgba(10,132,255,0.12)',  outline: 'rgba(10,132,255,0.22)' }
-         :        { bg: 'rgba(99,99,102,0.14)',    outline: 'rgba(99,99,102,0.20)' };
+    return open             ? { bg: 'rgba(255,100,10,0.13)',  outline: 'rgba(255,100,10,0.28)' }
+         : rain && e.override ? { bg: 'rgba(255,69,58,0.12)',   outline: 'rgba(255,69,58,0.28)'  }
+         : rain               ? { bg: 'rgba(10,132,255,0.12)',  outline: 'rgba(10,132,255,0.22)' }
+         :                      { bg: 'rgba(99,99,102,0.14)',   outline: 'rgba(99,99,102,0.20)'  };
   }
   if (e.typ === 'ac_pokoj_dzieci')
     return e.akcja === 'ON'
@@ -518,7 +520,9 @@ function titleAndDetail(e, PEOPLE) {
     const titles = {
       OPEN_DOM:     { col: 'rgba(255,100,10,0.90)', txt: 'Pergola — lamele otwarte (upał)' },
       OPEN_POZA:    { col: 'rgba(255,100,10,0.80)', txt: 'Pergola — przewietrzenie 30 min (upał)' },
-      CLOSE_DESZCZ: { col: 'rgba(10,132,255,0.90)', txt: 'Pergola — zamknięto (deszcz)' },
+      CLOSE_DESZCZ: e.override
+        ? { col: 'rgba(255,69,58,0.90)',  txt: 'Pergola — deszcz ⚠ auto wyłączone' }
+        : { col: 'rgba(10,132,255,0.90)', txt: 'Pergola — zamknięto (deszcz)' },
       CLOSE_TEMP:   { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — zamknięto (norma)' },
       CLOSE_30MIN:  { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — koniec przewietrzenia' },
       CLOSE_NOC:    { col: 'rgba(150,150,155,0.65)', txt: 'Pergola — zamknięto (22:00)' },

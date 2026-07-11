@@ -229,14 +229,13 @@
 
 - id: teleco_pergola_zamknij_deszcz
   alias: "Pergola lamele: zamknij — deszcz"
+  description: >
+    Zamyka lamele przy deszczu niezależnie od pergola_auto — ochrona przed zalaniem.
   trigger:
     - platform: state
       entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
       to: "on"
   condition:
-    - condition: state
-      entity_id: input_boolean.pergola_auto
-      state: "on"
     - condition: state
       entity_id: cover.teleco_leds2
       state: "open"
@@ -248,7 +247,7 @@
       data:
         name: "Pergola — lamele"
         message: >
-          ZAMKNIĘTO | deszcz |
+          ZAMKNIĘTO | deszcz{% if is_state('input_boolean.pergola_auto','off') %} [AUTO WYŁĄCZONE]{% endif %} |
           temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
           · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
     - action: script.log_push
@@ -257,6 +256,7 @@
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
           "akcja":"CLOSE_DESZCZ","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
+          "override":{{ 'true' if is_state('input_boolean.pergola_auto','off') else 'false' }},
           "info":"deszcz · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
     - action: notify.send_message
       target:
