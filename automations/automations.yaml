@@ -1749,13 +1749,9 @@
       target:
         entity_id: input_boolean.rolety_salon_opuszczone
 
-    - if:
-        - condition: template
-          value_template: "{{ pergola_otwarta }}"
-      then:
-        - action: cover.close_cover
-          target:
-            entity_id: cover.teleco_leds2
+    - action: cover.close_cover
+      target:
+        entity_id: cover.teleco_leds2
 
     - action: input_boolean.turn_off
       target:
