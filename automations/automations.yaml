@@ -1231,6 +1231,40 @@
           "info":"{{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C · {{ states('sensor.termometr_strychowy_humidity') | round(0) }}% · otwarto roletę 9"}
   mode: single
 
+- id: strychowy_roleta_zamknij_noc
+  alias: "Roleta strychowy: zamknij na noc (zachód słońca)"
+  description: >
+    Failsafe: zamknij roletę strychową przy zachodzie słońca jeśli jest otwarta.
+    Niezależnie od tryb_noc — tryb noc też zamyka, ale ta automatyzacja działa zawsze.
+
+  trigger:
+    - platform: sun
+      event: sunset
+
+  condition:
+    - condition: state
+      entity_id: cover.rollershutter_0009
+      state: "open"
+
+  action:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.rollershutter_0009
+    - action: logbook.log
+      data:
+        name: "Strychowy — roleta"
+        message: >
+          ZAMKNIĘTO | zachód słońca | failsafe nocny |
+          {{ states('sensor.termometr_strychowy_temperature') | round(1) }}°C
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"strychowy_roleta",
+          "akcja":"CLOSE","temp":{{ states('sensor.termometr_strychowy_temperature') | round(1) }},
+          "hum":{{ states('sensor.termometr_strychowy_humidity') | round(0) }},
+          "info":"zachód słońca · zamknięcie nocne"}
+  mode: single
+
 - id: strychowy_roleta_zamknij_upal
   alias: "Roleta strychowy: zamknij przy upale (≥25°C, 5 min)"
   trigger:
