@@ -544,45 +544,60 @@
   mode: single
 
 - id: porecz_wlacz_powrot
-  alias: "Poręcz: włącz przy powrocie (po zmroku)"
-  description: 'Gdy ktoś wraca do domu po zachodzie słońca, a oświetlenie jest wyłączone
-    — włącz je.
+  alias: "Poręcz: włącz po zmroku"
+  description: >
+    Włącza poręcz gdy zapada zmrok i ktoś jest w domu (trigger: zachód +15 min)
+    lub gdy ktoś wraca do domu po zachodzie słońca.
 
-    '
   trigger:
-  - platform: state
-    entity_id:
-    - device_tracker.iphone_tk
-    - device_tracker.iphone_monika
-    to: home
+    - platform: sun
+      event: sunset
+      offset: "00:15:00"
+    - platform: state
+      entity_id:
+        - device_tracker.iphone_tk
+        - device_tracker.iphone_monika
+      to: home
+
   condition:
-  - condition: state
-    entity_id: sun.sun
-    state: below_horizon
-  - condition: state
-    entity_id: switch.porecz_klatka_schodowa_socket_1
-    state: 'off'
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
+    - condition: state
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      state: 'off'
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
+
   action:
-  - action: switch.turn_on
-    target:
-      entity_id: switch.porecz_klatka_schodowa_socket_1
-  - action: logbook.log
-    data:
-      name: Poręcz klatka
-      entity_id: switch.porecz_klatka_schodowa_socket_1
-      message: 'WŁĄCZONO | powrót do domu po zmroku | kto: {% if trigger.entity_id
-        == ''device_tracker.iphone_tk'' %}Tomek{% elif trigger.entity_id == ''device_tracker.iphone_monika''
-        %}Monika{% else %}nieznany{% endif %} | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
-        | round(0) }} W/m²
+    - action: switch.turn_on
+      target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
 
-        '
-  - action: script.log_push
-    data:
-      wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz", "akcja":"ON","info":"powrót
-        po zmroku · {% if trigger.entity_id == ''device_tracker.iphone_tk'' %}Tomek{%
-        else %}Monika{% endif %}"}
+    - action: logbook.log
+      data:
+        name: "Poręcz klatka"
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: >
+          WŁĄCZONO |
+          {% if trigger.platform == 'sun' %}zachód słońca +15 min
+          {% else %}powrót do domu |
+          kto: {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}
+          {% endif %}
+          | radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
 
-        '
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"porecz","akcja":"ON",
+          "info":"{% if trigger.platform == 'sun' %}zachód słońca{% else %}powrót po zmroku · {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}{% endif %}"}
+
   mode: single
 - id: porecz_wylacz_failsafe
   alias: "Poręcz: wyłącz failsafe (12:00)"
