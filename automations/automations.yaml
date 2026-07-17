@@ -1990,4 +1990,85 @@
 
   mode: single
 
+- id: kontaktrony_alert_deszcz
+  alias: "Kontaktrony: ostrzeżenie o deszczu"
+  description: >
+    Gdy zaczyna padać deszcz LUB gdy podczas deszczu otwiera się czujnik —
+    wysyła pilne ostrzeżenie do TK i Moniki (jeśli są w domu)
+    z listą wszystkich otwartych czujników.
+    Jeśli wszystko zamknięte — nie wysyła nic.
+  variables:
+    otwarte: >
+      {{ states.binary_sensor
+         | selectattr('attributes.device_class', 'in',
+             ['door', 'window', 'opening', 'garage_door'])
+         | selectattr('state', 'eq', 'on')
+         | map(attribute='entity_id')
+         | list }}
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      to: "on"
+      for:
+        minutes: 1
+      id: deszcz_start
+    - trigger: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      to: "on"
+      id: czujnik_otwarty
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
+      state: "on"
+    - condition: template
+      value_template: "{{ otwarte | count > 0 }}"
+  actions:
+    - if:
+        - condition: zone
+          entity_id: person.tk
+          zone: zone.home
+      then:
+        - action: notify.send_message
+          target:
+            entity_id: notify.iphone_tk
+          data:
+            title: "🌧️ Deszcz! Otwarte czujniki ({{ otwarte | count }})"
+            message: >
+              {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
+              {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
+              {% endif %}{% endfor %}
+            push:
+              interruption-level: time-sensitive
+    - if:
+        - condition: zone
+          entity_id: person.monika
+          zone: zone.home
+      then:
+        - action: notify.send_message
+          target:
+            entity_id: notify.iphone_monika
+          data:
+            title: "🌧️ Deszcz! Otwarte czujniki ({{ otwarte | count }})"
+            message: >
+              {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
+              {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
+              {% endif %}{% endfor %}
+            push:
+              interruption-level: time-sensitive
+    - action: logbook.log
+      data:
+        name: "Kontaktrony deszcz"
+        message: >
+          {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
+          ALERT deszcz | {{ otwarte | count }} otwart{{ 'y' if otwarte | count == 1 else 'e' }} |
+          {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+          | trigger: {{ trigger.id | default('?') }}
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kontaktrony_deszcz",
+          "otwarte":{{ otwarte | count }},"trigger":"{{ trigger.id | default('?') }}",
+          "lista":"{% for s in otwarte %}{{ states[s].attributes.friendly_name }}{% if not loop.last %} | {% endif %}{% endfor %}"}
+  mode: restart
+
 
