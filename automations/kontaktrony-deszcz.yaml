@@ -5,12 +5,17 @@ description: >
 
 variables:
   otwarte: >
-    {{ states.binary_sensor
-       | selectattr('attributes.device_class', 'in',
-           ['door', 'window', 'opening', 'garage_door'])
-       | selectattr('state', 'eq', 'on')
-       | map(attribute='entity_id')
-       | list }}
+    {% set classes = ['door', 'window', 'opening', 'garage_door'] %}
+    {% set ns = namespace(lista=[]) %}
+    {% for s in states.binary_sensor %}
+      {% if s.state == 'on' %}
+        {% set dc = s.attributes.get('device_class', '') %}
+        {% if dc in classes or 'kontaktron' in s.entity_id %}
+          {% set ns.lista = ns.lista + [s.entity_id] %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+    {{ ns.lista }}
 
 trigger:
   # deszcz właśnie zaczął padać
