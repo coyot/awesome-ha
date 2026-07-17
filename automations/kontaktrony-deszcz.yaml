@@ -67,8 +67,9 @@ action:
             {%- endmacro %}
             {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
-          push:
-            interruption-level: time-sensitive
+          data:
+            push:
+              interruption-level: time-sensitive
 
   - if:
       - condition: zone
@@ -90,8 +91,9 @@ action:
             {%- endmacro %}
             {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
             {% endif %}{% endfor %}
-          push:
-            interruption-level: time-sensitive
+          data:
+            push:
+              interruption-level: time-sensitive
 
   - action: logbook.log
     data:

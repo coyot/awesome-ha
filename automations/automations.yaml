@@ -2069,8 +2069,9 @@
               {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
               {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
               {% endif %}{% endfor %}
-            push:
-              interruption-level: time-sensitive
+            data:
+              push:
+                interruption-level: time-sensitive
     - if:
         - condition: zone
           entity_id: person.monika
@@ -2085,8 +2086,9 @@
               {% macro ikona(name) %}{%- set n = name | lower %}{%- if 'garaż' in n or 'garaz' in n or 'brama' in n %}🏠{%- elif 'drzwi' in n %}🚪{%- elif 'okno' in n or 'okna' in n or 'okien' in n %}🪟{%- else %}🔓{% endif %}{%- endmacro %}
               {% for s in otwarte %}{{ ikona(states[s].attributes.friendly_name) }} {{ states[s].attributes.friendly_name }}{% if not loop.last %}
               {% endif %}{% endfor %}
-            push:
-              interruption-level: time-sensitive
+            data:
+              push:
+                interruption-level: time-sensitive
     - action: logbook.log
       data:
         name: "Kontaktrony deszcz"
