@@ -150,7 +150,16 @@
           state: "open"
     - condition: template
       value_template: >
-        {{ (now().timestamp() - as_timestamp(states('input_datetime.pergola_poza_ostatnie_otwarcie'), 0)) > 14400 }}
+        {% set elapsed = now().timestamp() - as_timestamp(states('input_datetime.pergola_poza_ostatnie_otwarcie'), 0) %}
+        {% set temp = states('sensor.pergola_new_temperature') | float(0) %}
+        {% set rate = states('sensor.pergola_tempo_wzrostu_temp') | float(0) %}
+        {% if rate > 3 %}
+          {{ elapsed > 1800 }}
+        {% elif rate > 1.5 or temp >= 29 %}
+          {{ elapsed > 3600 }}
+        {% else %}
+          {{ elapsed > 14400 }}
+        {% endif %}
   action:
     - action: input_datetime.set_datetime
       target:
@@ -167,13 +176,14 @@
           OTWARTO na 30 min | nikt w domu |
           temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C
           · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%
+          · wzrost {{ states('sensor.pergola_tempo_wzrostu_temp') | float(0) | round(1) }}°C/h
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"teleco_pergola",
           "akcja":"OPEN_POZA","temp":{{ states('sensor.pergola_new_temperature') | round(1) }},
           "hum":{{ states('sensor.pergola_new_humidity') | round(0) }},
-          "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}%"}
+          "info":"przewietrzenie 30 min · temp {{ states('sensor.pergola_new_temperature') | round(1) }}°C · wilg {{ states('sensor.pergola_new_humidity') | round(0) }}% · wzrost {{ states('sensor.pergola_tempo_wzrostu_temp') | float(0) | round(1) }}°C/h"}
     - action: notify.send_message
       target:
         entity_id: notify.iphone_tk

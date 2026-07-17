@@ -712,8 +712,14 @@ notify:
       apikey: "7549131"
       text: "{{ message }}"
 
-sensor:                                                                                                                                                                                                                                                                    
-  - platform: rest                                                                                                                                                                                                                                                         
+sensor:
+  - platform: derivative
+    source: sensor.pergola_new_temperature
+    name: Pergola tempo wzrostu temp
+    unit_time: h
+    time_window: "00:15:00"
+
+  - platform: rest
     name: upcoming_launches
     resource: https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=10&format=json
     value_template: "{{ value_json.results | length }}"                                                                                                                                                                                                                                  
