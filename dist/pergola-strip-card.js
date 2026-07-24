@@ -182,27 +182,27 @@ class PergolaStripCard extends HTMLElement {
     const hasFront  = this._entryLampEntity || this._postLampEntity;
     const hasGarden = this._orbsEntity || this._spotGEntity;
 
-    // ikona + label + stan aktywności
+    // ikona + label + stan aktywności + encja do popup
     const items = [
       // --- Pergola ---
-      { section: 'Pergola', svg: this._drawSlat(tilt, louverOn), label: this._coverName,  on: louverOn,
+      { section: 'Pergola', svg: this._drawSlat(tilt, louverOn), label: this._coverName,  on: louverOn, entity: this._coverEntity,
         pulse: 'louver', col: 'rgba(255,159,10,.18)', border: 'rgba(255,159,10,.22)', bg: 'rgba(255,159,10,.10)' },
-      { section: null,     svg: this._drawSpot(bri),             label: this._lightName,  on: litOn,
+      { section: null,     svg: this._drawSpot(bri),             label: this._lightName,  on: litOn,   entity: this._lightEntity,
         pulse: 'light',  col: 'rgba(255,214,90,.18)', border: 'rgba(255,214,90,.22)', bg: 'rgba(255,214,90,.10)' },
       // --- Ogród ---
       ...(hasGarden ? [
-        ...(this._orbsEntity  ? [{ section: 'Ogród', svg: this._drawOrbs(orbsOn),      label: this._orbsName,  on: orbsOn,
+        ...(this._orbsEntity  ? [{ section: 'Ogród', svg: this._drawOrbs(orbsOn),      label: this._orbsName,  on: orbsOn,  entity: this._orbsEntity,
           pulse: 'orbs',  col: 'rgba(255,179,71,.18)', border: 'rgba(255,179,71,.22)', bg: 'rgba(255,179,71,.10)' }] : []),
         ...(this._spotGEntity ? [{ section: this._orbsEntity ? null : 'Ogród',
-          svg: this._drawGroundSpot(spotGOn), label: this._spotGName, on: spotGOn,
+          svg: this._drawGroundSpot(spotGOn), label: this._spotGName, on: spotGOn, entity: this._spotGEntity,
           pulse: 'spotg', col: 'rgba(255,184,77,.18)', border: 'rgba(255,184,77,.22)', bg: 'rgba(255,184,77,.10)' }] : []),
       ] : []),
       // --- Front domu ---
       ...(hasFront ? [
-        ...(this._entryLampEntity ? [{ section: 'Front domu', svg: this._drawEntryLamp(entryOn), label: this._entryLampName, on: entryOn,
+        ...(this._entryLampEntity ? [{ section: 'Front domu', svg: this._drawEntryLamp(entryOn), label: this._entryLampName, on: entryOn, entity: this._entryLampEntity,
           pulse: 'entry', col: 'rgba(255,160,80,.18)', border: 'rgba(255,160,80,.22)', bg: 'rgba(255,160,80,.10)' }] : []),
         ...(this._postLampEntity  ? [{ section: this._entryLampEntity ? null : 'Front domu',
-          svg: this._drawPostLamp(postOn), label: this._postLampName, on: postOn,
+          svg: this._drawPostLamp(postOn), label: this._postLampName, on: postOn, entity: this._postLampEntity,
           pulse: 'post',  col: 'rgba(255,220,130,.18)', border: 'rgba(255,220,130,.22)', bg: 'rgba(255,220,130,.10)' }] : []),
       ] : []),
     ];
@@ -275,9 +275,13 @@ class PergolaStripCard extends HTMLElement {
         display: flex; align-items: center; justify-content: center;
         background: rgba(142,142,147,.07);
         border: 0.5px solid rgba(142,142,147,.15);
-        transition: background .35s, border-color .35s, box-shadow .45s;
+        transition: background .35s, border-color .35s, box-shadow .45s, transform .15s;
         flex-shrink: 0;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
       }
+      .iconbox:active{ transform: scale(0.92); }
       .icon-label{
         font-size: 9.5px;
         font-weight: 500;
@@ -305,6 +309,15 @@ class PergolaStripCard extends HTMLElement {
     <div class="card">
       ${this._renderSections(items)}
     </div>`;
+
+    this.shadowRoot.querySelectorAll('.iconbox[data-entity]').forEach(el => {
+      el.addEventListener('click', () => {
+        this.dispatchEvent(new CustomEvent('hass-more-info', {
+          bubbles: true, composed: true,
+          detail: { entityId: el.dataset.entity },
+        }));
+      });
+    });
   }
 
   _renderSections(items) {
@@ -330,7 +343,7 @@ class PergolaStripCard extends HTMLElement {
             const activeClass = item.on ? `${item.pulse}-active` : '';
             return `
               <div class="icon-wrap">
-                <div class="iconbox ${activeClass}" style="${boxStyle}">${item.svg}</div>
+                <div class="iconbox ${activeClass}" style="${boxStyle}" data-entity="${item.entity}">${item.svg}</div>
                 <div class="icon-label ${item.on ? 'on' : ''}">${item.label}</div>
               </div>`;
           }).join('')}
