@@ -630,6 +630,175 @@
 
         '
   mode: single
+
+# ── Lampka wejście ────────────────────────────────────────────────────────────
+
+- id: lampka_wejscie_wlacz_wieczor
+  alias: "Lampka wejście: włącz wieczorem"
+  description: >
+    Włącza lampkę nad wejściem o zachodzie słońca — ta sama logika co poręcz:
+    pogodnie → delay 70 min (zachód −20 min), pochmurnie → od razu (zachód −90 min).
+    Nie włącza gdy nikogo z domowników nie ma w domu.
+  trigger:
+    - platform: sun
+      event: sunset
+      offset: -01:30:00
+  condition:
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
+  action:
+    - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states('sensor.stacja_pogodowa_solar_radiation') | float(-1) >= 50 }}
+        sequence:
+          - delay:
+              minutes: 70
+          - action: switch.turn_on
+            target:
+              entity_id: switch.living_room_lampa_wejscie
+          - action: logbook.log
+            data:
+              name: Lampka wejście
+              entity_id: switch.living_room_lampa_wejscie
+              message: >
+                WŁĄCZONO | zachód −20 min | pogodnie |
+                radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+          - action: script.log_push
+            data:
+              wpis: >
+                {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie",
+                "akcja":"ON","info":"pogodnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −20min"}
+      default:
+        - action: switch.turn_on
+          target:
+            entity_id: switch.living_room_lampa_wejscie
+        - action: logbook.log
+          data:
+            name: Lampka wejście
+            entity_id: switch.living_room_lampa_wejscie
+            message: >
+              WŁĄCZONO | zachód −90 min | pochmurnie |
+              radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+        - action: script.log_push
+          data:
+            wpis: >
+              {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie",
+              "akcja":"ON","info":"pochmurnie {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }}W/m² · zachód −90min"}
+  mode: single
+
+- id: lampka_wejscie_wlacz_powrot
+  alias: "Lampka wejście: włącz po zmroku"
+  description: >
+    Włącza lampkę gdy zapada zmrok i ktoś jest w domu (zachód +15 min),
+    lub gdy ktoś wraca do domu po zachodzie słońca. Ta sama logika co poręcz.
+  trigger:
+    - platform: sun
+      event: sunset
+      offset: "00:15:00"
+    - platform: state
+      entity_id:
+        - device_tracker.iphone_tk
+        - device_tracker.iphone_monika
+      to: home
+  condition:
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
+    - condition: state
+      entity_id: switch.living_room_lampa_wejscie
+      state: 'off'
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: device_tracker.iphone_tk
+          state: home
+        - condition: state
+          entity_id: device_tracker.iphone_monika
+          state: home
+  action:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.living_room_lampa_wejscie
+    - action: logbook.log
+      data:
+        name: Lampka wejście
+        entity_id: switch.living_room_lampa_wejscie
+        message: >
+          WŁĄCZONO |
+          {% if trigger.platform == 'sun' %}zachód słońca +15 min
+          {% else %}powrót do domu |
+          kto: {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}
+          {% endif %}
+          | radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie","akcja":"ON",
+          "info":"{% if trigger.platform == 'sun' %}zachód słońca{% else %}powrót po zmroku · {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}{% endif %}"}
+  mode: single
+
+- id: lampka_wejscie_wylacz_tryb_nocny
+  alias: "Lampka wejście: wyłącz przy trybie nocnym"
+  description: >
+    Wyłącza lampkę nad wejściem gdy aktywowany jest tryb nocny (input_boolean.tryb_noc).
+  trigger:
+    - platform: state
+      entity_id: input_boolean.tryb_noc
+      to: 'on'
+  condition:
+    - condition: state
+      entity_id: switch.living_room_lampa_wejscie
+      state: 'on'
+  action:
+    - action: switch.turn_off
+      target:
+        entity_id: switch.living_room_lampa_wejscie
+    - action: logbook.log
+      data:
+        name: Lampka wejście
+        entity_id: switch.living_room_lampa_wejscie
+        message: WYŁĄCZONO | tryb nocny aktywowany
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie",
+          "akcja":"OFF","info":"tryb nocny"}
+  mode: single
+
+- id: lampka_wejscie_wylacz_failsafe
+  alias: "Lampka wejście: wyłącz failsafe (01:00)"
+  description: Awaryjnie wyłącza lampkę o 1:00 w nocy jeśli nadal świeci.
+  trigger:
+    - platform: time
+      at: '01:00:00'
+  condition:
+    - condition: state
+      entity_id: switch.living_room_lampa_wejscie
+      state: 'on'
+  action:
+    - action: switch.turn_off
+      target:
+        entity_id: switch.living_room_lampa_wejscie
+    - action: logbook.log
+      data:
+        name: Lampka wejście
+        entity_id: switch.living_room_lampa_wejscie
+        message: WYŁĄCZONO | failsafe 01:00 | switch był nadal włączony
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie",
+          "akcja":"OFF","info":"⚠️ failsafe 01:00 · switch był nadal włączony"}
+  mode: single
+
 - id: kontaktrony_alert_noc
   alias: "Kontaktrony: alert nocny (22:00)"
   description: >

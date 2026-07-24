@@ -332,6 +332,17 @@ function iconSvg(e) {
     `);
   }
 
+  if (e.typ === 'lampka_wejscie') {
+    const col = e.akcja === 'ON' ? 'rgba(255,160,80,0.90)' : 'rgba(150,150,155,0.50)';
+    return s(col, c => `
+      <rect x="9" y="2" width="6" height="3" rx="1.5" fill="${c.replace(/[\d.]+\)$/, '0.40)')}" stroke="${c}" stroke-width="1.2"/>
+      <path d="M8 5 L7 15 L17 15 L16 5 Q12 3.5 8 5Z" fill="${c.replace(/[\d.]+\)$/, '0.22)')}" stroke="${c}" stroke-width="1.3" stroke-linejoin="round"/>
+      <ellipse cx="12" cy="15" rx="5" ry="2" fill="${c.replace(/[\d.]+\)$/, '0.70')}" stroke="${c}" stroke-width="1.0"/>
+      <path d="M9 17 L7.5 22 L16.5 22 L15 17" fill="${c.replace(/[\d.]+\)$/, e.akcja === 'ON' ? '0.20)' : '0.06)')}" stroke="none"/>
+      <ellipse cx="12" cy="22" rx="4.5" ry="1.5" fill="${c.replace(/[\d.]+\)$/, e.akcja === 'ON' ? '0.30)' : '0.05)')}"/>
+    `);
+  }
+
   return `<svg viewBox="0 0 24 24" fill="none" width="13" height="13">
     <circle cx="12" cy="12" r="5" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
   </svg>`;
@@ -393,6 +404,10 @@ function nodeStyle(e) {
   if (e.typ === 'tryb_noc')
     return e.akcja === 'ON'
       ? { bg: 'rgba(94,92,230,0.14)',  outline: 'rgba(94,92,230,0.28)' }
+      : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
+  if (e.typ === 'lampka_wejscie')
+    return e.akcja === 'ON'
+      ? { bg: 'rgba(255,160,80,0.13)', outline: 'rgba(255,160,80,0.25)' }
       : { bg: 'rgba(99,99,102,0.14)',  outline: 'rgba(99,99,102,0.20)' };
   return { bg: 'rgba(255,255,255,0.07)', outline: 'rgba(255,255,255,0.10)' };
 }
@@ -557,6 +572,15 @@ function titleAndDetail(e, PEOPLE) {
       titleColor:   on ? 'rgba(94,92,230,0.90)' : 'rgba(150,150,155,0.60)',
       titleText:    on ? 'Tryb nocny — aktywowany' : 'Tryb nocny — wyłączony',
       detail:       details.join(' · ') || (e.info ?? ''),
+      avatarPeople: null,
+    };
+  }
+  if (e.typ === 'lampka_wejscie') {
+    const on = e.akcja === 'ON';
+    return {
+      titleColor:   on ? 'rgba(255,160,80,0.90)' : 'rgba(150,150,155,0.60)',
+      titleText:    on ? 'Lampka wejście — włączono' : 'Lampka wejście — wyłączono',
+      detail:       e.info ?? '',
       avatarPeople: null,
     };
   }
