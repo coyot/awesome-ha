@@ -19808,11 +19808,10 @@ class PergolaStripCard extends HTMLElement {
         background: linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
         border: 0.5px solid rgba(255,255,255,.08);
         border-radius: 16px;
-        padding: 10px 14px;
+        padding: 9px 12px 10px;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0;
+        flex-direction: column;
+        gap: 5px;
         overflow: hidden;
         position: relative;
       }
@@ -19822,54 +19821,56 @@ class PergolaStripCard extends HTMLElement {
         pointer-events:none;
       }
 
-      /* sekcja = kolumna z nagłówkiem + ikonami, naturalna szerokość */
-      .section{
+      /* rząd etykiet sekcji — flex proporcjonalny do liczby ikon */
+      .sect-row{
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        flex: 0 0 auto;
-        padding: 0 14px;
+        width: 100%;
       }
-      .section + .section {
-        border-left: 0.5px solid rgba(255,255,255,.07);
-      }
-
       .sect-label{
         font-size: 8px;
         font-weight: 700;
         letter-spacing: .11em;
         text-transform: uppercase;
         color: rgba(255,255,255,.18);
-        white-space: nowrap;
+        text-align: center;
         line-height: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .sect-label + .sect-label{
+        border-left: 0.5px solid rgba(255,255,255,.07);
       }
 
-      /* rząd ikon wewnątrz sekcji */
+      /* płaski rząd wszystkich ikon */
       .icons-row{
         display: flex;
-        gap: 7px;
-        align-items: flex-start;
+        gap: 5px;
+        width: 100%;
       }
 
-      /* pojedyncza ikona z etykietą */
+      /* pojedyncza ikona z etykietą — flex:1 wypełnia szerokość */
       .icon-wrap{
+        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 3px;
+        min-width: 0;
       }
+      /* ikona kwadratowa, wypełnia dostępną szerokość */
       .iconbox{
-        width: 36px; height: 36px;
+        width: 100%;
+        aspect-ratio: 1;
         border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
         background: rgba(142,142,147,.07);
         border: 0.5px solid rgba(142,142,147,.15);
         transition: background .35s, border-color .35s, box-shadow .45s, transform .15s;
-        flex-shrink: 0;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
+        overflow: hidden;
       }
       .iconbox:active{ transform: scale(0.90); }
       .icon-label{
@@ -19877,9 +19878,15 @@ class PergolaStripCard extends HTMLElement {
         font-weight: 500;
         color: rgba(255,255,255,.28);
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
         transition: color .3s;
       }
       .icon-label.on{ color: rgba(255,255,255,.62); }
+
+      /* separatory sekcji na ikonach */
+      .icon-wrap.sep-left{ margin-left: 3px; border-left: 0.5px solid rgba(255,255,255,.07); padding-left: 3px; }
 
       /* pulse animations */
       @keyframes louver-pulse { 0%,100%{ box-shadow:0 0 0 0px rgba(255,159,10,0) } 50%{ box-shadow:0 0 0 5px rgba(255,159,10,.18) } }
@@ -19897,7 +19904,7 @@ class PergolaStripCard extends HTMLElement {
     </style>
 
     <div class="card">
-      ${this._renderSections(items)}
+      ${this._buildHTML(items)}
     </div>`;
 
     this.shadowRoot.querySelectorAll('.iconbox[data-entity]').forEach(el => {
@@ -19910,36 +19917,41 @@ class PergolaStripCard extends HTMLElement {
     });
   }
 
-  _renderSections(items) {
-    // Grupuj po sekcjach, zachowując kolejność
+  _buildHTML(items) {
+    // Zbierz sekcje z liczbą ikon (dla flex proporcji w sect-row)
     const sections = [];
     let cur = null;
     for (const item of items) {
       if (item.section !== null) {
-        cur = { label: item.section, items: [] };
+        cur = { label: item.section, count: 0 };
         sections.push(cur);
       }
-      cur.items.push(item);
+      cur.count++;
     }
 
-    return sections.map(sec => `
-      <div class="section">
-        <div class="sect-label">${sec.label}</div>
-        <div class="icons-row">
-          ${sec.items.map(item => {
-            const boxStyle = item.on
-              ? `background:${item.bg};border:0.5px solid ${item.border};`
-              : '';
-            const activeClass = item.on ? `${item.pulse}-active` : '';
-            return `
-              <div class="icon-wrap">
-                <div class="iconbox ${activeClass}" style="${boxStyle}" data-entity="${item.entity}">${item.svg}</div>
-                <div class="icon-label ${item.on ? 'on' : ''}">${item.label}</div>
-              </div>`;
-          }).join('')}
-        </div>
-      </div>
-    `).join('');
+    // Rząd etykiet sekcji — każda ma flex = liczba swoich ikon
+    const sectRow = `<div class="sect-row">${
+      sections.map(s => `<div class="sect-label" style="flex:${s.count}">${s.label}</div>`).join('')
+    }</div>`;
+
+    // Płaski rząd ikon — wszystkie flex:1, pierwsza ikona nowej sekcji dostaje sep-left
+    let sectionIdx = -1;
+    const iconsRow = `<div class="icons-row">${
+      items.map((item, i) => {
+        const isNewSection = item.section !== null;
+        if (isNewSection) sectionIdx++;
+        const sepClass = isNewSection && sectionIdx > 0 ? 'sep-left' : '';
+        const boxStyle = item.on ? `background:${item.bg};border:0.5px solid ${item.border};` : '';
+        const activeClass = item.on ? `${item.pulse}-active` : '';
+        return `
+          <div class="icon-wrap ${sepClass}">
+            <div class="iconbox ${activeClass}" style="${boxStyle}" data-entity="${item.entity}">${item.svg}</div>
+            <div class="icon-label ${item.on ? 'on' : ''}">${item.label}</div>
+          </div>`;
+      }).join('')
+    }</div>`;
+
+    return sectRow + iconsRow;
   }
 
   getCardSize() { return 1; }
