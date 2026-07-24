@@ -19673,7 +19673,7 @@ class PergolaStripCard extends HTMLElement {
     const body  = [[x1-px,y1-py],[x2-px,y2-py],[x2+px,y2+py],[x1+px,y1+py]].map(f).join(' ');
     const shine = [[x1-px*.3,y1-py*.3],[x2-px*.3,y2-py*.3],[x2+px*.12,y2+py*.12],[x1+px*.12,y1+py*.12]].map(f).join(' ');
     const c = on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.50)';
-    return `<svg width="24" height="24" viewBox="0 0 28 28" overflow="visible">
+    return `<svg style="display:block" viewBox="0 0 28 28" overflow="visible">
       <polygon points="${body}" fill="${c}"/>
       <polygon points="${shine}" fill="rgba(255,255,255,.20)"/>
       <circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="2" fill="rgba(0,0,0,.55)" stroke="${c}" stroke-width=".8"/>
@@ -19693,7 +19693,7 @@ class PergolaStripCard extends HTMLElement {
     const ry1 = (4+6*t).toFixed(1), ry2 = (6+8*t).toFixed(1);
     const e1 = on ? (0.45+0.27*t).toFixed(2) : '0';
     const e2 = on ? (0.20+0.15*t).toFixed(2) : '0';
-    return `<svg width="24" height="24" viewBox="0 0 32 32" overflow="visible">
+    return `<svg style="display:block" viewBox="0 0 32 32" overflow="visible">
       <rect x="4" y="5" width="24" height="8" rx="3.5" fill="#1c1c28" stroke="rgba(255,255,255,.10)" stroke-width=".8"/>
       <rect x="5.5" y="6.5" width="21" height="5" rx="2.5" fill="rgba(255,200,100,${h3})"/>
       <rect x="7" y="7.5" width="18" height="3" rx="1.5" fill="rgba(255,200,100,${h2})"/>
@@ -19712,7 +19712,7 @@ class PergolaStripCard extends HTMLElement {
     const ss   = on ? 'rgba(255,200,120,.35)' : 'rgba(255,255,255,.06)';
     const g1   = on ? 'drop-shadow(0 0 4px rgba(255,179,71,.70))' : 'none';
     const g2   = on ? 'drop-shadow(0 0 3px rgba(255,179,71,.55))' : 'none';
-    return `<svg width="24" height="24" viewBox="0 0 32 32" overflow="visible">
+    return `<svg style="display:block" viewBox="0 0 32 32" overflow="visible">
       <circle cx="13" cy="19" r="9" fill="${fill}" stroke="${bs}" stroke-width=".8" style="filter:${g1}"/>
       <circle cx="11" cy="17" r="4.5" fill="${high}" opacity="${on ? '.62' : '.8'}"/>
       <circle cx="24" cy="23" r="6" fill="${fill}" stroke="${ss}" stroke-width=".6" style="filter:${g2}"/>
@@ -19725,7 +19725,7 @@ class PergolaStripCard extends HTMLElement {
     const faceB = on ? 'rgba(255,210,140,.60)' : 'rgba(255,255,255,.12)';
     const glow  = on ? 'drop-shadow(0 0 4px rgba(255,184,77,.85))' : 'none';
     const bOp   = on ? '1' : '0';
-    return `<svg width="24" height="24" viewBox="0 0 32 32" overflow="visible">
+    return `<svg style="display:block" viewBox="0 0 32 32" overflow="visible">
       <g transform="rotate(35, 16, 20)">
         <rect x="15" y="25" width="2.5" height="8" rx="1.2" fill="#14141e"/>
         <rect x="13.5" y="17" width="5" height="10" rx="2.5" fill="#1e1e2e"/>
@@ -19742,7 +19742,7 @@ class PergolaStripCard extends HTMLElement {
     const faceB = on ? 'rgba(255,200,120,.65)' : 'rgba(255,255,255,.12)';
     const glow  = on ? 'drop-shadow(0 0 4px rgba(255,160,80,.90))' : 'none';
     const bOp   = on ? '1' : '0';
-    return `<svg width="24" height="24" viewBox="0 0 32 32" overflow="visible">
+    return `<svg style="display:block" viewBox="0 0 32 32" overflow="visible">
       <rect x="13" y="3" width="6" height="3.5" rx="1.8" fill="#1e1e2e" stroke="rgba(255,255,255,.10)" stroke-width=".6"/>
       <rect x="14.5" y="6" width="3" height="5" rx="1.5" fill="#252535"/>
       <path d="M10 11 L11 22 L21 22 L22 11 Q16 9 10 11Z" fill="#252535" stroke="rgba(255,255,255,.09)" stroke-width=".7"/>
@@ -19757,7 +19757,7 @@ class PergolaStripCard extends HTMLElement {
     const fillB = on ? 'rgba(255,230,160,.55)' : 'rgba(255,255,255,.10)';
     const glow  = on ? 'drop-shadow(0 0 5px rgba(255,220,130,.80))' : 'none';
     const bOp   = on ? '1' : '0';
-    return `<svg width="24" height="24" viewBox="0 0 32 32" overflow="visible">
+    return `<svg style="display:block" viewBox="0 0 32 32" overflow="visible">
       <ellipse cx="16" cy="29" rx="5" ry="1.8" fill="#1c1c28" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
       <rect x="14.5" y="16" width="3" height="14" rx="1.5" fill="#1e1e2e"/>
       <rect x="10" y="8" width="12" height="9" rx="3.5" fill="#252535" stroke="rgba(255,255,255,.09)" stroke-width=".7"/>
@@ -19845,11 +19845,11 @@ class PergolaStripCard extends HTMLElement {
       /* płaski rząd wszystkich ikon */
       .icons-row{
         display: flex;
-        gap: 5px;
+        gap: 0;
         width: 100%;
       }
 
-      /* pojedyncza ikona z etykietą — flex:1 wypełnia szerokość */
+      /* kontener ikony — flex:1 dzieli szerokość równo, centruje stały iconbox */
       .icon-wrap{
         flex: 1;
         display: flex;
@@ -19858,10 +19858,10 @@ class PergolaStripCard extends HTMLElement {
         gap: 3px;
         min-width: 0;
       }
-      /* ikona kwadratowa, wypełnia dostępną szerokość */
+      /* stały kwadratowy box — niezależny od szerokości kolumny */
       .iconbox{
-        width: 100%;
-        aspect-ratio: 1;
+        width: 38px;
+        height: 38px;
         border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
         background: rgba(142,142,147,.07);
@@ -19873,6 +19873,8 @@ class PergolaStripCard extends HTMLElement {
         overflow: hidden;
       }
       .iconbox:active{ transform: scale(0.90); }
+      /* SVG wypełnia 80% boxa (≈30px) zamiast stałych 24px */
+      .iconbox svg{ width:80%; height:80%; }
       .icon-label{
         font-size: 9px;
         font-weight: 500;
@@ -19885,8 +19887,8 @@ class PergolaStripCard extends HTMLElement {
       }
       .icon-label.on{ color: rgba(255,255,255,.62); }
 
-      /* separatory sekcji na ikonach */
-      .icon-wrap.sep-left{ margin-left: 3px; border-left: 0.5px solid rgba(255,255,255,.07); padding-left: 3px; }
+      /* separatory sekcji */
+      .icon-wrap.sep-left{ border-left: 0.5px solid rgba(255,255,255,.07); }
 
       /* pulse animations */
       @keyframes louver-pulse { 0%,100%{ box-shadow:0 0 0 0px rgba(255,159,10,0) } 50%{ box-shadow:0 0 0 5px rgba(255,159,10,.18) } }
