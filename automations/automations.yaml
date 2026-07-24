@@ -2133,7 +2133,7 @@
       data:
         name: "Garden Ambient"
         entity_id: input_boolean.garden_ambient
-        message: "ON | kule ogrodowe"
+        message: "ON | kule + spot na drzewa"
 
     - action: script.log_push
       data:
@@ -2166,7 +2166,7 @@
       data:
         name: "Garden Ambient"
         entity_id: input_boolean.garden_ambient
-        message: "OFF | kule ogrodowe wyłączone"
+        message: "OFF | kule + spot na drzewa wyłączone"
 
     - action: script.log_push
       data:
