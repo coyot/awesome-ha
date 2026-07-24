@@ -18655,6 +18655,8 @@ window.customCards.push({
     this._lastBri   = 0;
     this._lastOrbs  = false;
     this._lastSpotG = false;
+    this._lastEntryLamp = false;
+    this._lastPostLamp  = false;
     this._coverLastChanged = null;
     this._lightLastChanged = null;
     this._ticker = null;
@@ -18676,6 +18678,13 @@ window.customCards.push({
     this._lightPowerEntity = config.light_power_entity || null;
     this._orbsPowerEntity  = config.orbs_power_entity  || null;
     this._spotGPowerEntity = config.spot_power_entity  || null;
+    // front of house
+    this._entryLampEntity      = config.entry_lamp_entity       || null;
+    this._entryLampName        = config.entry_lamp_name         || 'Lampka nad wejściem';
+    this._entryLampPowerEntity = config.entry_lamp_power_entity || null;
+    this._postLampEntity       = config.post_lamp_entity        || null;
+    this._postLampName         = config.post_lamp_name          || 'Słupek świecący';
+    this._postLampPowerEntity  = config.post_lamp_power_entity  || null;
   }
 
   set hass(hass) {
@@ -18710,6 +18719,20 @@ window.customCards.push({
         this._updateSpotG(spotg.state === 'on', isNaN(spotGPower) ? null : spotGPower);
       }
     }
+    if (this._entryLampEntity) {
+      const el = hass.states[this._entryLampEntity];
+      if (el) {
+        const pw = this._entryLampPowerEntity ? parseFloat(hass.states[this._entryLampPowerEntity]?.state) : NaN;
+        this._updateEntryLamp(el.state === 'on', isNaN(pw) ? null : pw);
+      }
+    }
+    if (this._postLampEntity) {
+      const pl = hass.states[this._postLampEntity];
+      if (pl) {
+        const pw = this._postLampPowerEntity ? parseFloat(hass.states[this._postLampPowerEntity]?.state) : NaN;
+        this._updatePostLamp(pl.state === 'on', isNaN(pw) ? null : pw);
+      }
+    }
     const lightPower = this._lightPowerEntity ? parseFloat(hass.states[this._lightPowerEntity]?.state) : NaN;
     this._lightPower = isNaN(lightPower) ? null : lightPower;
   }
@@ -18727,6 +18750,14 @@ window.customCards.push({
   _svcSpotG(on) {
     const domain = this._spotGEntity.split('.')[0];
     this._hass.callService(domain, on ? 'turn_on' : 'turn_off', { entity_id: this._spotGEntity });
+  }
+  _svcEntryLamp(on) {
+    const domain = this._entryLampEntity.split('.')[0];
+    this._hass.callService(domain, on ? 'turn_on' : 'turn_off', { entity_id: this._entryLampEntity });
+  }
+  _svcPostLamp(on) {
+    const domain = this._postLampEntity.split('.')[0];
+    this._hass.callService(domain, on ? 'turn_on' : 'turn_off', { entity_id: this._postLampEntity });
   }
 
   // ── louver glyph ──
@@ -18797,6 +18828,50 @@ window.customCards.push({
       </g>`;
   }
 
+  // ── entry lamp glyph (downward-pointing wall/ceiling sconce) ──
+  _drawEntryLamp(on) {
+    const face  = on ? '#fff4d8' : '#15151c';
+    const faceB = on ? 'rgba(255,200,120,.65)' : 'rgba(255,255,255,.12)';
+    const glow  = on ? 'drop-shadow(0 0 4px rgba(255,160,80,.90))' : 'none';
+    const bOp   = on ? '1' : '0';
+    return `
+      <!-- mount bracket -->
+      <rect x="13" y="3" width="6" height="3.5" rx="1.8" fill="#1e1e2e" stroke="rgba(255,255,255,.10)" stroke-width=".6"/>
+      <!-- arm -->
+      <rect x="14.5" y="6" width="3" height="5" rx="1.5" fill="#252535"/>
+      <!-- housing body — wider at bottom -->
+      <path d="M10 11 L11 22 L21 22 L22 11 Q16 9 10 11Z" fill="#252535" stroke="rgba(255,255,255,.09)" stroke-width=".7"/>
+      <!-- lens at bottom, facing down -->
+      <ellipse cx="16" cy="22" rx="5.5" ry="2.2" fill="${face}" stroke="${faceB}" stroke-width=".6" style="filter:${glow}"/>
+      <!-- downward beam cone -->
+      <path d="M10.5 22 L7 31 L25 31 L21.5 22 Z" fill="rgba(255,175,90,.22)" opacity="${bOp}" style="filter:blur(3.5px)"/>
+      <!-- floor glow pool -->
+      <ellipse cx="16" cy="31" rx="7" ry="2.5" fill="rgba(255,175,90,.35)" opacity="${bOp}" style="filter:blur(2.5px)"/>`;
+  }
+
+  // ── post lamp glyph (standing bollard/post) ──
+  _drawPostLamp(on) {
+    const fill  = on ? '#fff6e0' : '#15151c';
+    const fillB = on ? 'rgba(255,230,160,.55)' : 'rgba(255,255,255,.10)';
+    const glow  = on ? 'drop-shadow(0 0 5px rgba(255,220,130,.80))' : 'none';
+    const bOp   = on ? '1' : '0';
+    return `
+      <!-- base plate -->
+      <ellipse cx="16" cy="29" rx="5" ry="1.8" fill="#1c1c28" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
+      <!-- post pole -->
+      <rect x="14.5" y="16" width="3" height="14" rx="1.5" fill="#1e1e2e"/>
+      <!-- lantern body -->
+      <rect x="10" y="8" width="12" height="9" rx="3.5" fill="#252535" stroke="rgba(255,255,255,.09)" stroke-width=".7"/>
+      <!-- top cap -->
+      <rect x="10" y="6.5" width="12" height="3" rx="2" fill="#1e1e2e" stroke="rgba(255,255,255,.08)" stroke-width=".5"/>
+      <!-- light interior -->
+      <rect x="11.5" y="9" width="9" height="7" rx="2.5" fill="${fill}" stroke="${fillB}" stroke-width=".5" style="filter:${glow}"/>
+      <!-- ambient halo around lantern -->
+      <ellipse cx="16" cy="12.5" rx="9" ry="6" fill="rgba(255,220,130,.18)" opacity="${bOp}" style="filter:blur(4px)"/>
+      <!-- ground pool -->
+      <ellipse cx="16" cy="29.5" rx="5.5" ry="2" fill="rgba(255,220,130,.28)" opacity="${bOp}" style="filter:blur(2px)"/>`;
+  }
+
   // ── ceiling LED spot glyph ──
   _drawSpot(bri) {
     const t  = Math.max(0, Math.min(1, bri / 100));
@@ -18843,6 +18918,7 @@ window.customCards.push({
   _render() {
     const PRESETS = [0, 33, 66, 100];
     const hasGarden = this._orbsEntity || this._spotGEntity;
+    const hasFront  = this._entryLampEntity || this._postLampEntity;
 
     this.shadowRoot.innerHTML = `
     <style>
@@ -18888,10 +18964,20 @@ window.customCards.push({
         0%,100%{ box-shadow:0 0 0 0px rgba(255,214,90,0), 0 0 0px 0px rgba(255,214,90,0) }
         50%    { box-shadow:0 0 0 5px rgba(255,214,90,.15), 0 0 var(--lb-spread,0px) var(--lb-spread,0px) rgba(255,214,90,var(--lb-op,0)) }
       }
+      @keyframes entry-pulse {
+        0%,100%{ box-shadow:0 0 0 0px rgba(255,160,80,0) }
+        50%    { box-shadow:0 0 0 5px rgba(255,160,80,.18) }
+      }
+      @keyframes post-pulse {
+        0%,100%{ box-shadow:0 0 0 0px rgba(255,220,130,0) }
+        50%    { box-shadow:0 0 0 5px rgba(255,220,130,.18) }
+      }
       .iconbox.louver-active { animation:louver-pulse 2.5s ease-in-out infinite; }
       .iconbox.orbs-active   { animation:orbs-pulse   2.8s ease-in-out infinite; }
       .iconbox.spotg-active  { animation:spotg-pulse  3.2s ease-in-out infinite; }
       .iconbox.light-active  { animation:light-pulse  3.0s ease-in-out infinite; }
+      .iconbox.entry-active  { animation:entry-pulse  2.6s ease-in-out infinite; }
+      .iconbox.post-active   { animation:post-pulse   3.0s ease-in-out infinite; }
 
       /* ── header ── */
       .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -18907,7 +18993,7 @@ window.customCards.push({
         border-radius:13px;
         border:.5px solid rgba(255,255,255,.09);
         background:rgba(255,255,255,.022);
-        margin-bottom:${hasGarden ? '10px' : '0'};
+        margin-bottom:${hasGarden || hasFront ? '10px' : '0'};
         padding:0 12px;
       }
 
@@ -18919,7 +19005,7 @@ window.customCards.push({
         transition:background .35s,border-color .35s,box-shadow .45s;
       }
 
-      /* ── garden section ── */
+      /* ── section separator ── */
       .sect-sep{
         display:flex;align-items:center;gap:8px;
         margin-bottom:4px;
@@ -18934,9 +19020,19 @@ window.customCards.push({
         white-space:nowrap;
       }
 
-      /* garden rows */
+      /* garden / front rows */
       .row{display:flex;align-items:center;gap:13px;padding:12px 0}
       .row + .row{border-top:.5px solid rgba(255,255,255,.07)}
+
+      /* section group box — ogród i front domu */
+      .section-group{
+        border-radius:13px;
+        border:.5px solid rgba(255,255,255,.09);
+        background:rgba(255,255,255,.022);
+        margin-bottom:10px;
+        padding:0 12px;
+      }
+      .section-group:last-of-type{ margin-bottom:0; }
 
       .mid{flex:1;min-width:0}
       .name{font-size:14px;font-weight:600;color:rgba(255,255,255,.90);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -18969,6 +19065,10 @@ window.customCards.push({
       .orbs  .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
       .spotg .seg button.on      { background:rgba(255,184,77,.18); color:#ffb84d; box-shadow:0 0 12px rgba(255,184,77,.22) inset; }
       .spotg .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
+      .entry .seg button.on      { background:rgba(255,160,80,.18); color:#ffa050; box-shadow:0 0 12px rgba(255,160,80,.22) inset; }
+      .entry .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
+      .post  .seg button.on      { background:rgba(255,220,130,.18); color:#ffdc82; box-shadow:0 0 12px rgba(255,220,130,.22) inset; }
+      .post  .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
 
       @media(hover:hover){
         .seg button:hover:not(.on){background:rgba(255,255,255,.07);color:rgba(255,255,255,.65)}
@@ -19012,7 +19112,7 @@ window.customCards.push({
         <!-- separator Pergola -->
         <div class="sect-sep"><span>Pergola</span></div>
 
-        <!-- PERGOLA GROUP — lamele + spot LED, zgrupowane -->
+        <!-- PERGOLA GROUP — lamele + spot LED -->
         <div class="perg-group">
 
           <!-- Lamele -->
@@ -19046,38 +19146,79 @@ window.customCards.push({
         </div>
 
         ${hasGarden ? `
-        <!-- OGRÓD — separator + wiersze -->
+        <!-- OGRÓD -->
         <div class="sect-sep"><span>Ogr\u00f3d</span></div>
+        <div class="section-group" style="margin-bottom:${hasFront ? '10px' : '0'}">
 
-        ${this._orbsEntity ? `
-        <div class="row orbs">
-          <div class="iconbox" id="o-iconbox">
-            <svg id="o-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
-          </div>
-          <div class="mid">
-            <div class="name">${this._orbsName}</div>
-            <div class="status" id="o-status">\u2014</div>
-          </div>
-          <div class="seg" id="o-seg">
-            <button type="button" data-val="off">Wy\u0142</button>
-            <button type="button" data-val="on">W\u0142</button>
-          </div>
-        </div>` : ''}
+          ${this._orbsEntity ? `
+          <div class="row orbs">
+            <div class="iconbox" id="o-iconbox">
+              <svg id="o-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+            </div>
+            <div class="mid">
+              <div class="name">${this._orbsName}</div>
+              <div class="status" id="o-status">\u2014</div>
+            </div>
+            <div class="seg" id="o-seg">
+              <button type="button" data-val="off">Wy\u0142</button>
+              <button type="button" data-val="on">W\u0142</button>
+            </div>
+          </div>` : ''}
 
-        ${this._spotGEntity ? `
-        <div class="row spotg">
-          <div class="iconbox" id="g-iconbox">
-            <svg id="g-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
-          </div>
-          <div class="mid">
-            <div class="name">${this._spotGName}</div>
-            <div class="status" id="g-status">\u2014</div>
-          </div>
-          <div class="seg" id="g-seg">
-            <button type="button" data-val="off">Wy\u0142</button>
-            <button type="button" data-val="on">W\u0142</button>
-          </div>
-        </div>` : ''}
+          ${this._spotGEntity ? `
+          <div class="row spotg">
+            <div class="iconbox" id="g-iconbox">
+              <svg id="g-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+            </div>
+            <div class="mid">
+              <div class="name">${this._spotGName}</div>
+              <div class="status" id="g-status">\u2014</div>
+            </div>
+            <div class="seg" id="g-seg">
+              <button type="button" data-val="off">Wy\u0142</button>
+              <button type="button" data-val="on">W\u0142</button>
+            </div>
+          </div>` : ''}
+
+        </div>
+        ` : ''}
+
+        ${hasFront ? `
+        <!-- FRONT DOMU -->
+        <div class="sect-sep"><span>Front domu</span></div>
+        <div class="section-group">
+
+          ${this._entryLampEntity ? `
+          <div class="row entry">
+            <div class="iconbox" id="el-iconbox">
+              <svg id="el-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+            </div>
+            <div class="mid">
+              <div class="name">${this._entryLampName}</div>
+              <div class="status" id="el-status">\u2014</div>
+            </div>
+            <div class="seg" id="el-seg">
+              <button type="button" data-val="off">Wy\u0142</button>
+              <button type="button" data-val="on">W\u0142</button>
+            </div>
+          </div>` : ''}
+
+          ${this._postLampEntity ? `
+          <div class="row post">
+            <div class="iconbox" id="pl-iconbox">
+              <svg id="pl-icon" width="30" height="30" viewBox="0 0 32 32" overflow="visible"></svg>
+            </div>
+            <div class="mid">
+              <div class="name">${this._postLampName}</div>
+              <div class="status" id="pl-status">\u2014</div>
+            </div>
+            <div class="seg" id="pl-seg">
+              <button type="button" data-val="off">Wy\u0142</button>
+              <button type="button" data-val="on">W\u0142</button>
+            </div>
+          </div>` : ''}
+
+        </div>
         ` : ''}
 
         <!-- Wyłącz wszystkie -->
@@ -19103,6 +19244,10 @@ window.customCards.push({
     if (oIcon) oIcon.innerHTML = this._drawOrbs(false);
     const gIcon = this.shadowRoot.getElementById('g-icon');
     if (gIcon) gIcon.innerHTML = this._drawGroundSpot(false);
+    const elIcon = this.shadowRoot.getElementById('el-icon');
+    if (elIcon) elIcon.innerHTML = this._drawEntryLamp(false);
+    const plIcon = this.shadowRoot.getElementById('pl-icon');
+    if (plIcon) plIcon.innerHTML = this._drawPostLamp(false);
 
     // bind louver seg
     this.shadowRoot.querySelectorAll('#l-seg button').forEach(btn => {
@@ -19134,6 +19279,20 @@ window.customCards.push({
         btn.addEventListener('click', () => this._svcSpotG(btn.dataset.val === 'on'));
       });
     }
+    // bind entry lamp toggle
+    if (this._entryLampEntity) {
+      this.shadowRoot.querySelectorAll('#el-seg button').forEach(btn => {
+        this._bindPress(btn, 'pressed');
+        btn.addEventListener('click', () => this._svcEntryLamp(btn.dataset.val === 'on'));
+      });
+    }
+    // bind post lamp toggle
+    if (this._postLampEntity) {
+      this.shadowRoot.querySelectorAll('#pl-seg button').forEach(btn => {
+        this._bindPress(btn, 'pressed');
+        btn.addEventListener('click', () => this._svcPostLamp(btn.dataset.val === 'on'));
+      });
+    }
 
     // bind all-off
     const btnAllOff = this.shadowRoot.getElementById('btn-all-off');
@@ -19147,8 +19306,10 @@ window.customCards.push({
 
   _allOff() {
     this._svcLight('turn_off');
-    if (this._orbsEntity)  this._svcOrbs(false);
-    if (this._spotGEntity) this._svcSpotG(false);
+    if (this._orbsEntity)      this._svcOrbs(false);
+    if (this._spotGEntity)     this._svcSpotG(false);
+    if (this._entryLampEntity) this._svcEntryLamp(false);
+    if (this._postLampEntity)  this._svcPostLamp(false);
   }
 
   _animateTo(target) {
@@ -19205,9 +19366,14 @@ window.customCards.push({
   }
 
   _updateBadge() {
-    const total  = 2 + (this._orbsEntity  ? 1 : 0) + (this._spotGEntity ? 1 : 0);
+    const total  = 2
+      + (this._orbsEntity      ? 1 : 0)
+      + (this._spotGEntity     ? 1 : 0)
+      + (this._entryLampEntity ? 1 : 0)
+      + (this._postLampEntity  ? 1 : 0);
     const active = (this._lastTilt  > 0 ? 1 : 0) + (this._lastBri > 0 ? 1 : 0)
-                 + (this._lastOrbs  ? 1 : 0) + (this._lastSpotG ? 1 : 0);
+                 + (this._lastOrbs      ? 1 : 0) + (this._lastSpotG    ? 1 : 0)
+                 + (this._lastEntryLamp ? 1 : 0) + (this._lastPostLamp ? 1 : 0);
     const r = this.shadowRoot;
     const badge = r.getElementById('badge');
     const dot   = r.getElementById('badge-dot');
@@ -19338,6 +19504,56 @@ window.customCards.push({
     this._updateBadge();
   }
 
+  _updateEntryLamp(on, watts = null) {
+    this._lastEntryLamp = on;
+    const r = this.shadowRoot;
+    const iconbox  = r.getElementById('el-iconbox');
+    const iconEl   = r.getElementById('el-icon');
+    const statusEl = r.getElementById('el-status');
+    if (iconEl)   iconEl.innerHTML = this._drawEntryLamp(on);
+    if (statusEl) {
+      const pw = (on && watts !== null) ? ` \u00b7 ${Math.round(watts)} W` : '';
+      statusEl.textContent = (on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone') + pw;
+      statusEl.style.color = on ? 'rgba(255,160,80,.75)' : '#636366';
+    }
+    if (iconbox) {
+      iconbox.style.background = on ? 'rgba(255,160,80,.10)' : 'rgba(142,142,147,.07)';
+      iconbox.style.border = `.5px solid ${on ? 'rgba(255,160,80,.22)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.classList.toggle('entry-active', on);
+    }
+    r.querySelectorAll('#el-seg button').forEach(b => {
+      const match = b.dataset.val === (on ? 'on' : 'off');
+      b.classList.toggle('on',   match);
+      b.classList.toggle('zero', match && !on);
+    });
+    this._updateBadge();
+  }
+
+  _updatePostLamp(on, watts = null) {
+    this._lastPostLamp = on;
+    const r = this.shadowRoot;
+    const iconbox  = r.getElementById('pl-iconbox');
+    const iconEl   = r.getElementById('pl-icon');
+    const statusEl = r.getElementById('pl-status');
+    if (iconEl)   iconEl.innerHTML = this._drawPostLamp(on);
+    if (statusEl) {
+      const pw = (on && watts !== null) ? ` \u00b7 ${Math.round(watts)} W` : '';
+      statusEl.textContent = (on ? 'W\u0142\u0105czone' : 'Wy\u0142\u0105czone') + pw;
+      statusEl.style.color = on ? 'rgba(255,220,130,.75)' : '#636366';
+    }
+    if (iconbox) {
+      iconbox.style.background = on ? 'rgba(255,220,130,.10)' : 'rgba(142,142,147,.07)';
+      iconbox.style.border = `.5px solid ${on ? 'rgba(255,220,130,.22)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.classList.toggle('post-active', on);
+    }
+    r.querySelectorAll('#pl-seg button').forEach(b => {
+      const match = b.dataset.val === (on ? 'on' : 'off');
+      b.classList.toggle('on',   match);
+      b.classList.toggle('zero', match && !on);
+    });
+    this._updateBadge();
+  }
+
   getCardSize() { return 2; }
 }
 
@@ -19348,7 +19564,7 @@ window.customCards.push({
   type:        'aha-pergola-card',
   name:        'Pergola Card',
   preview:     false,
-  description: 'Sterowanie pergol\u0105 i ogr\u00f3dem: lamele + spot LED (razem) + kule + reflektor ogrodowy.',
+  description: 'Sterowanie pergol\u0105 i ogr\u00f3dem: lamele + spot LED + kule + reflektor ogrodowy + front domu.',
 });
 /**
  * aha-home-temp-card
