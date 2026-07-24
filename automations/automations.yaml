@@ -2114,8 +2114,8 @@
   alias: "Garden Ambient: włącz oświetlenie ogrodu"
   description: >
     Gdy input_boolean.garden_ambient → ON:
-    włącza switch.ogrod_lampy0, switch.ogrod_lampy1
-    oraz light.teleco_shutters na 33%.
+    włącza switch.ogrod_lampy0, switch.ogrod_lampy1.
+    Spoty pergolowe celowo wykluczone — ambient ogrodu, nie pergoli.
 
   trigger:
     - platform: state
@@ -2129,17 +2129,11 @@
           - switch.ogrod_lampy0
           - switch.ogrod_lampy1
 
-    - action: light.turn_on
-      target:
-        entity_id: light.teleco_shutters
-      data:
-        brightness_pct: 33
-
     - action: logbook.log
       data:
         name: "Garden Ambient"
         entity_id: input_boolean.garden_ambient
-        message: "ON | kule + spot + teleco 33%"
+        message: "ON | kule ogrodowe"
 
     - action: script.log_push
       data:
@@ -2153,8 +2147,8 @@
   alias: "Garden Ambient: wyłącz oświetlenie ogrodu"
   description: >
     Gdy input_boolean.garden_ambient → OFF:
-    wyłącza switch.ogrod_lampy0, switch.ogrod_lampy1
-    oraz light.teleco_shutters.
+    wyłącza switch.ogrod_lampy0, switch.ogrod_lampy1.
+    Spoty pergolowe celowo wykluczone.
 
   trigger:
     - platform: state
@@ -2168,15 +2162,11 @@
           - switch.ogrod_lampy0
           - switch.ogrod_lampy1
 
-    - action: light.turn_off
-      target:
-        entity_id: light.teleco_shutters
-
     - action: logbook.log
       data:
         name: "Garden Ambient"
         entity_id: input_boolean.garden_ambient
-        message: "OFF | wszystkie lampy ogrodu wyłączone"
+        message: "OFF | kule ogrodowe wyłączone"
 
     - action: script.log_push
       data:
