@@ -688,17 +688,12 @@
 - id: lampka_wejscie_wlacz_powrot
   alias: "Lampka wejście: włącz po zmroku"
   description: >
-    Włącza lampkę gdy zapada zmrok i ktoś jest w domu (zachód +15 min),
-    lub gdy ktoś wraca do domu po zachodzie słońca. Ta sama logika co poręcz.
+    Włącza lampkę gdy zapada zmrok i ktoś jest w domu (zachód +15 min).
+    Powrót do domu nocą obsługuje osobna automatyzacja lampka_wejscie_powrot_noc.
   trigger:
     - platform: sun
       event: sunset
       offset: "00:15:00"
-    - platform: state
-      entity_id:
-        - device_tracker.iphone_tk
-        - device_tracker.iphone_monika
-      to: home
   condition:
     - condition: state
       entity_id: sun.sun
@@ -723,18 +718,63 @@
         name: Lampka wejście
         entity_id: switch.living_room_lampa_wejscie
         message: >
-          WŁĄCZONO |
-          {% if trigger.platform == 'sun' %}zachód słońca +15 min
-          {% else %}powrót do domu |
-          kto: {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}
-          {% endif %}
+          WŁĄCZONO | zachód słońca +15 min
           | radiation: {{ states('sensor.stacja_pogodowa_solar_radiation') | round(0) }} W/m²
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie","akcja":"ON",
-          "info":"{% if trigger.platform == 'sun' %}zachód słońca{% else %}powrót po zmroku · {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}{% endif %}"}
+          "info":"zachód słońca"}
   mode: single
+
+- id: lampka_wejscie_powrot_noc
+  alias: "Lampka wejście: włącz na 10 min przy powrocie nocą"
+  description: >
+    O dowolnej porze nocy (słońce pod horyzontem), gdy TK lub Monika wraca do domu,
+    lampka nad drzwiami świeci przez 10 minut, a następnie gaśnie.
+    Tryb restart — jeśli drugi domownik wróci przed upływem 10 min, timer się resetuje.
+  trigger:
+    - platform: state
+      entity_id:
+        - device_tracker.iphone_tk
+        - device_tracker.iphone_monika
+      to: home
+  condition:
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
+  action:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.living_room_lampa_wejscie
+    - action: logbook.log
+      data:
+        name: Lampka wejście
+        entity_id: switch.living_room_lampa_wejscie
+        message: >
+          WŁĄCZONO | powrót nocą (10 min) |
+          kto: {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie","akcja":"ON",
+          "info":"powrót nocą · {% if trigger.entity_id == 'device_tracker.iphone_tk' %}Tomek{% else %}Monika{% endif %}"}
+    - delay:
+        minutes: 10
+    - action: switch.turn_off
+      target:
+        entity_id: switch.living_room_lampa_wejscie
+    - action: logbook.log
+      data:
+        name: Lampka wejście
+        entity_id: switch.living_room_lampa_wejscie
+        message: "WYŁĄCZONO | po 10 min od powrotu nocą"
+    - action: script.log_push
+      data:
+        wpis: >
+          {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie","akcja":"OFF",
+          "info":"10 min po powrocie nocą"}
+  mode: restart
 
 - id: lampka_wejscie_wylacz_tryb_nocny
   alias: "Lampka wejście: wyłącz przy trybie nocnym"
