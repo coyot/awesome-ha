@@ -2213,10 +2213,9 @@
 - id: kontaktrony_alert_deszcz
   alias: "Kontaktrony: ostrzeżenie o deszczu"
   description: >
-    Gdy zaczyna padać deszcz LUB gdy podczas deszczu otwiera się czujnik —
-    wysyła pilne ostrzeżenie do TK i Moniki (jeśli są w domu)
-    z listą wszystkich otwartych czujników.
-    Jeśli wszystko zamknięte — nie wysyła nic.
+    Wysyła powiadomienie RAZ gdy zaczyna padać i jest otwarty czujnik,
+    LUB gdy pada deszcz a otwieramy okno/drzwi.
+    Cooldown 15 minut — nie zasypuje powiadomieniami przy krótkich przerwach deszczu.
   variables:
     otwarte: >
       {% set classes = ['door', 'window', 'opening', 'garage_door'] %}
@@ -2237,9 +2236,12 @@
       for:
         minutes: 1
       id: deszcz_start
-    - trigger: state
-      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
-      to: "on"
+    - trigger: template
+      value_template: >
+        {% set classes = ['door', 'window', 'opening', 'garage_door'] %}
+        {{ is_state('binary_sensor.stacja_pogodowa_rain_state_piezo', 'on') and
+           states.binary_sensor | selectattr('state','eq','on') |
+           selectattr('attributes.device_class','in', classes) | list | count > 0 }}
       id: czujnik_otwarty
   conditions:
     - condition: state
@@ -2247,6 +2249,10 @@
       state: "on"
     - condition: template
       value_template: "{{ otwarte | count > 0 }}"
+    - condition: template
+      value_template: >
+        {{ this.attributes.last_triggered is none or
+           (now() - this.attributes.last_triggered).total_seconds() > 900 }}
   actions:
     - if:
         - condition: zone
@@ -2290,6 +2296,6 @@
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"kontaktrony_deszcz",
           "otwarte":{{ otwarte | count }},"trigger":"{{ trigger.id | default('?') }}",
           "lista":"{% for s in otwarte %}{{ states[s].attributes.friendly_name }}{% if not loop.last %} | {% endif %}{% endfor %}"}
-  mode: restart
+  mode: single
 
 
