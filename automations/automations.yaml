@@ -1935,6 +1935,7 @@
         wiatrak_wlaczony: "{{ is_state('switch.biuro_wiatrak', 'on') }}"
         pergola_otwarta: "{{ is_state('cover.teleco_leds2', 'open') }}"
         garden_ambient_wlaczone: "{{ is_state('input_boolean.garden_ambient', 'on') }}"
+        domek_wlaczony: "{{ is_state('switch.domek_ogrodowy_socket_1', 'on') }}"
         otwarte_lista: >
           {% set classes = ['door', 'window', 'opening', 'garage_door'] %}
           {% set ns = namespace(lista=[]) %}
@@ -2011,6 +2012,14 @@
           target:
             entity_id: input_boolean.garden_ambient
 
+    - if:
+        - condition: template
+          value_template: "{{ domek_wlaczony }}"
+      then:
+        - action: switch.turn_off
+          target:
+            entity_id: switch.domek_ogrodowy_socket_1
+
     - action: logbook.log
       data:
         name: "Tryb nocny"
@@ -2021,6 +2030,7 @@
           {% if wiatrak_wlaczony %}wiatrak wyłączony | {% endif %}
           {% if pergola_otwarta %}pergola zamknięta | {% endif %}
           {% if garden_ambient_wlaczone %}garden ambient wyłączony | {% endif %}
+          {% if domek_wlaczony %}domek ogrodowy wyłączony | {% endif %}
           otwarte czujniki: {{ otwarte_ile }}
 
     - action: script.log_push
@@ -2042,6 +2052,7 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
+          {% if domek_wlaczony %}🏡 Domek ogrodowy wyłączony. {% endif %}
 
     - action: notify.send_message
       target:
@@ -2055,6 +2066,7 @@
           {% endif %}
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
+          {% if domek_wlaczony %}🏡 Domek ogrodowy wyłączony. {% endif %}
 
   mode: single
 

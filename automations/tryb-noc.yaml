@@ -22,6 +22,7 @@
         pergola_otwarta: "{{ is_state('cover.teleco_leds2', 'open') }}"
         garden_ambient_wlaczone: "{{ is_state('input_boolean.garden_ambient', 'on') }}"
         swiatlo_pergoli_wlaczone: "{{ is_state('light.teleco_shutters', 'on') }}"
+        domek_wlaczony: "{{ is_state('switch.domek_ogrodowy_socket_1', 'on') }}"
         otwarte_lista: >
           {% set sens = states.binary_sensor
              | selectattr('attributes.device_class', 'in', ['door','window','opening','garage_door'])
@@ -94,6 +95,14 @@
           target:
             entity_id: input_boolean.garden_ambient
 
+    - if:
+        - condition: template
+          value_template: "{{ domek_wlaczony }}"
+      then:
+        - action: switch.turn_off
+          target:
+            entity_id: switch.domek_ogrodowy_socket_1
+
     - action: logbook.log
       data:
         name: "Tryb nocny"
@@ -105,6 +114,7 @@
           {% if pergola_otwarta %}pergola zamknięta | {% endif %}
           {% if swiatlo_pergoli_wlaczone %}światło pergoli wyłączone | {% endif %}
           {% if garden_ambient_wlaczone %}garden ambient wyłączony | {% endif %}
+          {% if domek_wlaczony %}domek ogrodowy wyłączony | {% endif %}
           otwarte czujniki: {{ otwarte_ile }}
 
     - action: script.log_push
@@ -127,6 +137,7 @@
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
           {% if swiatlo_pergoli_wlaczone %}💡 Światło pergoli wyłączone. {% endif %}
+          {% if domek_wlaczony %}🏡 Domek ogrodowy wyłączony. {% endif %}
 
     - action: notify.send_message
       target:
@@ -141,6 +152,7 @@
           {% if biuro_wlaczone %}🔌 Biuro wyłączone. {% endif %}
           {% if wiatrak_wlaczony %}💨 Wiatrak wyłączony. {% endif %}
           {% if swiatlo_pergoli_wlaczone %}💡 Światło pergoli wyłączone. {% endif %}
+          {% if domek_wlaczony %}🏡 Domek ogrodowy wyłączony. {% endif %}
 
   mode: single
 
