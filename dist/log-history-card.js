@@ -267,7 +267,7 @@ function iconSvg(e) {
   }
 
   if (e.typ === 'biuro_prad') {
-    const col = e.akcja === 'WARN' ? 'rgba(255,159,10,0.90)' : 'rgba(150,150,155,0.50)';
+    const col = e.akcja === 'WARN' ? 'rgba(255,159,10,0.90)' : e.akcja === 'ON' ? 'rgba(48,209,88,0.80)' : 'rgba(150,150,155,0.50)';
     return s(col, c => `
       <rect x="7" y="11" width="10" height="8" rx="2"
         fill="${c.replace(/[\d.]+\)$/, '0.22)')}" stroke="${c}" stroke-width="1.6"/>
@@ -382,9 +382,9 @@ function nodeStyle(e) {
       ? { bg: 'rgba(255,59,48,0.14)', outline: 'rgba(255,59,48,0.25)' }
       : { bg: 'rgba(99,99,102,0.18)', outline: 'rgba(99,99,102,0.20)' };
   if (e.typ === 'biuro_prad')
-    return e.akcja === 'WARN'
-      ? { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' }
-      : { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
+    return e.akcja === 'WARN' ? { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' }
+         : e.akcja === 'ON'   ? { bg: 'rgba(48,209,88,0.13)',  outline: 'rgba(48,209,88,0.25)'  }
+         :                      { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)'  };
   if (e.typ === 'nawodnienie_ogrod2')
     return { bg: 'rgba(48,176,255,0.13)', outline: 'rgba(48,176,255,0.25)' };
   if (e.typ === 'teleco_pergola') {
@@ -553,15 +553,16 @@ function titleAndDetail(e, PEOPLE) {
     };
   }
   if (e.typ === 'strychowy_roleta') {
+    const open = e.akcja === 'OPEN';
     const temp = e.temp != null ? `${e.temp}°C` : null;
     const hum  = e.hum  != null ? `${e.hum}%`   : null;
     const parts = [temp, hum].filter(Boolean);
     return {
-      titleColor:   'rgba(255,100,10,0.90)',
-      titleText:    'Strychowy — roleta zamknięta (upał)',
+      titleColor:   open ? 'rgba(255,100,10,0.90)' : 'rgba(150,150,155,0.65)',
+      titleText:    open ? 'Strychowy — roleta otwarta (upał)' : 'Strychowy — roleta zamknięta',
       detail:       parts.length ? parts.join(' · ') : (e.info ?? ''),
       avatarPeople: null,
-      rightSvg:     FIRE_SVG,
+      rightSvg:     open ? FIRE_SVG : null,
     };
   }
   if (e.typ === 'tryb_noc') {
