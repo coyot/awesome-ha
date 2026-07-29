@@ -11113,9 +11113,10 @@ function titleAndDetail(e, PEOPLE) {
   }
   if (e.typ === 'biuro_prad') {
     const warn = e.akcja === 'WARN';
+    const on   = e.akcja === 'ON';
     return {
-      titleColor: warn ? 'rgba(255,159,10,0.90)' : 'rgba(150,150,155,0.60)',
-      titleText:  warn ? 'Biuro prąd — wyłączenie za 1h' : 'Biuro prąd — wyłączono',
+      titleColor: warn ? 'rgba(255,159,10,0.90)' : on ? 'rgba(48,209,88,0.80)' : 'rgba(150,150,155,0.60)',
+      titleText:  warn ? 'Biuro prąd — wyłączenie za 1h' : on ? 'Biuro prąd — włączono' : 'Biuro prąd — wyłączono',
       detail:     e.info ?? '',
       avatarPeople: null,
     };
