@@ -810,7 +810,7 @@
 - id: lampka_wejscie_wylacz_tryb_nocny
   alias: "Lampka wejście: wyłącz przy trybie nocnym"
   description: >
-    Po włączeniu trybu nocnego odczekuje 30 minut, dopiero wtedy wyłącza
+    Po włączeniu trybu nocnego odczekuje 5 minut, dopiero wtedy wyłącza
     lampkę nad wejściem — daje czas na wejście/wyjście po dobranoc.
   trigger:
     - platform: state
@@ -822,7 +822,7 @@
       state: 'on'
   action:
     - delay:
-        minutes: 30
+        minutes: 5
     - action: switch.turn_off
       target:
         entity_id: switch.living_room_lampa_wejscie
@@ -830,12 +830,12 @@
       data:
         name: Lampka wejście
         entity_id: switch.living_room_lampa_wejscie
-        message: WYŁĄCZONO | tryb nocny + 30 min
+        message: WYŁĄCZONO | tryb nocny + 5 min
     - action: script.log_push
       data:
         wpis: >
           {"ts":"{{ now().strftime('%Y-%m-%dT%H:%M') }}","typ":"lampka_wejscie",
-          "akcja":"OFF","info":"tryb nocny +30 min"}
+          "akcja":"OFF","info":"tryb nocny +5 min"}
   mode: single
 
 - id: lampka_wejscie_wylacz_failsafe
