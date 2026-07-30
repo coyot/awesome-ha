@@ -20299,24 +20299,23 @@ const RS_STYLES = `
     min-width: 0;
   }
 
-  /* ── Dot stanu ── */
-  .rs-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+  /* ── Ikona rolety ── */
+  .rs-icon {
     flex-shrink: 0;
-    background: rgba(255,255,255,0.15);
-    transition: background 0.4s ease, box-shadow 0.4s ease;
+    width: 22px;
+    height: 22px;
+    transition: filter 0.4s ease, opacity 0.4s ease;
+    opacity: 0.35;
   }
-  .rs-dot.open {
-    background: #85B7EB;
-    box-shadow: 0 0 6px #85B7EB;
-    animation: rs-pulse 2.5s ease-in-out infinite;
+  .rs-icon.open {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(133,183,235,0.7));
+    animation: rs-icon-pulse 2.5s ease-in-out infinite;
   }
 
-  @keyframes rs-pulse {
-    0%, 100% { opacity: 0.7; box-shadow: 0 0 4px rgba(133,183,235,0.5); }
-    50%       { opacity: 1;   box-shadow: 0 0 10px rgba(133,183,235,0.9); }
+  @keyframes rs-icon-pulse {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(133,183,235,0.5)); }
+    50%       { filter: drop-shadow(0 0 7px rgba(133,183,235,0.95)); }
   }
 
   .rs-name {
@@ -20351,8 +20350,45 @@ const RS_STYLES = `
   .rs-btn svg { width: 13px; height: 13px; fill: rgba(255,255,255,0.55); }
 `;
 
-const RS_SVG_UP = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>`;
+const RS_SVG_UP   = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>`;
 const RS_SVG_DOWN = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
+
+/* Ikona rolety zamkniętej — lamelki wypełniają całe okno */
+function rsIconClosed() {
+  const c = 'rgba(255,255,255,0.45)';
+  const cf = 'rgba(255,255,255,0.12)';
+  return `<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+    <!-- rama okna -->
+    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.1"/>
+    <!-- listwa górna (kaseta) -->
+    <rect x="2" y="2" width="18" height="3.5" rx="1.5" fill="${c}"/>
+    <!-- lamelki — 4 poziome paski -->
+    <rect x="2.5" y="7"  width="17" height="2.2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
+    <rect x="2.5" y="10.5" width="17" height="2.2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
+    <rect x="2.5" y="14"  width="17" height="2.2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
+    <rect x="2.5" y="17.5" width="17" height="2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
+  </svg>`;
+}
+
+/* Ikona rolety otwartej — zrolowany pakiet u góry, otwarta przestrzeń ze świeceniem */
+function rsIconOpen() {
+  const c  = '#85B7EB';
+  const cf = 'rgba(133,183,235,0.18)';
+  return `<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+    <!-- rama okna -->
+    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.1" opacity="0.8"/>
+    <!-- zrolowany pakiet — listwa z lamelkami u góry -->
+    <rect x="2" y="2" width="18" height="5.5" rx="1.5" fill="${c}" opacity="0.75"/>
+    <!-- linie w pakiecie (zawinięte lamelki) -->
+    <line x1="3" y1="4.5" x2="19" y2="4.5" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/>
+    <line x1="3" y1="6.5" x2="19" y2="6.5" stroke="rgba(255,255,255,0.20)" stroke-width="0.6"/>
+    <!-- otwarta przestrzeń — delikatna poświata -->
+    <rect x="2.5" y="8.5" width="17" height="11" rx="1" fill="${cf}"/>
+    <!-- poziome linie światła -->
+    <line x1="4" y1="12" x2="18" y2="12" stroke="rgba(133,183,235,0.20)" stroke-width="0.7"/>
+    <line x1="4" y1="15.5" x2="18" y2="15.5" stroke="rgba(133,183,235,0.12)" stroke-width="0.7"/>
+  </svg>`;
+}
 
 class AhaRollershutterCard extends HTMLElement {
   constructor() {
@@ -20438,16 +20474,17 @@ class AhaRollershutterCard extends HTMLElement {
       const left = document.createElement('div');
       left.className = 'rs-left';
 
-      const dot = document.createElement('div');
-      dot.className = 'rs-dot';
+      const icon = document.createElement('div');
+      icon.className = 'rs-icon';
       const isOpen = this._isOpen(e.boolean);
-      if (isOpen) dot.classList.add('open');
+      icon.innerHTML = isOpen ? rsIconOpen() : rsIconClosed();
+      if (isOpen) icon.classList.add('open');
 
       const name = document.createElement('div');
       name.className = 'rs-name';
       name.textContent = e.name || e.entity;
 
-      left.appendChild(dot);
+      left.appendChild(icon);
       left.appendChild(name);
 
       const btns = document.createElement('div');
@@ -20494,13 +20531,13 @@ class AhaRollershutterCard extends HTMLElement {
     this._config.entities.forEach((e, idx) => {
       const row = rows[idx];
       if (!row) return;
-      const dot = row.querySelector('.rs-dot');
-      if (!dot) return;
+      const icon = row.querySelector('.rs-icon');
+      if (!icon) return;
       const isOpen = this._isOpen(e.boolean);
-      if (isOpen) {
-        dot.classList.add('open');
-      } else {
-        dot.classList.remove('open');
+      const wasOpen = icon.classList.contains('open');
+      if (isOpen !== wasOpen) {
+        icon.innerHTML = isOpen ? rsIconOpen() : rsIconClosed();
+        icon.classList.toggle('open', isOpen);
       }
     });
   }
