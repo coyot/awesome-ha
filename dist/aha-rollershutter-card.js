@@ -224,31 +224,24 @@ const RS_STYLES = `
   }
   .rs-seg {
     display: flex;
-    gap: 3px;
-    background: rgba(255,255,255,0.04);
-    border: 0.5px solid rgba(255,255,255,0.07);
-    border-radius: 11px;
-    padding: 3px;
+    gap: 8px;
   }
   .rs-seg-btn {
-    min-width: 44px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    border: none;
-    background: none;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.40);
     cursor: pointer;
+    color: rgba(255,255,255,0.60);
+    font-family: inherit;
+    transition: transform 0.1s, background 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
-    transition: background 0.15s, color 0.15s, transform 0.1s;
   }
-  .rs-seg-btn:active { transform: scale(0.90); background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.80); }
+  .rs-seg-btn:active { transform: scale(0.90); background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.90); }
 `;
 
 /* ── Card class ─────────────────────────────────────────────────────────────── */
@@ -410,12 +403,14 @@ class AhaRollershutterCard extends HTMLElement {
 
         const segUp = document.createElement('button');
         segUp.className = 'rs-seg-btn';
-        segUp.innerHTML = SVG_UP + 'Otwórz';
+        segUp.innerHTML = SVG_UP;
+        segUp.title = 'Otwórz wszystkie';
         segUp.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'open'); });
 
         const segDown = document.createElement('button');
         segDown.className = 'rs-seg-btn';
-        segDown.innerHTML = SVG_DOWN + 'Zamknij';
+        segDown.innerHTML = SVG_DOWN;
+        segDown.title = 'Zamknij wszystkie';
         segDown.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'close'); });
 
         seg.appendChild(segUp);
