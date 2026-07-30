@@ -430,6 +430,36 @@
 
           '
   mode: single
+
+- id: porecz_wlacz_rolety_pietro
+  alias: "Poręcz: włącz przy zamknięciu rolet piętra"
+  description: >
+    Gdy ręcznie zamknięto rolety piętra (scena), a słońce jest pod horyzontem
+    — włącz poręcz od razu, bez czekania na automatyzację wieczorną.
+  trigger:
+    - platform: state
+      entity_id: scene.otworz_rolety_pietro_duplicate
+  condition:
+    - condition: state
+      entity_id: sun.sun
+      state: below_horizon
+    - condition: state
+      entity_id: switch.porecz_klatka_schodowa_socket_1
+      state: 'off'
+  action:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+    - action: logbook.log
+      data:
+        name: Poręcz klatka
+        entity_id: switch.porecz_klatka_schodowa_socket_1
+        message: WŁĄCZONO | zamknięcie rolet piętra
+    - action: script.log_push
+      data:
+        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz","akcja":"ON","info":"zamknięcie rolet piętra"}'
+  mode: single
+
 - id: porecz_wylacz_rano
   alias: "Poręcz: wyłącz rano"
   triggers:
