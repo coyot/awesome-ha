@@ -441,9 +441,6 @@
       entity_id: scene.otworz_rolety_pietro_duplicate
   condition:
     - condition: state
-      entity_id: sun.sun
-      state: below_horizon
-    - condition: state
       entity_id: switch.porecz_klatka_schodowa_socket_1
       state: 'off'
   action:
