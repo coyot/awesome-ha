@@ -96,11 +96,8 @@ const RS_STYLES = `
     flex-shrink: 0;
     width: 22px;
     height: 22px;
-    transition: filter 0.4s ease, opacity 0.4s ease;
-    opacity: 0.35;
   }
   .rs-icon.open {
-    opacity: 1;
     filter: drop-shadow(0 0 4px rgba(133,183,235,0.7));
     animation: rs-icon-pulse 2.5s ease-in-out infinite;
   }
@@ -145,40 +142,42 @@ const RS_STYLES = `
 const RS_SVG_UP   = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>`;
 const RS_SVG_DOWN = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
 
-/* Ikona rolety zamkniętej — lamelki wypełniają całe okno */
+/* Ikona rolety zamkniętej — ciemna, wypełniona lamelkami, wyraźnie "zablokowana" */
 function rsIconClosed() {
-  const c = 'rgba(255,255,255,0.45)';
-  const cf = 'rgba(255,255,255,0.12)';
+  const stroke = 'rgba(160,165,175,0.70)';
+  const fill   = 'rgba(160,165,175,0.22)';
+  const rail   = 'rgba(160,165,175,0.55)';
   return `<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-    <!-- rama okna -->
-    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.1"/>
-    <!-- listwa górna (kaseta) -->
-    <rect x="2" y="2" width="18" height="3.5" rx="1.5" fill="${c}"/>
-    <!-- lamelki — 4 poziome paski -->
-    <rect x="2.5" y="7"  width="17" height="2.2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
-    <rect x="2.5" y="10.5" width="17" height="2.2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
-    <rect x="2.5" y="14"  width="17" height="2.2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
-    <rect x="2.5" y="17.5" width="17" height="2" rx="0.8" fill="${cf}" stroke="${c}" stroke-width="0.6"/>
+    <!-- rama -->
+    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${stroke}" stroke-width="1.2"/>
+    <!-- kaseta górna — wyraźna listwa -->
+    <rect x="2" y="2" width="18" height="3.5" rx="1.5" fill="${rail}"/>
+    <!-- lamelki — gęste, wypełniają całe okno -->
+    <rect x="2.5" y="6.5"  width="17" height="2.8" rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
+    <rect x="2.5" y="10.2" width="17" height="2.8" rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
+    <rect x="2.5" y="13.9" width="17" height="2.8" rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
+    <rect x="2.5" y="17.6" width="17" height="2"   rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
   </svg>`;
 }
 
-/* Ikona rolety otwartej — zrolowany pakiet u góry, otwarta przestrzeń ze świeceniem */
+/* Ikona rolety otwartej — niebieski pakiet u góry, jasna otwarta przestrzeń */
 function rsIconOpen() {
-  const c  = '#85B7EB';
-  const cf = 'rgba(133,183,235,0.18)';
+  const c    = '#85B7EB';
+  const cMid = 'rgba(133,183,235,0.55)';
+  const cBg  = 'rgba(133,183,235,0.14)';
   return `<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-    <!-- rama okna -->
-    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.1" opacity="0.8"/>
-    <!-- zrolowany pakiet — listwa z lamelkami u góry -->
-    <rect x="2" y="2" width="18" height="5.5" rx="1.5" fill="${c}" opacity="0.75"/>
-    <!-- linie w pakiecie (zawinięte lamelki) -->
-    <line x1="3" y1="4.5" x2="19" y2="4.5" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/>
-    <line x1="3" y1="6.5" x2="19" y2="6.5" stroke="rgba(255,255,255,0.20)" stroke-width="0.6"/>
-    <!-- otwarta przestrzeń — delikatna poświata -->
-    <rect x="2.5" y="8.5" width="17" height="11" rx="1" fill="${cf}"/>
-    <!-- poziome linie światła -->
-    <line x1="4" y1="12" x2="18" y2="12" stroke="rgba(133,183,235,0.20)" stroke-width="0.7"/>
-    <line x1="4" y1="15.5" x2="18" y2="15.5" stroke="rgba(133,183,235,0.12)" stroke-width="0.7"/>
+    <!-- rama — niebieska -->
+    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.2"/>
+    <!-- zrolowany pakiet u góry — pełny, wyraźny -->
+    <rect x="2" y="2" width="18" height="5" rx="1.5" fill="${c}"/>
+    <!-- linie zawinięć w pakiecie -->
+    <line x1="3.5" y1="4"   x2="18.5" y2="4"   stroke="rgba(255,255,255,0.45)" stroke-width="0.9"/>
+    <line x1="3.5" y1="6"   x2="18.5" y2="6"   stroke="rgba(255,255,255,0.25)" stroke-width="0.7"/>
+    <!-- otwarta przestrzeń — wyraźna poświata -->
+    <rect x="2.5" y="8" width="17" height="11.5" rx="1" fill="${cBg}"/>
+    <!-- 2 horyzontalne linie sugerujące światło wpadające przez okno -->
+    <line x1="4" y1="11.5" x2="18" y2="11.5" stroke="${cMid}" stroke-width="0.8"/>
+    <line x1="4" y1="15.5" x2="18" y2="15.5" stroke="rgba(133,183,235,0.30)" stroke-width="0.8"/>
   </svg>`;
 }
 
