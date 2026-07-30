@@ -389,7 +389,7 @@
           '
       sequence:
       - delay:
-          minutes: 70
+          minutes: 130
       - action: switch.turn_on
         target:
           entity_id: switch.porecz_klatka_schodowa_socket_1
@@ -397,7 +397,7 @@
         data:
           name: Poręcz klatka
           entity_id: switch.porecz_klatka_schodowa_socket_1
-          message: 'WŁĄCZONO | zachód −20 min | pogodnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+          message: 'WŁĄCZONO | zachód +40 min | pogodnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
             | round(0) }} W/m²
 
             '
@@ -405,10 +405,12 @@
         data:
           wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz",
             "akcja":"ON","info":"pogodnie {{ states(''sensor.stacja_pogodowa_solar_radiation'')
-            | round(0) }}W/m² · zachód −20min"}
+            | round(0) }}W/m² · zachód +40min"}
 
             '
     default:
+    - delay:
+        minutes: 90
     - action: switch.turn_on
       target:
         entity_id: switch.porecz_klatka_schodowa_socket_1
@@ -416,7 +418,7 @@
       data:
         name: Poręcz klatka
         entity_id: switch.porecz_klatka_schodowa_socket_1
-        message: 'WŁĄCZONO | zachód −90 min | pochmurnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
+        message: 'WŁĄCZONO | zachód ±0 | pochmurnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'')
           | round(0) }} W/m²
 
           '
@@ -424,7 +426,7 @@
       data:
         wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"porecz", "akcja":"ON","info":"pochmurnie
           {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m²
-          · zachód −90min"}
+          · zachód ±0"}
 
           '
   mode: single
@@ -659,7 +661,7 @@
         value_template: '{{ states(''sensor.stacja_pogodowa_solar_radiation'') | float(-1) >= 50 }}'
       sequence:
       - delay:
-          minutes: 70
+          minutes: 130
       - action: switch.turn_on
         target:
           entity_id: switch.living_room_lampa_wejscie
@@ -667,11 +669,13 @@
         data:
           name: Lampka wejście
           entity_id: switch.living_room_lampa_wejscie
-          message: 'WŁĄCZONO | zachód −20 min | pogodnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }} W/m²'
+          message: 'WŁĄCZONO | zachód +40 min | pogodnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }} W/m²'
       - action: script.log_push
         data:
-          wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"lampka_wejscie","akcja":"ON","info":"pogodnie {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m² · zachód −20min"}'
+          wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"lampka_wejscie","akcja":"ON","info":"pogodnie {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m² · zachód +40min"}'
     default:
+    - delay:
+        minutes: 90
     - action: switch.turn_on
       target:
         entity_id: switch.living_room_lampa_wejscie
@@ -679,10 +683,10 @@
       data:
         name: Lampka wejście
         entity_id: switch.living_room_lampa_wejscie
-        message: 'WŁĄCZONO | zachód −90 min | pochmurnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }} W/m²'
+        message: 'WŁĄCZONO | zachód ±0 | pochmurnie | radiation: {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }} W/m²'
     - action: script.log_push
       data:
-        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"lampka_wejscie","akcja":"ON","info":"pochmurnie {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m² · zachód −90min"}'
+        wpis: '{"ts":"{{ now().strftime(''%Y-%m-%dT%H:%M'') }}","typ":"lampka_wejscie","akcja":"ON","info":"pochmurnie {{ states(''sensor.stacja_pogodowa_solar_radiation'') | round(0) }}W/m² · zachód ±0"}'
   mode: single
 
 - id: lampka_wejscie_wlacz_powrot
