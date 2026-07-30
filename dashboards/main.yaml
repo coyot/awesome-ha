@@ -6,6 +6,40 @@ views:
     sections:
       - type: grid
         cards:
+          - type: heading
+            heading: Automatyka
+            heading_style: subtitle
+            icon: mdi:robot
+          - type: custom:aha-action-apple-card
+            entity: script.otworz_wjazd
+            name: Otwórz bramę wjazdową
+            icon: garage
+          - type: custom:aha-input-boolean-card
+            entities:
+              - entity: input_boolean.pergola_auto
+                color: "#30B0FF"
+              - entity: input_boolean.tk_is_working
+                color: "#FF453A"
+              - entity: input_boolean.tryb_noc
+                color: "#A86AC2"
+                confirm_sensor_class:
+                  - door
+                  - window
+                  - opening
+                  - garage_door
+              - entity: input_boolean.garden_ambient
+                name: Ogród Ambient
+                color: "#FFB347"
+                status_entities:
+                  - switch.ogrod_lampy0
+                  - switch.ogrod_lampy1
+                  - light.teleco_shutters
+          - type: custom:aha-pergola-strip-card
+            cover_entity: cover.pergola_lamele
+            light_entity: light.pergola_spot
+            orbs_entity: switch.ogrod_lampy0
+            spot_entity: switch.ogrod_lampy1
+            entry_lamp_entity: switch.living_room_lampa_wejscie
           - type: custom:button-card
             show_name: false
             show_icon: false
@@ -1272,27 +1306,6 @@ views:
                   ]]]
               - type: custom:aha-moon-card
                 slim: true
-          - type: heading
-            heading: Automatyka
-            heading_style: subtitle
-            icon: mdi:robot
-          - type: custom:aha-action-apple-card
-            entity: script.otworz_wjazd
-            name: Otwórz bramę wjazdową
-            icon: garage
-          - type: custom:aha-input-boolean-card
-            entities:
-              - entity: input_boolean.pergola_auto
-                color: "#30B0FF"
-              - entity: input_boolean.tk_is_working
-                color: "#ff9f0a"
-              - entity: input_boolean.tryb_noc
-                color: "#A86AC2"
-                confirm_sensor_class:
-                  - door
-                  - window
-                  - opening
-                  - garage_door
           - type: custom:aha-waste-schedule-apple-card
             title: Wywóz śmieci
             show_calendar: true
@@ -1333,9 +1346,12 @@ views:
             people:
               - name: Tomek
                 entity: device_tracker.iphone_tk
+                battery_entity: sensor.iphone_tk_battery_level
+                working_entity: input_boolean.tk_is_working
               - name: Monika
                 entity: device_tracker.iphone_monika
-            fertilizations: &fertilizations
+                battery_entity: sensor.iphone_monika_battery_level
+            fertilizations:
               - date: "2026-04-16"
                 name: YaraMila Complex
                 description: >
@@ -1476,9 +1492,16 @@ views:
               - type: custom:aha-ac-slim-card
                 entity: climate.salon
                 name: Klimatyzacja — Salon
-      - type: grid
-        cards:
-          - type: custom:aha-solar-clock-card
+          - type: custom:roborock-vacuum-card
+            entity: vacuum.wariat
+            sensors:
+              battery: sensor.wariat_battery
+              area: sensor.wariat_cleaning_area
+              time: sensor.wariat_cleaning_time
+              progress: sensor.wariat_cleaning_progress
+              total_area: sensor.wariat_total_cleaning_area
+              total_time: sensor.wariat_total_cleaning_time
+              total_count: sensor.wariat_total_cleaning_count
           - type: custom:button-card
             show_name: false
             show_icon: false
@@ -1540,6 +1563,9 @@ views:
                 entity_dom2_szambo: sensor.szambo_dom_2_zuzycie
                 entity_dom2_ogrod: sensor.ogrod_2_zuzycie
                 entity_stale: binary_sensor.ogrod_dane_nieaktualne
+      - type: grid
+        cards:
+          - type: custom:aha-solar-clock-card
           - type: custom:aha-log-history-card
     max_columns: 4
     icon: mdi:home
@@ -1608,7 +1634,72 @@ views:
             battery_entity: sensor.stacja_pogodowa_wh90_battery
             forecast_entity: sensor.forecast_hourly_json
             station_label: Ogród · Stacja główna
-            fertilizations: *fertilizations
+            fertilizations:
+              - date: "2026-04-16"
+                name: YaraMila Complex
+                description: >
+                  Trawnik — YaraMila Complex, ok. 25-30 g/m². Nawóz
+                  wieloskładnikowy NPK na start sezonu.
+              - date: "2026-05-13"
+                name: Saletra amonowa + superfosfat
+                description: >
+                  Trawnik — saletra amonowa ok. 15-20 g/m² + superfosfat
+                  wzbogacony ok. 20-30 g/m². Mocne nawożenie azotowo-fosforowe
+                  po wiosennym starcie.
+              - date: "2026-05-26"
+                name: Oprysk regeneracyjny
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l wody + siarczan magnezu
+                  100-150 g / 10 l + siarczan żelaza 20-30 g / 10 l. Oprysk
+                  wieczorem, bez upału.
+              - date: "2026-06-15"
+                name: Nawóz letni azotowo-potasowy
+                description: >
+                  Trawnik — nawóz NPK ok. 18-6-12 lub 20-5-10, dawka 25-30 g/m².
+                  Cel: zagęszczenie, intensywna zieleń, regeneracja po
+                  użytkowaniu.
+              - date: "2026-06-22"
+                name: Optysil + magnez
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu
+                  100-150 g / 10 l. Poprawa odporności na suszę i deptanie.
+              - date: "2026-07-10"
+                name: Potas + lekki azot
+                description: >
+                  Trawnik — siarczan potasu 10-15 g/m² + lekki nawóz azotowy ok.
+                  5-10 g N/m². Wzmocnienie odporności mechanicznej i odporności
+                  na suszę.
+              - date: "2026-07-18"
+                name: Żelazo + Optysil
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan żelaza 20-30
+                  g / 10 l. Efekt ciemnozielonego trawnika i poprawa kondycji.
+              - date: "2026-08-05"
+                name: Nawóz długo działający
+                description: >
+                  Trawnik — nawóz długo działający NPK ok. 15-5-15 lub 16-5-12 +
+                  Fe + Mg, dawka 25 g/m². Kluczowe nawożenie pod gęstość i
+                  regenerację.
+              - date: "2026-08-16"
+                name: Optysil sierpniowy
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu 100 g
+                  / 10 l. Przygotowanie trawnika do końcówki lata.
+              - date: "2026-09-01"
+                name: Nawóz jesienny
+                description: >
+                  Trawnik — nawóz jesienny z wysokim potasem, NPK ok. 6-10-20
+                  lub 0-8-20, dawka 25-30 g/m². Bez mocnego azotu.
+              - date: "2026-09-15"
+                name: Żelazo jesienne
+                description: >
+                  Lekki oprysk: siarczan żelaza 20 g / 10 l + siarczan magnezu
+                  100 g / 10 l. Poprawa koloru i ograniczenie mchu.
+              - date: "2026-10-05"
+                name: Ostatnie nawożenie jesienne
+                description: >
+                  Trawnik — nawóz jesienny potasowy, dawka 15-20 g/m². Ostatnie
+                  nawożenie przed zimą.
           - type: custom:button-card
             show_name: false
             show_icon: false
@@ -2775,41 +2866,30 @@ views:
               ]]]
       - type: grid
         cards:
-          - type: custom:stack-in-card
-            mode: vertical
+          - type: custom:windy-card
+            location: zone.home
+            show_spot: false
+            overlay_loop:
+              - rain
+              - wind
+              - temp
+            overlay_loop_delay: 15
+            zoom: 7
+            aspect_ratio: "16:9"
+            metric_wind: km/h
+            hide_message: true
             card_mod:
               style: |
                 ha-card {
-                  background: #1c1c1e;
-                  border-radius: 20px;
-                  border: 1px solid rgba(255,255,255,0.06);
+                  border-radius: 18px;
                   overflow: hidden;
+                  background: #1c1c1e;
+                  box-shadow: none;
+                  border: none;
                 }
-            cards:
-              - type: custom:weather-radar-card
-                data_source: RainViewer
-                center:
-                  latitude: 52.5283
-                  longitude: 16.8717
-                zoom_level: 8
-                frame_count: 12
-                frame_delay: 500
-                map_style: Dark
-                show_marker: true
-                show_range: false
-                show_zoom: false
-                show_recenter: false
-                show_playback: true
-                card_mod:
-                  style: |
-                    ha-card {
-                      background: transparent;
-                      border: none;
-                      box-shadow: none;
-                      border-radius: 20px;
-                      overflow: hidden;
-                    }
-          - type: custom:aha-moon-card
+                iframe {
+                  border-radius: 18px;
+                }
           - type: custom:button-card
             show_name: false
             show_icon: false
@@ -2831,6 +2911,317 @@ views:
                   <div style="width:6px;height:6px;border-radius:50%;background:#5afa5a;flex-shrink:0;"></div>
                   <span style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#5afa5a;">czujniki - na żywo</span>
                 </div>`;
+              ]]]
+          - type: custom:button-card
+            entity: sensor.stacja_pogodowa_daily_rain_piezo
+            show_name: false
+            show_icon: false
+            show_state: false
+            show_label: true
+            tap_action:
+              action: more-info
+            styles:
+              card:
+                - padding: "0"
+                - background: "linear-gradient(145deg, #0e1a2e 0%, #091220 100%)"
+                - border-radius: 18px
+                - box-shadow: none
+                - border: 1px solid rgba(255,255,255,0.07)
+                - overflow: hidden
+              label:
+                - padding: "0"
+                - margin: "0"
+                - width: 100%
+                - white-space: normal
+                - line-height: "1"
+            label: |
+              [[[
+                // ── Bezpieczne odczytanie encji ───────────────────────────
+                const _s = id => states[id]?.state;
+                const _f = id => { const v = parseFloat(_s(id)); return isNaN(v) ? null : v; };
+
+                const rate  = _f('sensor.stacja_pogodowa_rain_rate_piezo');
+                const day   = _f('sensor.stacja_pogodowa_daily_rain_piezo');
+                const hour  = _f('sensor.stacja_pogodowa_hourly_rain_piezo');
+                const h24   = _f('sensor.stacja_pogodowa_24h_rain_piezo');
+                const event = _f('sensor.stacja_pogodowa_event_rain_piezo');
+                const week  = _f('sensor.stacja_pogodowa_weekly_rain_piezo');
+                const month = _f('sensor.stacja_pogodowa_monthly_rain_piezo');
+                const year  = _f('sensor.stacja_pogodowa_yearly_rain_piezo');
+                const raining = states['binary_sensor.stacja_pogodowa_rain_state_piezo']?.state === 'on';
+
+                const fmt = (v, d=1) => v !== null ? v.toFixed(d) : '—';
+
+                // ── Intensywność wg WMO ───────────────────────────────────
+                function rateClass(r) {
+                  if (r === null || r <= 0) return { txt:'Nie pada',    col:'rgba(255,255,255,0.28)', glow:'#2A3A5A' };
+                  if (r < 0.5)  return { txt:'Mżawka',        col:'#7DD8FF', glow:'#3A7AAA' };
+                  if (r < 2.5)  return { txt:'Lekki deszcz',  col:'#5AC8FA', glow:'#2A6A9A' };
+                  if (r < 7.5)  return { txt:'Umiarkowany',   col:'#3AAEF0', glow:'#1A5A8A' };
+                  if (r < 50)   return { txt:'Silny deszcz',  col:'#2090E0', glow:'#0A4070' };
+                  return               { txt:'Ulewa',          col:'#1070C0', glow:'#082848' };
+                }
+
+                const ri = rateClass(rate);
+
+                // ── Kolor dużej liczby (dziś) ─────────────────────────────
+                function dayColor(d) {
+                  if (d === null || d === 0) return 'rgba(255,255,255,0.18)';
+                  if (d < 1)   return '#C8EEFF';
+                  if (d < 5)   return '#9AD8FF';
+                  if (d < 15)  return '#5AC8FA';
+                  if (d < 30)  return '#3AAEF0';
+                  return               '#2090E0';
+                }
+
+                // ── Normy miesięczne Polska (mm) ──────────────────────────
+                const NORMS = [35,30,35,35,50,60,70,65,50,40,40,40];
+                const mo    = new Date().getMonth();
+                const norm  = NORMS[mo];
+                const mVal  = month !== null ? month : 0;
+                const mPct  = Math.max(0, Math.min(200, (mVal / norm) * 100));
+
+                function monthCtx(m, n) {
+                  if (m === null) return 'Brak danych';
+                  const r = m / n;
+                  if (r < 0.25) return 'Bardzo suchy';
+                  if (r < 0.60) return 'Poniżej normy';
+                  if (r < 0.90) return 'Lekko poniżej';
+                  if (r < 1.10) return 'W normie';
+                  if (r < 1.40) return 'Powyżej normy';
+                  if (r < 2.00) return 'Mokry miesiąc';
+                  return               'Wyjątkowo mokry';
+                }
+
+                const mCtx    = monthCtx(month, norm);
+                const dayNum  = day !== null ? (day >= 10 ? day.toFixed(0) : day.toFixed(1)) : '—';
+                const dayCol  = dayColor(day);
+                const evDesc  = event !== null && event > 0
+                  ? (raining ? `↓ ${fmt(event)} mm · epizod` : `Ostatni epizod: ${fmt(event)} mm`)
+                  : '';
+
+                // ── Unikalne ID ───────────────────────────────────────────
+                const uid = 'rc_' + Math.random().toString(36).slice(2, 7);
+
+                // ── SVG ikona deszczu ─────────────────────────────────────
+                const rainIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                    style="display:inline-block;vertical-align:middle;margin-right:5px;margin-top:-1px;">
+                  <path d="M6 11a6 6 0 0110.4-4A4 4 0 0118 15H6a5 5 0 010-10v0"
+                        stroke="rgba(255,255,255,0.32)" stroke-width="1.4"
+                        stroke-linecap="round" fill="none"/>
+                  <line x1="8"  y1="18" x2="7"  y2="22" stroke="${ri.col}" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="12" y1="18" x2="11" y2="22" stroke="${ri.col}" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="16" y1="18" x2="15" y2="22" stroke="${ri.col}" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>`;
+
+                // ── SVG wykres słupkowy 7 dni (mini sparkbar) ─────────────
+                // Używamy hour/h24/day jako dostępnych punktów — w pełnej implementacji
+                // byłoby to history, tutaj pokazujemy proporcje tygodniowe
+                const bars = [
+                  { lbl:'T', val: week !== null && day !== null ? Math.max(0, week - day) / 6 * (week||0) : 0 },
+                  { lbl:'W', val: day || 0 },
+                ];
+
+                // ── Pasek miesięczny — SVG z markerem normy ───────────────
+                const BAR_W = 240, BAR_H = 6;
+                const fillW  = Math.min(BAR_W, (mPct / 100) * BAR_W);
+                // Marker normy zawsze na 50% szerokości (bo skala 0–200%)
+                const normX  = BAR_W / 2;
+                const barCol = mPct > 110 ? '#5AC8FA' : mPct < 50 ? 'rgba(255,255,255,0.28)' : 'rgba(90,200,250,0.60)';
+
+                const barSvg = `<svg viewBox="0 0 ${BAR_W} ${BAR_H}" width="100%" height="${BAR_H}"
+                    style="display:block;border-radius:3px;overflow:visible;">
+                  <rect x="0" y="0" width="${BAR_W}" height="${BAR_H}" rx="3" fill="rgba(255,255,255,0.07)"/>
+                  <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${BAR_H}" rx="3" fill="${barCol}"/>
+                  <rect x="${normX.toFixed(1)}" y="-1" width="1.5" height="${BAR_H+2}" rx="0.5"
+                        fill="rgba(255,255,255,0.40)"/>
+                </svg>`;
+
+                return `
+                  <div id="${uid}" style="
+                    padding:16px 18px 18px;
+                    position:relative;
+                    overflow:hidden;
+                    font-family:-apple-system,system-ui,sans-serif;
+                  ">
+
+                    <!-- Glow -->
+                    <div style="
+                      position:absolute;top:-50px;right:-30px;
+                      width:180px;height:180px;border-radius:50%;
+                      background:radial-gradient(circle,${ri.glow}40 0%,transparent 65%);
+                      pointer-events:none;
+                    "></div>
+
+                    <!-- Nagłówek -->
+                    <div style="
+                      display:flex;justify-content:space-between;align-items:center;
+                      margin-bottom:14px;position:relative;
+                    ">
+                      <div style="
+                        font-size:10px;font-weight:600;text-transform:uppercase;
+                        letter-spacing:.08em;color:rgba(255,255,255,0.28);
+                        display:flex;align-items:center;
+                      ">${rainIcon}Opady</div>
+
+                      <!-- Badge intensywności + rate -->
+                      <div style="
+                        display:flex;align-items:center;gap:6px;
+                      ">
+                        ${raining ? `<span style="
+                          font-size:10px;font-weight:500;
+                          color:rgba(255,255,255,0.35);
+                        ">${fmt(rate)} mm/h</span>` : ''}
+                        <div style="
+                          display:flex;align-items:center;gap:5px;
+                          font-size:10px;font-weight:600;letter-spacing:.04em;
+                          color:${ri.col};
+                          background:${ri.col}18;
+                          border:1px solid ${ri.col}40;
+                          padding:3px 9px;border-radius:20px;
+                          white-space:nowrap;
+                        ">
+                          ${raining ? `<span style="
+                            width:5px;height:5px;border-radius:50%;
+                            background:${ri.col};
+                            box-shadow:0 0 4px ${ri.col};
+                            display:inline-block;flex-shrink:0;
+                          "></span>` : ''}
+                          ${ri.txt}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- GŁÓWNA WARTOŚĆ — dziś dominuje -->
+                    <div style="
+                      display:flex;align-items:flex-end;
+                      justify-content:space-between;
+                      margin-bottom:16px;
+                    ">
+                      <div>
+                        <div style="
+                          font-size:72px;font-weight:200;letter-spacing:-4px;line-height:1;
+                          color:${dayCol};font-variant-numeric:tabular-nums;
+                        ">${dayNum}</div>
+                        <div style="
+                          font-size:10px;font-weight:600;text-transform:uppercase;
+                          letter-spacing:.08em;color:rgba(255,255,255,0.25);
+                          margin-top:4px;
+                        ">mm dziś</div>
+                      </div>
+
+                      <!-- Prawy panel: 24h i ostatnia godzina -->
+                      <div style="
+                        display:flex;flex-direction:column;align-items:flex-end;
+                        gap:10px;padding-bottom:6px;
+                      ">
+                        <div style="text-align:right;">
+                          <div style="
+                            font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
+                            color:rgba(255,255,255,0.65);font-variant-numeric:tabular-nums;
+                          ">${fmt(h24)}</div>
+                          <div style="
+                            font-size:9px;font-weight:500;text-transform:uppercase;
+                            letter-spacing:.06em;color:rgba(255,255,255,0.25);margin-top:2px;
+                          ">ostatnie 24h</div>
+                        </div>
+                        <div style="text-align:right;">
+                          <div style="
+                            font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
+                            color:rgba(255,255,255,0.50);font-variant-numeric:tabular-nums;
+                          ">${fmt(hour)}</div>
+                          <div style="
+                            font-size:9px;font-weight:500;text-transform:uppercase;
+                            letter-spacing:.06em;color:rgba(255,255,255,0.20);margin-top:2px;
+                          ">ostatnia h</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div style="
+                      height:0.5px;background:rgba(255,255,255,0.07);
+                      margin:0 0 14px;
+                    "></div>
+
+                    <!-- Kafelki: tydzień i miesiąc — symetryczny grid -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+
+                      <div style="
+                        background:rgba(255,255,255,0.04);
+                        border-radius:12px;padding:11px 13px 10px;
+                      ">
+                        <div style="
+                          font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
+                          color:rgba(255,255,255,0.70);font-variant-numeric:tabular-nums;
+                        ">${week !== null ? (week >= 10 ? week.toFixed(0) : week.toFixed(1)) : '—'}</div>
+                        <div style="
+                          font-size:9.5px;color:rgba(255,255,255,0.28);
+                          margin-top:5px;text-transform:uppercase;letter-spacing:.06em;
+                        ">7 dni · mm</div>
+                      </div>
+
+                      <div style="
+                        background:rgba(255,255,255,0.04);
+                        border-radius:12px;padding:11px 13px 10px;
+                      ">
+                        <div style="
+                          font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
+                          color:rgba(255,255,255,0.70);font-variant-numeric:tabular-nums;
+                        ">${month !== null ? (mVal >= 10 ? mVal.toFixed(0) : mVal.toFixed(1)) : '—'}</div>
+                        <div style="
+                          font-size:9.5px;color:rgba(255,255,255,0.28);
+                          margin-top:5px;text-transform:uppercase;letter-spacing:.06em;
+                        ">miesiąc · mm</div>
+                      </div>
+
+                    </div>
+
+                    <!-- Pasek normy miesięcznej -->
+                    <div style="margin-bottom:5px;">
+                      <div style="
+                        display:flex;justify-content:space-between;align-items:baseline;
+                        margin-bottom:6px;
+                      ">
+                        <div style="
+                          font-size:9.5px;color:rgba(255,255,255,0.25);
+                          text-transform:uppercase;letter-spacing:.06em;
+                        ">norma miesiąca · ${norm} mm</div>
+                        <div style="display:flex;align-items:baseline;gap:5px;">
+                          <span style="
+                            font-size:12px;font-weight:500;letter-spacing:-.3px;
+                            color:${mPct > 110 ? '#5AC8FA' : mPct < 50 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.55)'};
+                          ">${mPct.toFixed(0)}%</span>
+                          <span style="font-size:9px;color:rgba(255,255,255,0.28);opacity:0.8;">
+                            ${mCtx}
+                          </span>
+                        </div>
+                      </div>
+                      ${barSvg}
+                      <div style="
+                        display:flex;justify-content:space-between;margin-top:3px;
+                      ">
+                        <span style="font-size:8px;color:rgba(255,255,255,0.15);">0 mm</span>
+                        <span style="font-size:8px;color:rgba(255,255,255,0.25);">↑ norma</span>
+                        <span style="font-size:8px;color:rgba(255,255,255,0.15);">${(norm * 2).toFixed(0)} mm</span>
+                      </div>
+                    </div>
+
+                    <!-- Footer: epizod i rok -->
+                    <div style="
+                      display:flex;justify-content:space-between;align-items:center;
+                      margin-top:10px;padding-top:10px;
+                      border-top:0.5px solid rgba(255,255,255,0.06);
+                    ">
+                      <span style="
+                        font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.28);
+                      ">${evDesc}</span>
+                      <span style="
+                        font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.22);
+                      ">Rok: ${fmt(year, 0)} mm</span>
+                    </div>
+
+                  </div>`;
               ]]]
           - type: custom:button-card
             entity: sensor.stacja_pogodowa_uv_index
@@ -3357,317 +3748,6 @@ views:
                   </div>`;
               ]]]
           - type: custom:button-card
-            entity: sensor.stacja_pogodowa_daily_rain_piezo
-            show_name: false
-            show_icon: false
-            show_state: false
-            show_label: true
-            tap_action:
-              action: more-info
-            styles:
-              card:
-                - padding: "0"
-                - background: "linear-gradient(145deg, #0e1a2e 0%, #091220 100%)"
-                - border-radius: 18px
-                - box-shadow: none
-                - border: 1px solid rgba(255,255,255,0.07)
-                - overflow: hidden
-              label:
-                - padding: "0"
-                - margin: "0"
-                - width: 100%
-                - white-space: normal
-                - line-height: "1"
-            label: |
-              [[[
-                // ── Bezpieczne odczytanie encji ───────────────────────────
-                const _s = id => states[id]?.state;
-                const _f = id => { const v = parseFloat(_s(id)); return isNaN(v) ? null : v; };
-
-                const rate  = _f('sensor.stacja_pogodowa_rain_rate_piezo');
-                const day   = _f('sensor.stacja_pogodowa_daily_rain_piezo');
-                const hour  = _f('sensor.stacja_pogodowa_hourly_rain_piezo');
-                const h24   = _f('sensor.stacja_pogodowa_24h_rain_piezo');
-                const event = _f('sensor.stacja_pogodowa_event_rain_piezo');
-                const week  = _f('sensor.stacja_pogodowa_weekly_rain_piezo');
-                const month = _f('sensor.stacja_pogodowa_monthly_rain_piezo');
-                const year  = _f('sensor.stacja_pogodowa_yearly_rain_piezo');
-                const raining = states['binary_sensor.stacja_pogodowa_rain_state_piezo']?.state === 'on';
-
-                const fmt = (v, d=1) => v !== null ? v.toFixed(d) : '—';
-
-                // ── Intensywność wg WMO ───────────────────────────────────
-                function rateClass(r) {
-                  if (r === null || r <= 0) return { txt:'Nie pada',    col:'rgba(255,255,255,0.28)', glow:'#2A3A5A' };
-                  if (r < 0.5)  return { txt:'Mżawka',        col:'#7DD8FF', glow:'#3A7AAA' };
-                  if (r < 2.5)  return { txt:'Lekki deszcz',  col:'#5AC8FA', glow:'#2A6A9A' };
-                  if (r < 7.5)  return { txt:'Umiarkowany',   col:'#3AAEF0', glow:'#1A5A8A' };
-                  if (r < 50)   return { txt:'Silny deszcz',  col:'#2090E0', glow:'#0A4070' };
-                  return               { txt:'Ulewa',          col:'#1070C0', glow:'#082848' };
-                }
-
-                const ri = rateClass(rate);
-
-                // ── Kolor dużej liczby (dziś) ─────────────────────────────
-                function dayColor(d) {
-                  if (d === null || d === 0) return 'rgba(255,255,255,0.18)';
-                  if (d < 1)   return '#C8EEFF';
-                  if (d < 5)   return '#9AD8FF';
-                  if (d < 15)  return '#5AC8FA';
-                  if (d < 30)  return '#3AAEF0';
-                  return               '#2090E0';
-                }
-
-                // ── Normy miesięczne Polska (mm) ──────────────────────────
-                const NORMS = [35,30,35,35,50,60,70,65,50,40,40,40];
-                const mo    = new Date().getMonth();
-                const norm  = NORMS[mo];
-                const mVal  = month !== null ? month : 0;
-                const mPct  = Math.max(0, Math.min(200, (mVal / norm) * 100));
-
-                function monthCtx(m, n) {
-                  if (m === null) return 'Brak danych';
-                  const r = m / n;
-                  if (r < 0.25) return 'Bardzo suchy';
-                  if (r < 0.60) return 'Poniżej normy';
-                  if (r < 0.90) return 'Lekko poniżej';
-                  if (r < 1.10) return 'W normie';
-                  if (r < 1.40) return 'Powyżej normy';
-                  if (r < 2.00) return 'Mokry miesiąc';
-                  return               'Wyjątkowo mokry';
-                }
-
-                const mCtx    = monthCtx(month, norm);
-                const dayNum  = day !== null ? (day >= 10 ? day.toFixed(0) : day.toFixed(1)) : '—';
-                const dayCol  = dayColor(day);
-                const evDesc  = event !== null && event > 0
-                  ? (raining ? `↓ ${fmt(event)} mm · epizod` : `Ostatni epizod: ${fmt(event)} mm`)
-                  : '';
-
-                // ── Unikalne ID ───────────────────────────────────────────
-                const uid = 'rc_' + Math.random().toString(36).slice(2, 7);
-
-                // ── SVG ikona deszczu ─────────────────────────────────────
-                const rainIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"
-                    style="display:inline-block;vertical-align:middle;margin-right:5px;margin-top:-1px;">
-                  <path d="M6 11a6 6 0 0110.4-4A4 4 0 0118 15H6a5 5 0 010-10v0"
-                        stroke="rgba(255,255,255,0.32)" stroke-width="1.4"
-                        stroke-linecap="round" fill="none"/>
-                  <line x1="8"  y1="18" x2="7"  y2="22" stroke="${ri.col}" stroke-width="1.5" stroke-linecap="round"/>
-                  <line x1="12" y1="18" x2="11" y2="22" stroke="${ri.col}" stroke-width="1.5" stroke-linecap="round"/>
-                  <line x1="16" y1="18" x2="15" y2="22" stroke="${ri.col}" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>`;
-
-                // ── SVG wykres słupkowy 7 dni (mini sparkbar) ─────────────
-                // Używamy hour/h24/day jako dostępnych punktów — w pełnej implementacji
-                // byłoby to history, tutaj pokazujemy proporcje tygodniowe
-                const bars = [
-                  { lbl:'T', val: week !== null && day !== null ? Math.max(0, week - day) / 6 * (week||0) : 0 },
-                  { lbl:'W', val: day || 0 },
-                ];
-
-                // ── Pasek miesięczny — SVG z markerem normy ───────────────
-                const BAR_W = 240, BAR_H = 6;
-                const fillW  = Math.min(BAR_W, (mPct / 100) * BAR_W);
-                // Marker normy zawsze na 50% szerokości (bo skala 0–200%)
-                const normX  = BAR_W / 2;
-                const barCol = mPct > 110 ? '#5AC8FA' : mPct < 50 ? 'rgba(255,255,255,0.28)' : 'rgba(90,200,250,0.60)';
-
-                const barSvg = `<svg viewBox="0 0 ${BAR_W} ${BAR_H}" width="100%" height="${BAR_H}"
-                    style="display:block;border-radius:3px;overflow:visible;">
-                  <rect x="0" y="0" width="${BAR_W}" height="${BAR_H}" rx="3" fill="rgba(255,255,255,0.07)"/>
-                  <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${BAR_H}" rx="3" fill="${barCol}"/>
-                  <rect x="${normX.toFixed(1)}" y="-1" width="1.5" height="${BAR_H+2}" rx="0.5"
-                        fill="rgba(255,255,255,0.40)"/>
-                </svg>`;
-
-                return `
-                  <div id="${uid}" style="
-                    padding:16px 18px 18px;
-                    position:relative;
-                    overflow:hidden;
-                    font-family:-apple-system,system-ui,sans-serif;
-                  ">
-
-                    <!-- Glow -->
-                    <div style="
-                      position:absolute;top:-50px;right:-30px;
-                      width:180px;height:180px;border-radius:50%;
-                      background:radial-gradient(circle,${ri.glow}40 0%,transparent 65%);
-                      pointer-events:none;
-                    "></div>
-
-                    <!-- Nagłówek -->
-                    <div style="
-                      display:flex;justify-content:space-between;align-items:center;
-                      margin-bottom:14px;position:relative;
-                    ">
-                      <div style="
-                        font-size:10px;font-weight:600;text-transform:uppercase;
-                        letter-spacing:.08em;color:rgba(255,255,255,0.28);
-                        display:flex;align-items:center;
-                      ">${rainIcon}Opady</div>
-
-                      <!-- Badge intensywności + rate -->
-                      <div style="
-                        display:flex;align-items:center;gap:6px;
-                      ">
-                        ${raining ? `<span style="
-                          font-size:10px;font-weight:500;
-                          color:rgba(255,255,255,0.35);
-                        ">${fmt(rate)} mm/h</span>` : ''}
-                        <div style="
-                          display:flex;align-items:center;gap:5px;
-                          font-size:10px;font-weight:600;letter-spacing:.04em;
-                          color:${ri.col};
-                          background:${ri.col}18;
-                          border:1px solid ${ri.col}40;
-                          padding:3px 9px;border-radius:20px;
-                          white-space:nowrap;
-                        ">
-                          ${raining ? `<span style="
-                            width:5px;height:5px;border-radius:50%;
-                            background:${ri.col};
-                            box-shadow:0 0 4px ${ri.col};
-                            display:inline-block;flex-shrink:0;
-                          "></span>` : ''}
-                          ${ri.txt}
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- GŁÓWNA WARTOŚĆ — dziś dominuje -->
-                    <div style="
-                      display:flex;align-items:flex-end;
-                      justify-content:space-between;
-                      margin-bottom:16px;
-                    ">
-                      <div>
-                        <div style="
-                          font-size:72px;font-weight:200;letter-spacing:-4px;line-height:1;
-                          color:${dayCol};font-variant-numeric:tabular-nums;
-                        ">${dayNum}</div>
-                        <div style="
-                          font-size:10px;font-weight:600;text-transform:uppercase;
-                          letter-spacing:.08em;color:rgba(255,255,255,0.25);
-                          margin-top:4px;
-                        ">mm dziś</div>
-                      </div>
-
-                      <!-- Prawy panel: 24h i ostatnia godzina -->
-                      <div style="
-                        display:flex;flex-direction:column;align-items:flex-end;
-                        gap:10px;padding-bottom:6px;
-                      ">
-                        <div style="text-align:right;">
-                          <div style="
-                            font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
-                            color:rgba(255,255,255,0.65);font-variant-numeric:tabular-nums;
-                          ">${fmt(h24)}</div>
-                          <div style="
-                            font-size:9px;font-weight:500;text-transform:uppercase;
-                            letter-spacing:.06em;color:rgba(255,255,255,0.25);margin-top:2px;
-                          ">ostatnie 24h</div>
-                        </div>
-                        <div style="text-align:right;">
-                          <div style="
-                            font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
-                            color:rgba(255,255,255,0.50);font-variant-numeric:tabular-nums;
-                          ">${fmt(hour)}</div>
-                          <div style="
-                            font-size:9px;font-weight:500;text-transform:uppercase;
-                            letter-spacing:.06em;color:rgba(255,255,255,0.20);margin-top:2px;
-                          ">ostatnia h</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Divider -->
-                    <div style="
-                      height:0.5px;background:rgba(255,255,255,0.07);
-                      margin:0 0 14px;
-                    "></div>
-
-                    <!-- Kafelki: tydzień i miesiąc — symetryczny grid -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-
-                      <div style="
-                        background:rgba(255,255,255,0.04);
-                        border-radius:12px;padding:11px 13px 10px;
-                      ">
-                        <div style="
-                          font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
-                          color:rgba(255,255,255,0.70);font-variant-numeric:tabular-nums;
-                        ">${week !== null ? (week >= 10 ? week.toFixed(0) : week.toFixed(1)) : '—'}</div>
-                        <div style="
-                          font-size:9.5px;color:rgba(255,255,255,0.28);
-                          margin-top:5px;text-transform:uppercase;letter-spacing:.06em;
-                        ">7 dni · mm</div>
-                      </div>
-
-                      <div style="
-                        background:rgba(255,255,255,0.04);
-                        border-radius:12px;padding:11px 13px 10px;
-                      ">
-                        <div style="
-                          font-size:22px;font-weight:300;letter-spacing:-1px;line-height:1;
-                          color:rgba(255,255,255,0.70);font-variant-numeric:tabular-nums;
-                        ">${month !== null ? (mVal >= 10 ? mVal.toFixed(0) : mVal.toFixed(1)) : '—'}</div>
-                        <div style="
-                          font-size:9.5px;color:rgba(255,255,255,0.28);
-                          margin-top:5px;text-transform:uppercase;letter-spacing:.06em;
-                        ">miesiąc · mm</div>
-                      </div>
-
-                    </div>
-
-                    <!-- Pasek normy miesięcznej -->
-                    <div style="margin-bottom:5px;">
-                      <div style="
-                        display:flex;justify-content:space-between;align-items:baseline;
-                        margin-bottom:6px;
-                      ">
-                        <div style="
-                          font-size:9.5px;color:rgba(255,255,255,0.25);
-                          text-transform:uppercase;letter-spacing:.06em;
-                        ">norma miesiąca · ${norm} mm</div>
-                        <div style="display:flex;align-items:baseline;gap:5px;">
-                          <span style="
-                            font-size:12px;font-weight:500;letter-spacing:-.3px;
-                            color:${mPct > 110 ? '#5AC8FA' : mPct < 50 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.55)'};
-                          ">${mPct.toFixed(0)}%</span>
-                          <span style="font-size:9px;color:rgba(255,255,255,0.28);opacity:0.8;">
-                            ${mCtx}
-                          </span>
-                        </div>
-                      </div>
-                      ${barSvg}
-                      <div style="
-                        display:flex;justify-content:space-between;margin-top:3px;
-                      ">
-                        <span style="font-size:8px;color:rgba(255,255,255,0.15);">0 mm</span>
-                        <span style="font-size:8px;color:rgba(255,255,255,0.25);">↑ norma</span>
-                        <span style="font-size:8px;color:rgba(255,255,255,0.15);">${(norm * 2).toFixed(0)} mm</span>
-                      </div>
-                    </div>
-
-                    <!-- Footer: epizod i rok -->
-                    <div style="
-                      display:flex;justify-content:space-between;align-items:center;
-                      margin-top:10px;padding-top:10px;
-                      border-top:0.5px solid rgba(255,255,255,0.06);
-                    ">
-                      <span style="
-                        font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.28);
-                      ">${evDesc}</span>
-                      <span style="
-                        font-size:9.5px;font-weight:500;color:rgba(255,255,255,0.22);
-                      ">Rok: ${fmt(year, 0)} mm</span>
-                    </div>
-
-                  </div>`;
-              ]]]
-          - type: custom:button-card
             entity: sensor.stacja_pogodowa_humidity
             show_name: false
             show_icon: false
@@ -3874,6 +3954,7 @@ views:
       - type: grid
         cards:
           - type: custom:aha-solar-clock-card
+          - type: custom:aha-moon-card
           - type: custom:aha-astronomical-events-card
             page_size: 4
           - type: custom:button-card
@@ -4530,24 +4611,8 @@ views:
             icon: mdi:sofa
             heading: Salon
             heading_style: subtitle
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:aha-action-apple-card
-                entity: scene.otworz_rolety
-                name: UP
-                icon: blind_up
-              - type: custom:aha-action-apple-card
-                entity: scene.zamknij_rolety
-                name: DOWN
-                icon: blind_down
-          - type: heading
-            heading: Rolety
-            heading_style: title
-            icon: mdi:blinds-horizontal
           - type: custom:aha-rollershutter-card
-            name: Salon
+            name: Salon — rolety
             entities:
               - entity: cover.rollershutter_0001
                 boolean: input_boolean.roleta_0001
@@ -4823,15 +4888,15 @@ views:
                       </div>`;
                   ]]]
           - type: custom:roborock-vacuum-card
-            entity: vacuum.marty_mccleaner
+            entity: vacuum.wariat
             default_mode: verbose
-            battery: sensor.marty_mccleaner_battery
-            area: sensor.marty_mccleaner_cleaning_area
-            time: sensor.marty_mccleaner_cleaning_time
-            progress: sensor.marty_mccleaner_cleaning_progress
-            total_area: sensor.marty_mccleaner_total_cleaning_area
-            total_time: sensor.marty_mccleaner_total_cleaning_time
-            total_count: sensor.marty_mccleaner_total_cleaning_count
+            battery: sensor.wariat_battery
+            area: sensor.wariat_cleaning_area
+            time: sensor.wariat_cleaning_time
+            progress: sensor.wariat_cleaning_progress
+            total_area: sensor.wariat_total_cleaning_area
+            total_time: sensor.wariat_total_cleaning_time
+            total_count: sensor.wariat_total_cleaning_count
           - type: custom:aha-kosiarka-card
             entity: lawn_mower.kosiarka
             name: Kosiarka
@@ -5510,10 +5575,20 @@ views:
     sections:
       - type: grid
         cards:
-          - type: custom:aha-teleco-card
-            entity: cover.teleco_leds2
-            name: Lamele
-            room: pergola
+          - type: custom:aha-pergola-card
+            name: Automatyka
+            room: Ogród
+            cover_entity: cover.teleco_leds2
+            cover_name: Lamele
+            light_entity: light.teleco_shutters
+            light_name: Spoty LED
+            orbs_entity: switch.ogrod_lampy0
+            spot_entity: switch.ogrod_lampy1
+            spot_name: Spoty na drzewa
+            orbs_power_entity: sensor.ogrod_lampy0_power
+            spot_power_entity: sensor.ogrod_lampy1_power
+            entry_lamp_entity: switch.living_room_lampa_wejscie
+            entry_lamp_name: Lampa nad wejściem
           - type: custom:aha-kosiarka-card
             entity: lawn_mower.kosiarka
             name: Kosiarka
@@ -5528,7 +5603,72 @@ views:
             blade_runtime_entity: sensor.s_blade_runtime_reset_time
             blade_reset_entity: button.s_reset_blade_runtime
           - type: custom:aha-garden-calendar-card
-            fertilizations: *fertilizations
+            fertilizations:
+              - date: "2026-04-16"
+                name: YaraMila Complex
+                description: >
+                  Trawnik — YaraMila Complex, ok. 25-30 g/m². Nawóz
+                  wieloskładnikowy NPK na start sezonu.
+              - date: "2026-05-13"
+                name: Saletra amonowa + superfosfat
+                description: >
+                  Trawnik — saletra amonowa ok. 15-20 g/m² + superfosfat
+                  wzbogacony ok. 20-30 g/m². Mocne nawożenie azotowo-fosforowe
+                  po wiosennym starcie.
+              - date: "2026-05-26"
+                name: Oprysk regeneracyjny
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l wody + siarczan magnezu
+                  100-150 g / 10 l + siarczan żelaza 20-30 g / 10 l. Oprysk
+                  wieczorem, bez upału.
+              - date: "2026-06-15"
+                name: Nawóz letni azotowo-potasowy
+                description: >
+                  Trawnik — nawóz NPK ok. 18-6-12 lub 20-5-10, dawka 25-30 g/m².
+                  Cel: zagęszczenie, intensywna zieleń, regeneracja po
+                  użytkowaniu.
+              - date: "2026-06-22"
+                name: Optysil + magnez
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu
+                  100-150 g / 10 l. Poprawa odporności na suszę i deptanie.
+              - date: "2026-07-10"
+                name: Potas + lekki azot
+                description: >
+                  Trawnik — siarczan potasu 10-15 g/m² + lekki nawóz azotowy ok.
+                  5-10 g N/m². Wzmocnienie odporności mechanicznej i odporności
+                  na suszę.
+              - date: "2026-07-18"
+                name: Żelazo + Optysil
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan żelaza 20-30
+                  g / 10 l. Efekt ciemnozielonego trawnika i poprawa kondycji.
+              - date: "2026-08-05"
+                name: Nawóz długo działający
+                description: >
+                  Trawnik — nawóz długo działający NPK ok. 15-5-15 lub 16-5-12 +
+                  Fe + Mg, dawka 25 g/m². Kluczowe nawożenie pod gęstość i
+                  regenerację.
+              - date: "2026-08-16"
+                name: Optysil sierpniowy
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu 100 g
+                  / 10 l. Przygotowanie trawnika do końcówki lata.
+              - date: "2026-09-01"
+                name: Nawóz jesienny
+                description: >
+                  Trawnik — nawóz jesienny z wysokim potasem, NPK ok. 6-10-20
+                  lub 0-8-20, dawka 25-30 g/m². Bez mocnego azotu.
+              - date: "2026-09-15"
+                name: Żelazo jesienne
+                description: >
+                  Lekki oprysk: siarczan żelaza 20 g / 10 l + siarczan magnezu
+                  100 g / 10 l. Poprawa koloru i ograniczenie mchu.
+              - date: "2026-10-05"
+                name: Ostatnie nawożenie jesienne
+                description: >
+                  Trawnik — nawóz jesienny potasowy, dawka 15-20 g/m². Ostatnie
+                  nawożenie przed zimą.
             rain_entity: sensor.stacja_pogodowa_daily_rain_piezo
             rain_threshold: 3
             months_count: 2
@@ -5586,12 +5726,8 @@ views:
                 icon_closed: mdi:home-variant-outline
                 icon_open: mdi:greenhouse
             columns: 4
-          - type: heading
-            heading: Rolety
-            heading_style: title
-            icon: mdi:blinds-horizontal
           - type: custom:aha-rollershutter-card
-            name: Garaż
+            name: Garaż — rolety
             entities:
               - entity: cover.rollershutter_0006
                 boolean: input_boolean.roleta_0006
@@ -5599,6 +5735,17 @@ views:
               - entity: cover.rollershutter_0007
                 boolean: input_boolean.roleta_0007
                 name: S7
+          - type: heading
+            heading_style: title
+            heading: Pergola
+          - type: custom:aha-teleco-card
+            entity: cover.teleco_leds2
+            name: Lamele
+            room: Taras
+          - type: custom:aha-teleco-light-card
+            entity: light.teleco_shutters
+            name: Światło pergoli
+            room: Taras
   - type: sections
     max_columns: 4
     title: pietro
@@ -5614,12 +5761,8 @@ views:
           - type: custom:aha-ac-slim-card
             entity: climate.pokoj_leona
             name: Klimatyzacja — Pokój Leona
-          - type: heading
-            icon: mdi:blinds-open
-            heading: Rolety
-            heading_style: subtitle
           - type: custom:aha-rollershutter-card
-            name: Piętro
+            name: Piętro — rolety
             entities:
               - entity: cover.rollershutter_0008
                 boolean: input_boolean.roleta_0008
@@ -6017,26 +6160,14 @@ views:
             name1: Ogród 49/1
             name2: Ogród 49/2
             step: 0.001
-          - type: vertical-stack
-            cards:
-              - type: custom:aha-szambo-predict-card
-                entity_current: sensor.szambo_zuzycie
-                entity_rate: sensor.szambo_przyrost_dzienny
-                capacity: 10
-                warn_observe: 7
-                warn_plan: 9
-              - type: custom:aha-szambo-apple-card
-                capacity: 10
-                warn_observe: 7
-                warn_plan: 9
-                dom1_name: Dom 49/1
-                dom2_name: Dom 49/2
-                entity_total: sensor.szambo_zuzycie
-                entity_dom1_szambo: sensor.szambo_dom_1_zuzycie
-                entity_dom1_ogrod: sensor.ogrod_1_zuzycie
-                entity_dom2_szambo: sensor.szambo_dom_2_zuzycie
-                entity_dom2_ogrod: sensor.ogrod_2_zuzycie
-                entity_stale: binary_sensor.ogrod_dane_nieaktualne
+          - type: custom:aha-szambo-finance-card
+            cost: 320
+            dom1_name: Dom 49/1
+            dom2_name: Dom 49/2
+            entity_dom1_zaplata: sensor.szambo_dom_1_do_zaplaty
+            entity_dom2_zaplata: sensor.szambo_dom_2_do_zaplaty
+            entity_dom1_zuzycie: sensor.szambo_dom_1_zuzycie
+            entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
           - type: custom:button-card
             entity: input_text.szambo_h1
             show_name: false
@@ -6239,14 +6370,26 @@ views:
                 ]]]
       - type: grid
         cards:
-          - type: custom:aha-szambo-finance-card
-            cost: 320
-            dom1_name: Dom 49/1
-            dom2_name: Dom 49/2
-            entity_dom1_zaplata: sensor.szambo_dom_1_do_zaplaty
-            entity_dom2_zaplata: sensor.szambo_dom_2_do_zaplaty
-            entity_dom1_zuzycie: sensor.szambo_dom_1_zuzycie
-            entity_dom2_zuzycie: sensor.szambo_dom_2_zuzycie
+          - type: vertical-stack
+            cards:
+              - type: custom:aha-szambo-predict-card
+                entity_current: sensor.szambo_zuzycie
+                entity_rate: sensor.szambo_przyrost_dzienny
+                capacity: 10
+                warn_observe: 7
+                warn_plan: 9
+              - type: custom:aha-szambo-apple-card
+                capacity: 10
+                warn_observe: 7
+                warn_plan: 9
+                dom1_name: Dom 49/1
+                dom2_name: Dom 49/2
+                entity_total: sensor.szambo_zuzycie
+                entity_dom1_szambo: sensor.szambo_dom_1_zuzycie
+                entity_dom1_ogrod: sensor.ogrod_1_zuzycie
+                entity_dom2_szambo: sensor.szambo_dom_2_zuzycie
+                entity_dom2_ogrod: sensor.ogrod_2_zuzycie
+                entity_stale: binary_sensor.ogrod_dane_nieaktualne
           - type: custom:mini-graph-card
             name: 🪣 Historia szamba
             hours_to_show: 90
