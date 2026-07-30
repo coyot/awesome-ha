@@ -190,24 +190,24 @@ const RS_STYLES = `
   /* ── Up/Down buttons ── */
   .rs-btns {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     flex-shrink: 0;
   }
   .rs-btn {
     width: 34px;
     height: 34px;
-    border-radius: 9px;
-    background: rgba(255,255,255,0.05);
-    border: 0.5px solid rgba(255,255,255,0.09);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: rgba(255,255,255,0.50);
+    color: rgba(255,255,255,0.60);
     transition: transform 0.1s, background 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
   }
-  .rs-btn:active { transform: scale(0.90); background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+  .rs-btn:active { transform: scale(0.90); background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.90); }
 
   /* ── Group row (dół sekcji) ── */
   .rs-group-row {
