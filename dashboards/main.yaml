@@ -4607,32 +4607,30 @@ views:
     sections:
       - type: grid
         cards:
-          - type: heading
-            icon: mdi:sofa
-            heading: Salon
-            heading_style: subtitle
           - type: custom:aha-rollershutter-card
-            name: Salon — rolety
-            entities:
-              - entity: cover.rollershutter_0001
-                boolean: input_boolean.roleta_0001
-                name: S1
-              - entity: cover.rollershutter_0002
-                boolean: input_boolean.roleta_0002
-                name: S2
-              - entity: cover.rollershutter_0003
-                boolean: input_boolean.roleta_0003
-                name: S3
-              - entity: cover.rollershutter_0004
-                boolean: input_boolean.roleta_0004
-                name: S4
-              - entity: cover.rollershutter_0005
-                boolean: input_boolean.roleta_0005
-                name: S5
-            group_open_service: scene.turn_on
-            group_open_entity: scene.otworz_rolety
-            group_close_service: scene.turn_on
-            group_close_entity: scene.zamknij_rolety
+            name: Rolety
+            sections:
+              - name: Salon
+                entities:
+                  - entity: cover.rollershutter_0001
+                    boolean: input_boolean.roleta_0001
+                    name: S1
+                  - entity: cover.rollershutter_0002
+                    boolean: input_boolean.roleta_0002
+                    name: S2
+                  - entity: cover.rollershutter_0003
+                    boolean: input_boolean.roleta_0003
+                    name: S3
+                  - entity: cover.rollershutter_0004
+                    boolean: input_boolean.roleta_0004
+                    name: S4
+                  - entity: cover.rollershutter_0005
+                    boolean: input_boolean.roleta_0005
+                    name: S5
+                group_open_service: scene.turn_on
+                group_open_entity: scene.otworz_rolety
+                group_close_service: scene.turn_on
+                group_close_entity: scene.zamknij_rolety
       - type: grid
         cards:
           - type: heading
@@ -5727,14 +5725,16 @@ views:
                 icon_open: mdi:greenhouse
             columns: 4
           - type: custom:aha-rollershutter-card
-            name: Garaż — rolety
-            entities:
-              - entity: cover.rollershutter_0006
-                boolean: input_boolean.roleta_0006
-                name: S6
-              - entity: cover.rollershutter_0007
-                boolean: input_boolean.roleta_0007
-                name: S7
+            name: Rolety
+            sections:
+              - name: Garaż
+                entities:
+                  - entity: cover.rollershutter_0006
+                    boolean: input_boolean.roleta_0006
+                    name: S6
+                  - entity: cover.rollershutter_0007
+                    boolean: input_boolean.roleta_0007
+                    name: S7
           - type: heading
             heading_style: title
             heading: Pergola
@@ -5762,30 +5762,32 @@ views:
             entity: climate.pokoj_leona
             name: Klimatyzacja — Pokój Leona
           - type: custom:aha-rollershutter-card
-            name: Piętro — rolety
-            entities:
-              - entity: cover.rollershutter_0008
-                boolean: input_boolean.roleta_0008
-                name: 8 — Leon
-              - entity: cover.rollershutter_0009
-                boolean: input_boolean.roleta_0009
-                name: 9 — Strychowy
-              - entity: cover.rollershutter_000a
-                boolean: input_boolean.roleta_000a
-                name: 10 — Łazienka
-              - entity: cover.rollershutter_000b
-                boolean: input_boolean.roleta_000b
-                name: 11 — Nowy
-              - entity: cover.rollershutter_000c
-                boolean: input_boolean.roleta_000c
-                name: 12 — Sypialnia
-              - entity: cover.rollershutter_000d
-                boolean: input_boolean.roleta_000d
-                name: 13 — Schody
-            group_open_service: scene.turn_on
-            group_open_entity: scene.otworz_rolety_pietro
-            group_close_service: scene.turn_on
-            group_close_entity: scene.otworz_rolety_pietro_duplicate
+            name: Rolety
+            sections:
+              - name: Piętro
+                entities:
+                  - entity: cover.rollershutter_0008
+                    boolean: input_boolean.roleta_0008
+                    name: 8 — Leon
+                  - entity: cover.rollershutter_0009
+                    boolean: input_boolean.roleta_0009
+                    name: 9 — Strychowy
+                  - entity: cover.rollershutter_000a
+                    boolean: input_boolean.roleta_000a
+                    name: 10 — Łazienka
+                  - entity: cover.rollershutter_000b
+                    boolean: input_boolean.roleta_000b
+                    name: 11 — Nowy
+                  - entity: cover.rollershutter_000c
+                    boolean: input_boolean.roleta_000c
+                    name: 12 — Sypialnia
+                  - entity: cover.rollershutter_000d
+                    boolean: input_boolean.roleta_000d
+                    name: 13 — Schody
+                group_open_service: scene.turn_on
+                group_open_entity: scene.otworz_rolety_pietro
+                group_close_service: scene.turn_on
+                group_close_entity: scene.otworz_rolety_pietro_duplicate
       - type: grid
         cards:
           - type: heading

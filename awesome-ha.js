@@ -20209,22 +20209,62 @@ window.customCards.push({
 /**
  * aha-rollershutter-card.js
  *
- * Karta sterowania roletami (cover entities) z wirtualnym stanem przez input_boolean.
- * Rejestruje się jako: aha-rollershutter-card
+ * Karta sterowania roletami — styl pergola-card.
+ * Obsługuje sekcje (sections) z separatorami, badge X/Y, iconbox, group seg.
  *
  * Config:
  *   type: custom:aha-rollershutter-card
- *   name: Salon
- *   entities:
- *     - entity: cover.rollershutter_0001
- *       boolean: input_boolean.roleta_0001
- *       name: S1
- *   group_open_service: scene.turn_on      # optional
- *   group_open_entity: scene.otworz_rolety # optional
- *   group_close_service: scene.turn_on     # optional
- *   group_close_entity: scene.zamknij_rolety # optional
+ *   name: Rolety
+ *   sections:
+ *     - name: Salon
+ *       entities:
+ *         - entity: cover.rollershutter_0001
+ *           boolean: input_boolean.roleta_0001
+ *           name: S1
+ *       group_open_service: scene.turn_on
+ *       group_open_entity: scene.otworz_rolety
+ *       group_close_service: scene.turn_on
+ *       group_close_entity: scene.zamknij_rolety
+ *     - name: Garaż
+ *       entities: [...]
  */
 
+/* ── SVG ikony rolet ───────────────────────────────────────────────────────── */
+
+function rsIconClosed() {
+  const s = 'rgba(160,165,175,0.70)';
+  const f = 'rgba(160,165,175,0.22)';
+  const r = 'rgba(160,165,175,0.55)';
+  return `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+    <rect x="3" y="3" width="22" height="22" rx="2.5" fill="none" stroke="${s}" stroke-width="1.3"/>
+    <rect x="3" y="3" width="22" height="4" rx="1.8" fill="${r}"/>
+    <rect x="3.5" y="8.5"  width="21" height="3.2" rx="0.8" fill="${f}" stroke="${s}" stroke-width="0.8"/>
+    <rect x="3.5" y="12.8" width="21" height="3.2" rx="0.8" fill="${f}" stroke="${s}" stroke-width="0.8"/>
+    <rect x="3.5" y="17.1" width="21" height="3.2" rx="0.8" fill="${f}" stroke="${s}" stroke-width="0.8"/>
+    <rect x="3.5" y="21.4" width="21" height="2.5" rx="0.8" fill="${f}" stroke="${s}" stroke-width="0.8"/>
+  </svg>`;
+}
+
+function rsIconOpen() {
+  const c  = '#85B7EB';
+  const cm = 'rgba(133,183,235,0.55)';
+  const cb = 'rgba(133,183,235,0.13)';
+  return `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+    <rect x="3" y="3" width="22" height="22" rx="2.5" fill="none" stroke="${c}" stroke-width="1.3"/>
+    <rect x="3" y="3" width="22" height="6" rx="2" fill="${c}"/>
+    <line x1="4.5" y1="5.5"  x2="23.5" y2="5.5"  stroke="rgba(255,255,255,0.40)" stroke-width="0.9"/>
+    <line x1="4.5" y1="7.8"  x2="23.5" y2="7.8"  stroke="rgba(255,255,255,0.22)" stroke-width="0.7"/>
+    <rect x="3.5" y="10.5" width="21" height="14" rx="1.2" fill="${cb}"/>
+    <line x1="5" y1="14.5" x2="23" y2="14.5" stroke="${cm}" stroke-width="0.9"/>
+    <line x1="5" y1="19"   x2="23" y2="19"   stroke="rgba(133,183,235,0.28)" stroke-width="0.9"/>
+  </svg>`;
+}
+
+/* ── Chevron SVG ────────────────────────────────────────────────────────────── */
+const SVG_UP   = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>`;
+const SVG_DOWN = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
+
+/* ── Styles ─────────────────────────────────────────────────────────────────── */
 const RS_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :host { display: block; }
@@ -20233,176 +20273,207 @@ const RS_STYLES = `
     background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
     border-radius: 16px;
     border: 0.5px solid rgba(255,255,255,0.08);
-    padding: 14px 16px;
+    padding: 14px 16px 12px;
     font-family: -apple-system, system-ui, sans-serif;
     color: rgba(255,255,255,0.85);
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
 
-  /* ── Nagłówek ── */
-  .rs-header {
+  /* ── Header ── */
+  .rs-hdr {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .rs-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.85);
-    letter-spacing: 0.01em;
-  }
-  .rs-group-btns {
-    display: flex;
-    gap: 6px;
-  }
-  .rs-btn-group {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(133,183,235,0.12);
-    border: 0.5px solid rgba(133,183,235,0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.15s ease, background 0.15s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .rs-btn-group:active { transform: scale(0.92); background: rgba(133,183,235,0.20); }
-  .rs-btn-group svg { width: 16px; height: 16px; fill: rgba(133,183,235,0.85); }
-
-  /* ── Separator ── */
-  .rs-divider {
-    height: 0.5px;
-    background: rgba(255,255,255,0.06);
     margin-bottom: 10px;
   }
+  .rs-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    letter-spacing: -0.2px;
+  }
+  .rs-badge {
+    font-size: 11px;
+    color: #636366;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.3s;
+  }
+  .rs-badge.active { color: rgba(255,255,255,0.55); }
+  .rs-badge-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(142,142,147,0.35);
+    transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+  }
+  .rs-badge-dot.active {
+    background: #30d158;
+    box-shadow: 0 0 8px #30d158;
+  }
 
-  /* ── Wiersze rolet ── */
+  /* ── Section separator ── */
+  .rs-sect-sep {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 6px;
+  }
+  .rs-sect-sep::before, .rs-sect-sep::after {
+    content: '';
+    flex: 1;
+    height: 0.5px;
+    background: rgba(255,255,255,0.07);
+  }
+  .rs-sect-sep span {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.20);
+    white-space: nowrap;
+  }
+
+  /* ── Section group box ── */
+  .rs-group-box {
+    border-radius: 13px;
+    border: 0.5px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.022);
+    padding: 0 12px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Row ── */
   .rs-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 7px 0;
-    border-bottom: 0.5px solid rgba(255,255,255,0.04);
+    gap: 13px;
+    padding: 10px 0;
   }
-  .rs-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .rs-row:first-child { padding-top: 0; }
+  .rs-row + .rs-row { border-top: 0.5px solid rgba(255,255,255,0.07); }
 
-  .rs-left {
+  /* ── Iconbox ── */
+  .rs-iconbox {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex: 1;
-    min-width: 0;
+    justify-content: center;
+    background: rgba(142,142,147,0.07);
+    border: 0.5px solid rgba(142,142,147,0.15);
+    transition: background 0.35s, border-color 0.35s, box-shadow 0.45s;
+  }
+  .rs-iconbox.open {
+    background: rgba(133,183,235,0.10);
+    border-color: rgba(133,183,235,0.22);
+    animation: rs-pulse 2.5s ease-in-out infinite;
   }
 
-  /* ── Ikona rolety ── */
-  .rs-icon {
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-  }
-  .rs-icon.open {
-    filter: drop-shadow(0 0 4px rgba(133,183,235,0.7));
-    animation: rs-icon-pulse 2.5s ease-in-out infinite;
+  @keyframes rs-pulse {
+    0%, 100% { box-shadow: 0 0 0 0px rgba(133,183,235,0); }
+    50%       { box-shadow: 0 0 0 5px rgba(133,183,235,0.18); }
   }
 
-  @keyframes rs-icon-pulse {
-    0%, 100% { filter: drop-shadow(0 0 3px rgba(133,183,235,0.5)); }
-    50%       { filter: drop-shadow(0 0 7px rgba(133,183,235,0.95)); }
-  }
-
+  /* ── Name + status ── */
+  .rs-mid { flex: 1; min-width: 0; }
   .rs-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.75);
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.90);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .rs-status {
+    font-size: 11px;
+    color: #636366;
+    margin-top: 1px;
+  }
+  .rs-status.open { color: rgba(133,183,235,0.75); }
 
-  /* ── Przyciski rolety ── */
+  /* ── Up/Down buttons ── */
   .rs-btns {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     flex-shrink: 0;
   }
   .rs-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.06);
-    border: 0.5px solid rgba(255,255,255,0.10);
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.05);
+    border: 0.5px solid rgba(255,255,255,0.09);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.15s ease, background 0.15s ease;
+    color: rgba(255,255,255,0.50);
+    transition: transform 0.1s, background 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
   }
-  .rs-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.12); }
-  .rs-btn svg { width: 13px; height: 13px; fill: rgba(255,255,255,0.55); }
+  .rs-btn:active { transform: scale(0.90); background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+
+  /* ── Group row (dół sekcji) ── */
+  .rs-group-row {
+    border-top: 0.5px solid rgba(255,255,255,0.07);
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .rs-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.25);
+  }
+  .rs-seg {
+    display: flex;
+    gap: 3px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.07);
+    border-radius: 11px;
+    padding: 3px;
+  }
+  .rs-seg-btn {
+    min-width: 44px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.40);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+  .rs-seg-btn:active { transform: scale(0.90); background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.80); }
 `;
 
-const RS_SVG_UP   = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>`;
-const RS_SVG_DOWN = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>`;
-
-/* Ikona rolety zamkniętej — ciemna, wypełniona lamelkami, wyraźnie "zablokowana" */
-function rsIconClosed() {
-  const stroke = 'rgba(160,165,175,0.70)';
-  const fill   = 'rgba(160,165,175,0.22)';
-  const rail   = 'rgba(160,165,175,0.55)';
-  return `<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-    <!-- rama -->
-    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${stroke}" stroke-width="1.2"/>
-    <!-- kaseta górna — wyraźna listwa -->
-    <rect x="2" y="2" width="18" height="3.5" rx="1.5" fill="${rail}"/>
-    <!-- lamelki — gęste, wypełniają całe okno -->
-    <rect x="2.5" y="6.5"  width="17" height="2.8" rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
-    <rect x="2.5" y="10.2" width="17" height="2.8" rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
-    <rect x="2.5" y="13.9" width="17" height="2.8" rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
-    <rect x="2.5" y="17.6" width="17" height="2"   rx="0.6" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>
-  </svg>`;
-}
-
-/* Ikona rolety otwartej — niebieski pakiet u góry, jasna otwarta przestrzeń */
-function rsIconOpen() {
-  const c    = '#85B7EB';
-  const cMid = 'rgba(133,183,235,0.55)';
-  const cBg  = 'rgba(133,183,235,0.14)';
-  return `<svg viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
-    <!-- rama — niebieska -->
-    <rect x="2" y="2" width="18" height="18" rx="2" fill="none" stroke="${c}" stroke-width="1.2"/>
-    <!-- zrolowany pakiet u góry — pełny, wyraźny -->
-    <rect x="2" y="2" width="18" height="5" rx="1.5" fill="${c}"/>
-    <!-- linie zawinięć w pakiecie -->
-    <line x1="3.5" y1="4"   x2="18.5" y2="4"   stroke="rgba(255,255,255,0.45)" stroke-width="0.9"/>
-    <line x1="3.5" y1="6"   x2="18.5" y2="6"   stroke="rgba(255,255,255,0.25)" stroke-width="0.7"/>
-    <!-- otwarta przestrzeń — wyraźna poświata -->
-    <rect x="2.5" y="8" width="17" height="11.5" rx="1" fill="${cBg}"/>
-    <!-- 2 horyzontalne linie sugerujące światło wpadające przez okno -->
-    <line x1="4" y1="11.5" x2="18" y2="11.5" stroke="${cMid}" stroke-width="0.8"/>
-    <line x1="4" y1="15.5" x2="18" y2="15.5" stroke="rgba(133,183,235,0.30)" stroke-width="0.8"/>
-  </svg>`;
-}
-
+/* ── Card class ─────────────────────────────────────────────────────────────── */
 class AhaRollershutterCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this._config = null;
-    this._hass = null;
+    this._config  = null;
+    this._hass    = null;
     this._rendered = false;
   }
 
   setConfig(config) {
-    if (!config.entities || !Array.isArray(config.entities) || config.entities.length === 0) {
-      throw new Error('aha-rollershutter-card: "entities" jest wymagane i musi być listą.');
+    if (!config.sections || !Array.isArray(config.sections) || config.sections.length === 0) {
+      throw new Error('aha-rollershutter-card: wymagane pole "sections" (lista sekcji).');
     }
-    this._config = config;
+    this._config  = config;
     this._rendered = false;
   }
 
@@ -20411,14 +20482,25 @@ class AhaRollershutterCard extends HTMLElement {
     if (!this._rendered) {
       this._render();
     } else {
-      this._updateDots();
+      this._updateStates();
     }
+  }
+
+  _allEntities() {
+    return (this._config.sections || []).flatMap(s => s.entities || []);
+  }
+
+  _isOpen(booleanId) {
+    if (!booleanId || !this._hass) return false;
+    return this._hass.states[booleanId]?.state === 'on';
+  }
+
+  _openCount() {
+    return this._allEntities().filter(e => this._isOpen(e.boolean)).length;
   }
 
   _render() {
     if (!this._config || !this._hass) return;
-    const config = this._config;
-    const hasGroup = !!(config.group_open_service && config.group_open_entity && config.group_close_service && config.group_close_entity);
 
     const styleEl = document.createElement('style');
     styleEl.textContent = RS_STYLES;
@@ -20426,124 +20508,186 @@ class AhaRollershutterCard extends HTMLElement {
     const card = document.createElement('div');
     card.className = 'rs-card';
 
-    // Header
-    const header = document.createElement('div');
-    header.className = 'rs-header';
+    /* ── Header ── */
+    const hdr = document.createElement('div');
+    hdr.className = 'rs-hdr';
 
     const title = document.createElement('div');
     title.className = 'rs-title';
-    title.textContent = config.name || 'Rolety';
-    header.appendChild(title);
+    title.textContent = this._config.name || 'Rolety';
 
-    if (hasGroup) {
-      const groupBtns = document.createElement('div');
-      groupBtns.className = 'rs-group-btns';
+    const badge = document.createElement('div');
+    badge.className = 'rs-badge';
+    badge.id = 'rs-badge';
 
-      const btnUp = document.createElement('button');
-      btnUp.className = 'rs-btn-group';
-      btnUp.innerHTML = RS_SVG_UP;
-      btnUp.title = 'Otwórz wszystkie';
-      btnUp.addEventListener('click', (e) => { e.stopPropagation(); this._groupAction('open'); });
+    const dot = document.createElement('div');
+    dot.className = 'rs-badge-dot';
+    dot.id = 'rs-badge-dot';
 
-      const btnDown = document.createElement('button');
-      btnDown.className = 'rs-btn-group';
-      btnDown.innerHTML = RS_SVG_DOWN;
-      btnDown.title = 'Zamknij wszystkie';
-      btnDown.addEventListener('click', (e) => { e.stopPropagation(); this._groupAction('close'); });
+    const badgeTxt = document.createElement('span');
+    badgeTxt.id = 'rs-badge-txt';
 
-      groupBtns.appendChild(btnUp);
-      groupBtns.appendChild(btnDown);
-      header.appendChild(groupBtns);
-    }
-    card.appendChild(header);
+    badge.appendChild(dot);
+    badge.appendChild(badgeTxt);
+    hdr.appendChild(title);
+    hdr.appendChild(badge);
+    card.appendChild(hdr);
 
-    const divider = document.createElement('div');
-    divider.className = 'rs-divider';
-    card.appendChild(divider);
+    /* ── Sections ── */
+    const total = this._allEntities().length;
 
-    // Entity rows
-    const rowsContainer = document.createElement('div');
-    rowsContainer.className = 'rs-rows';
+    this._config.sections.forEach((section, sIdx) => {
+      /* Section separator */
+      const sep = document.createElement('div');
+      sep.className = 'rs-sect-sep';
+      sep.innerHTML = `<span>${section.name || ''}</span>`;
+      card.appendChild(sep);
 
-    config.entities.forEach((e, idx) => {
-      const row = document.createElement('div');
-      row.className = 'rs-row';
-      row.dataset.idx = idx;
+      /* Group box */
+      const box = document.createElement('div');
+      box.className = 'rs-group-box';
+      box.dataset.section = sIdx;
 
-      const left = document.createElement('div');
-      left.className = 'rs-left';
+      /* Entity rows */
+      (section.entities || []).forEach((e, eIdx) => {
+        const row = document.createElement('div');
+        row.className = 'rs-row';
+        row.dataset.sIdx = sIdx;
+        row.dataset.eIdx = eIdx;
 
-      const icon = document.createElement('div');
-      icon.className = 'rs-icon';
-      const isOpen = this._isOpen(e.boolean);
-      icon.innerHTML = isOpen ? rsIconOpen() : rsIconClosed();
-      if (isOpen) icon.classList.add('open');
+        /* Iconbox */
+        const iconbox = document.createElement('div');
+        iconbox.className = 'rs-iconbox';
+        const isOpen = this._isOpen(e.boolean);
+        iconbox.innerHTML = isOpen ? rsIconOpen() : rsIconClosed();
+        if (isOpen) iconbox.classList.add('open');
 
-      const name = document.createElement('div');
-      name.className = 'rs-name';
-      name.textContent = e.name || e.entity;
+        /* Mid */
+        const mid = document.createElement('div');
+        mid.className = 'rs-mid';
 
-      left.appendChild(icon);
-      left.appendChild(name);
+        const name = document.createElement('div');
+        name.className = 'rs-name';
+        name.textContent = e.name || e.entity;
 
-      const btns = document.createElement('div');
-      btns.className = 'rs-btns';
+        const status = document.createElement('div');
+        status.className = 'rs-status' + (isOpen ? ' open' : '');
+        status.textContent = isOpen ? 'otwarta' : 'zamknięta';
 
-      const btnUp = document.createElement('button');
-      btnUp.className = 'rs-btn';
-      btnUp.innerHTML = RS_SVG_UP;
-      btnUp.title = 'Otwórz';
-      btnUp.addEventListener('click', (ev) => { ev.stopPropagation(); this._singleAction(e.entity, e.boolean, 'open'); });
+        mid.appendChild(name);
+        mid.appendChild(status);
 
-      const btnDown = document.createElement('button');
-      btnDown.className = 'rs-btn';
-      btnDown.innerHTML = RS_SVG_DOWN;
-      btnDown.title = 'Zamknij';
-      btnDown.addEventListener('click', (ev) => { ev.stopPropagation(); this._singleAction(e.entity, e.boolean, 'close'); });
+        /* Buttons */
+        const btns = document.createElement('div');
+        btns.className = 'rs-btns';
 
-      btns.appendChild(btnUp);
-      btns.appendChild(btnDown);
+        const btnUp = document.createElement('button');
+        btnUp.className = 'rs-btn';
+        btnUp.innerHTML = SVG_UP;
+        btnUp.title = 'Otwórz';
+        btnUp.addEventListener('click', ev => { ev.stopPropagation(); this._singleAction(e.entity, e.boolean, 'open'); });
 
-      row.appendChild(left);
-      row.appendChild(btns);
-      rowsContainer.appendChild(row);
+        const btnDown = document.createElement('button');
+        btnDown.className = 'rs-btn';
+        btnDown.innerHTML = SVG_DOWN;
+        btnDown.title = 'Zamknij';
+        btnDown.addEventListener('click', ev => { ev.stopPropagation(); this._singleAction(e.entity, e.boolean, 'close'); });
+
+        btns.appendChild(btnUp);
+        btns.appendChild(btnDown);
+
+        row.appendChild(iconbox);
+        row.appendChild(mid);
+        row.appendChild(btns);
+        box.appendChild(row);
+      });
+
+      /* Group row (jeśli sekcja ma group service) */
+      const hasGroup = !!(section.group_open_service && section.group_open_entity &&
+                          section.group_close_service && section.group_close_entity);
+      if (hasGroup) {
+        const groupRow = document.createElement('div');
+        groupRow.className = 'rs-group-row';
+
+        const label = document.createElement('div');
+        label.className = 'rs-group-label';
+        label.textContent = 'Wszystkie';
+
+        const seg = document.createElement('div');
+        seg.className = 'rs-seg';
+
+        const segUp = document.createElement('button');
+        segUp.className = 'rs-seg-btn';
+        segUp.innerHTML = SVG_UP + 'Otwórz';
+        segUp.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'open'); });
+
+        const segDown = document.createElement('button');
+        segDown.className = 'rs-seg-btn';
+        segDown.innerHTML = SVG_DOWN + 'Zamknij';
+        segDown.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'close'); });
+
+        seg.appendChild(segUp);
+        seg.appendChild(segDown);
+        groupRow.appendChild(label);
+        groupRow.appendChild(seg);
+        box.appendChild(groupRow);
+      }
+
+      card.appendChild(box);
     });
-
-    card.appendChild(rowsContainer);
 
     this.shadowRoot.innerHTML = '';
     this.shadowRoot.appendChild(styleEl);
     this.shadowRoot.appendChild(card);
 
     this._rendered = true;
+    this._updateBadge();
   }
 
-  _isOpen(booleanId) {
-    if (!booleanId || !this._hass) return false;
-    const state = this._hass.states[booleanId];
-    return state ? state.state === 'on' : false;
+  _updateBadge() {
+    const r = this.shadowRoot;
+    if (!r) return;
+    const total  = this._allEntities().length;
+    const open   = this._openCount();
+    const active = open > 0;
+
+    const dot = r.getElementById('rs-badge-dot');
+    const txt = r.getElementById('rs-badge-txt');
+    const badge = r.getElementById('rs-badge');
+    if (dot)  { dot.classList.toggle('active', active); }
+    if (txt)  { txt.textContent = `${open}/${total} otwarte`; }
+    if (badge) { badge.classList.toggle('active', active); }
   }
 
-  _updateDots() {
+  _updateStates() {
     if (!this._config || !this._hass) return;
-    const rows = this.shadowRoot.querySelectorAll('.rs-row');
-    this._config.entities.forEach((e, idx) => {
-      const row = rows[idx];
-      if (!row) return;
-      const icon = row.querySelector('.rs-icon');
-      if (!icon) return;
-      const isOpen = this._isOpen(e.boolean);
-      const wasOpen = icon.classList.contains('open');
-      if (isOpen !== wasOpen) {
-        icon.innerHTML = isOpen ? rsIconOpen() : rsIconClosed();
-        icon.classList.toggle('open', isOpen);
-      }
+    const r = this.shadowRoot;
+    if (!r) return;
+
+    this._config.sections.forEach((section, sIdx) => {
+      (section.entities || []).forEach((e, eIdx) => {
+        const row = r.querySelector(`.rs-row[data-s-idx="${sIdx}"][data-e-idx="${eIdx}"]`);
+        if (!row) return;
+        const iconbox = row.querySelector('.rs-iconbox');
+        const status  = row.querySelector('.rs-status');
+        if (!iconbox || !status) return;
+        const isOpen  = this._isOpen(e.boolean);
+        const wasOpen = iconbox.classList.contains('open');
+        if (isOpen !== wasOpen) {
+          iconbox.innerHTML = isOpen ? rsIconOpen() : rsIconClosed();
+          iconbox.classList.toggle('open', isOpen);
+          status.textContent = isOpen ? 'otwarta' : 'zamknięta';
+          status.className = 'rs-status' + (isOpen ? ' open' : '');
+        }
+      });
     });
+
+    this._updateBadge();
   }
 
-  _singleAction(entityId, booleanId, direction) {
+  _singleAction(entityId, booleanId, dir) {
     if (!this._hass) return;
-    if (direction === 'open') {
+    if (dir === 'open') {
       this._hass.callService('cover', 'open_cover', { entity_id: entityId });
       if (booleanId) this._hass.callService('input_boolean', 'turn_on', { entity_id: booleanId });
     } else {
@@ -20552,54 +20696,45 @@ class AhaRollershutterCard extends HTMLElement {
     }
   }
 
-  _groupAction(direction) {
-    if (!this._hass || !this._config) return;
-    const cfg = this._config;
-    if (direction === 'open') {
-      const [domain, service] = cfg.group_open_service.split('.');
-      this._hass.callService(domain, service, { entity_id: cfg.group_open_entity });
-      cfg.entities.forEach(e => {
+  _groupAction(section, dir) {
+    if (!this._hass) return;
+    if (dir === 'open') {
+      const [domain, svc] = section.group_open_service.split('.');
+      this._hass.callService(domain, svc, { entity_id: section.group_open_entity });
+      (section.entities || []).forEach(e => {
         if (e.boolean) this._hass.callService('input_boolean', 'turn_on', { entity_id: e.boolean });
       });
     } else {
-      const [domain, service] = cfg.group_close_service.split('.');
-      this._hass.callService(domain, service, { entity_id: cfg.group_close_entity });
-      cfg.entities.forEach(e => {
+      const [domain, svc] = section.group_close_service.split('.');
+      this._hass.callService(domain, svc, { entity_id: section.group_close_entity });
+      (section.entities || []).forEach(e => {
         if (e.boolean) this._hass.callService('input_boolean', 'turn_off', { entity_id: e.boolean });
       });
     }
   }
 
   getCardSize() {
-    const count = this._config && this._config.entities ? this._config.entities.length : 1;
-    return Math.ceil(count / 2) + 1;
-  }
-
-  static getConfigElement() {
-    return document.createElement('div');
+    const count = this._allEntities().length;
+    return Math.ceil(count / 2) + 2;
   }
 
   static getStubConfig() {
     return {
       name: 'Rolety',
-      entities: [
-        { entity: 'cover.rollershutter_0001', boolean: 'input_boolean.roleta_0001', name: 'S1' }
-      ]
+      sections: [{
+        name: 'Salon',
+        entities: [{ entity: 'cover.rollershutter_0001', boolean: 'input_boolean.roleta_0001', name: 'S1' }]
+      }]
     };
   }
 }
 
 customElements.define('aha-rollershutter-card', AhaRollershutterCard);
 
-// Legacy alias (without prefix) — not applicable for this card type, but register anyway
-if (!customElements.get('rollershutter-card')) {
-  customElements.define('rollershutter-card', class extends AhaRollershutterCard {});
-}
-
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'aha-rollershutter-card',
   name: 'AHA Rollershutter Card',
-  description: 'Karta sterowania roletami z wirtualnym stanem (input_boolean)',
+  description: 'Karta sterowania roletami z sekcjami, badge X/Y i group seg',
   preview: false,
 });
