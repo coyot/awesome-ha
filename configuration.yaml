@@ -335,6 +335,45 @@ input_boolean:
   rolety_salon_opuszczone:
     name: Rolety salon opuszczone
     icon: mdi:blinds-horizontal-closed
+  roleta_0001:
+    name: Roleta S1 (Salon)
+    icon: mdi:blinds-horizontal
+  roleta_0002:
+    name: Roleta S2 (Salon)
+    icon: mdi:blinds-horizontal
+  roleta_0003:
+    name: Roleta S3 (Salon)
+    icon: mdi:blinds-horizontal
+  roleta_0004:
+    name: Roleta S4 (Salon)
+    icon: mdi:blinds-horizontal
+  roleta_0005:
+    name: Roleta S5 (Salon)
+    icon: mdi:blinds-horizontal
+  roleta_0006:
+    name: Roleta S6 (Garaż)
+    icon: mdi:blinds-horizontal
+  roleta_0007:
+    name: Roleta S7 (Garaż)
+    icon: mdi:blinds-horizontal
+  roleta_0008:
+    name: Roleta 8 — Leon (Piętro)
+    icon: mdi:blinds-horizontal
+  roleta_0009:
+    name: Roleta 9 — Strychowy (Piętro)
+    icon: mdi:blinds-horizontal
+  roleta_000a:
+    name: Roleta 10 — Łazienka (Piętro)
+    icon: mdi:blinds-horizontal
+  roleta_000b:
+    name: Roleta 11 — Nowy (Piętro)
+    icon: mdi:blinds-horizontal
+  roleta_000c:
+    name: Roleta 12 — Sypialnia (Piętro)
+    icon: mdi:blinds-horizontal
+  roleta_000d:
+    name: Roleta 13 — Schody (Piętro)
+    icon: mdi:blinds-horizontal
 
 input_datetime:
   ogrod_1_ostatnia_aktualizacja:

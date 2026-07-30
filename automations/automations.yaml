@@ -1143,6 +1143,12 @@
           - cover.rollershutter_0001
           - cover.rollershutter_0002
           - cover.rollershutter_0009
+      - action: input_boolean.turn_on
+        target:
+          entity_id:
+          - input_boolean.roleta_0001
+          - input_boolean.roleta_0002
+          - input_boolean.roleta_0009
       - action: logbook.log
         data:
           name: Kwiaty — rolety
@@ -1166,6 +1172,12 @@
         - cover.rollershutter_0001
         - cover.rollershutter_0002
         - cover.rollershutter_0009
+    - action: input_boolean.turn_on
+      target:
+        entity_id:
+        - input_boolean.roleta_0001
+        - input_boolean.roleta_0002
+        - input_boolean.roleta_0009
     - action: logbook.log
       data:
         name: Kwiaty — rolety
@@ -1210,6 +1222,12 @@
           - cover.rollershutter_0001
           - cover.rollershutter_0002
           - cover.rollershutter_0009
+      - action: input_boolean.turn_off
+        target:
+          entity_id:
+          - input_boolean.roleta_0001
+          - input_boolean.roleta_0002
+          - input_boolean.roleta_0009
       - action: logbook.log
         data:
           name: Kwiaty — rolety
@@ -1231,6 +1249,12 @@
         - cover.rollershutter_0001
         - cover.rollershutter_0002
         - cover.rollershutter_0009
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+        - input_boolean.roleta_0001
+        - input_boolean.roleta_0002
+        - input_boolean.roleta_0009
     - action: logbook.log
       data:
         name: Kwiaty — rolety
@@ -1455,6 +1479,9 @@
     - action: cover.open_cover
       target:
         entity_id: cover.rollershutter_0009
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.roleta_0009
     - action: logbook.log
       data:
         name: "Strychowy — roleta"
@@ -1482,13 +1509,16 @@
 
   condition:
     - condition: state
-      entity_id: cover.rollershutter_0009
-      state: "open"
+      entity_id: input_boolean.roleta_0009
+      state: "on"
 
   action:
     - action: cover.close_cover
       target:
         entity_id: cover.rollershutter_0009
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.roleta_0009
     - action: logbook.log
       data:
         name: "Strychowy — roleta"
@@ -1516,10 +1546,16 @@
   - condition: sun
     after: sunrise
     before: sunset
+  - condition: state
+    entity_id: input_boolean.roleta_0009
+    state: "on"
   action:
   - action: cover.close_cover
     target:
       entity_id: cover.rollershutter_0009
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.roleta_0009
   - action: logbook.log
     data:
       name: Strychowy — roleta

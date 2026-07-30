@@ -4546,110 +4546,28 @@ views:
             heading: Rolety
             heading_style: title
             icon: mdi:blinds-horizontal
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0001
+          - type: custom:aha-rollershutter-card
+            name: Salon
+            entities:
+              - entity: cover.rollershutter_0001
+                boolean: input_boolean.roleta_0001
                 name: S1
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0001
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0001
-                name: S1
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0001
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0002
+              - entity: cover.rollershutter_0002
+                boolean: input_boolean.roleta_0002
                 name: S2
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0002
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0002
-                name: S2
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0002
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0003
+              - entity: cover.rollershutter_0003
+                boolean: input_boolean.roleta_0003
                 name: S3
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0003
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0003
-                name: S3
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0003
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0004
+              - entity: cover.rollershutter_0004
+                boolean: input_boolean.roleta_0004
                 name: S4
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0004
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0004
-                name: S4
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0004
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0005
+              - entity: cover.rollershutter_0005
+                boolean: input_boolean.roleta_0005
                 name: S5
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0005
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0005
-                name: S5
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0005
+            group_open_service: scene.turn_on
+            group_open_entity: scene.otworz_rolety
+            group_close_service: scene.turn_on
+            group_close_entity: scene.zamknij_rolety
       - type: grid
         cards:
           - type: heading
@@ -5672,50 +5590,15 @@ views:
             heading: Rolety
             heading_style: title
             icon: mdi:blinds-horizontal
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0006
+          - type: custom:aha-rollershutter-card
+            name: Garaż
+            entities:
+              - entity: cover.rollershutter_0006
+                boolean: input_boolean.roleta_0006
                 name: S6
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0006
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0006
-                name: S6
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0006
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0007
+              - entity: cover.rollershutter_0007
+                boolean: input_boolean.roleta_0007
                 name: S7
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0007
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0007
-                name: S7
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0007
   - type: sections
     max_columns: 4
     title: pietro
@@ -5735,142 +5618,31 @@ views:
             icon: mdi:blinds-open
             heading: Rolety
             heading_style: subtitle
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:aha-action-apple-card
-                entity: scene.otworz_rolety_pietro
-                name: OPEN
-                icon: blind_up
-              - type: custom:aha-action-apple-card
-                entity: scene.otworz_rolety_pietro_duplicate
-                name: CLOSE
-                icon: blind_down
-          - type: grid
-            columns: 2
-            square: false
-            cards:
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0008
-                name: 8 - Leon
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0008
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0008
-                name: 8 - Leon
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0008
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0009
-                name: 9 - Strychowy
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0009
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_0009
-                name: 9 - Strychowy
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_0009
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000a
-                name: 10 - Łazienka
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000a
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000a
-                name: 10 - Łazienka
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000a
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000b
-                name: 11 - Nowy
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000b
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000b
-                name: 11 - Nowy
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000b
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000c
-                name: 12 - Sypialnia
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000c
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000c
-                name: 12 - Sypialnia
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000c
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000d
-                name: 13 - Schody
-                icon: blind_up
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.open_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000d
-              - type: custom:aha-action-apple-card
-                entity: cover.rollershutter_000d
-                name: 13 - Schody
-                icon: blind_down
-                compact: true
-                tap_action:
-                  action: call-service
-                  service: cover.close_cover
-                  service_data:
-                    entity_id: cover.rollershutter_000d
+          - type: custom:aha-rollershutter-card
+            name: Piętro
+            entities:
+              - entity: cover.rollershutter_0008
+                boolean: input_boolean.roleta_0008
+                name: 8 — Leon
+              - entity: cover.rollershutter_0009
+                boolean: input_boolean.roleta_0009
+                name: 9 — Strychowy
+              - entity: cover.rollershutter_000a
+                boolean: input_boolean.roleta_000a
+                name: 10 — Łazienka
+              - entity: cover.rollershutter_000b
+                boolean: input_boolean.roleta_000b
+                name: 11 — Nowy
+              - entity: cover.rollershutter_000c
+                boolean: input_boolean.roleta_000c
+                name: 12 — Sypialnia
+              - entity: cover.rollershutter_000d
+                boolean: input_boolean.roleta_000d
+                name: 13 — Schody
+            group_open_service: scene.turn_on
+            group_open_entity: scene.otworz_rolety_pietro
+            group_close_service: scene.turn_on
+            group_close_entity: scene.otworz_rolety_pietro_duplicate
       - type: grid
         cards:
           - type: heading
