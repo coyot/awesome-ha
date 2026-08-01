@@ -2043,6 +2043,21 @@
           - cover.rollershutter_000c
           - cover.rollershutter_000d
 
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.roleta_0001
+          - input_boolean.roleta_0002
+          - input_boolean.roleta_0003
+          - input_boolean.roleta_0004
+          - input_boolean.roleta_0005
+          - input_boolean.roleta_0008
+          - input_boolean.roleta_0009
+          - input_boolean.roleta_000a
+          - input_boolean.roleta_000b
+          - input_boolean.roleta_000c
+          - input_boolean.roleta_000d
+
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.rolety_salon_opuszczone
