@@ -1622,9 +1622,9 @@
       before: "22:00:00"
     - condition: template
       value_template: "{{ now().month in range(4, 10) }}"
-    - condition: state
-      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
-      state: "off"
+    - condition: numeric_state
+      entity_id: sensor.stacja_pogodowa_rain_rate_piezo
+      below: 0.1
     - condition: or
       conditions:
         - condition: numeric_state
@@ -1695,9 +1695,9 @@
       before: "22:00:00"
     - condition: template
       value_template: "{{ now().month in range(4, 10) }}"
-    - condition: state
-      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
-      state: "off"
+    - condition: numeric_state
+      entity_id: sensor.stacja_pogodowa_rain_rate_piezo
+      below: 0.1
     - condition: or
       conditions:
         - condition: numeric_state
@@ -1816,9 +1816,9 @@
   description: >
     Zamyka lamele przy deszczu niezależnie od pergola_auto — ochrona przed zalaniem.
   trigger:
-    - platform: state
-      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
-      to: "on"
+    - platform: numeric_state
+      entity_id: sensor.stacja_pogodowa_rain_rate_piezo
+      above: 0
   condition:
     - condition: state
       entity_id: cover.teleco_leds2
@@ -2324,23 +2324,23 @@
       {% endfor %}
       {{ ns.lista }}
   triggers:
-    - trigger: state
-      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
-      to: "on"
+    - trigger: numeric_state
+      entity_id: sensor.stacja_pogodowa_rain_rate_piezo
+      above: 0
       for:
         minutes: 1
       id: deszcz_start
     - trigger: template
       value_template: >
         {% set classes = ['door', 'window', 'opening', 'garage_door'] %}
-        {{ is_state('binary_sensor.stacja_pogodowa_rain_state_piezo', 'on') and
+        {{ states('sensor.stacja_pogodowa_rain_rate_piezo') | float(0) > 0 and
            states.binary_sensor | selectattr('state','eq','on') |
            selectattr('attributes.device_class','in', classes) | list | count > 0 }}
       id: czujnik_otwarty
   conditions:
-    - condition: state
-      entity_id: binary_sensor.stacja_pogodowa_rain_state_piezo
-      state: "on"
+    - condition: numeric_state
+      entity_id: sensor.stacja_pogodowa_rain_rate_piezo
+      above: 0
     - condition: template
       value_template: "{{ otwarte | count > 0 }}"
     - condition: template
