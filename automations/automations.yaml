@@ -1122,12 +1122,16 @@
     event: sunrise
     offset: 00:10:00
   condition:
-  - condition: state
-    entity_id: device_tracker.iphone_tk
-    state: not_home
-  - condition: state
-    entity_id: device_tracker.iphone_monika
-    state: not_home
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: device_tracker.iphone_tk
+        state: home
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: device_tracker.iphone_monika
+        state: home
   action:
   - choose:
     - conditions:
@@ -1199,12 +1203,16 @@
     event: sunset
     offset: -01:30:00
   condition:
-  - condition: state
-    entity_id: device_tracker.iphone_tk
-    state: not_home
-  - condition: state
-    entity_id: device_tracker.iphone_monika
-    state: not_home
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: device_tracker.iphone_tk
+        state: home
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: device_tracker.iphone_monika
+        state: home
   action:
   - choose:
     - conditions:
