@@ -910,7 +910,7 @@ class RoboVacuumCard extends HTMLElement {
     if (!dbs.clean_water_box)  dbs.clean_water_box  = `binary_sensor.${dock}_clean_water_box`;
     if (!dbs.dirty_water_box)  dbs.dirty_water_box  = `binary_sensor.${dock}_dirty_water_box`;
     if (!dbs.cleaning_fluid)   dbs.cleaning_fluid   = `binary_sensor.${dock}_cleaning_fluid`;
-    if (!dbs.mop_drying)       dbs.mop_drying       = `binary_sensor.${dock}_mop_drying`;
+    if (!dbs.mop_drying)       dbs.mop_drying       = `switch.${dock}_mop_drying`;
     if (!ds.dock_error)        ds.dock_error        = `sensor.${dock}_dock_error`;
     if (!ds.mop_drying_time)   ds.mop_drying_time   = `sensor.${dock}_mop_drying_remaining_time`;
     if (!ds.strainer_left)     ds.strainer_left     = `sensor.${dock}_strainer_time_left`;
