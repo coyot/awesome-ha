@@ -11043,12 +11043,9 @@ function titleAndDetail(e, PEOPLE) {
                 :                      'Poręcz — wyłączono';
     return { titleColor: col, titleText: title, detail: e.info ?? '', avatarPeople: null };
   }
-  if (e.typ === 'szambo') return {
-    titleColor: 'rgba(255,159,10,0.90)',
-    titleText: 'Wywóz szamba',
-    detail: `Dom1: ${e.d1m}m³ = ${e.d1z}zł · Dom2: ${e.d2m}m³ = ${e.d2z}zł · Razem: ${e.lm}m³`,
-    avatarPeople: null,
-  };
+  if (e.typ === 'szambo') return e.akcja === 'ALERT_KRYTYCZNY'
+    ? { titleColor: 'rgba(255,69,58,0.90)', titleText: 'Szambo — alert krytyczny', detail: `Poziom: ${e.lm}m³`, avatarPeople: null }
+    : { titleColor: 'rgba(255,159,10,0.90)', titleText: 'Wywóz szamba', detail: `Dom1: ${e.d1m}m³ = ${e.d1z}zł · Dom2: ${e.d2m}m³ = ${e.d2z}zł · Razem: ${e.lm}m³`, avatarPeople: null };
   if (e.typ === 'wjazd') {
     const people = Array.isArray(e.kto) ? e.kto : [e.kto];
     const names  = people.map(p => PEOPLE[p]?.name ?? p).join(' & ');
