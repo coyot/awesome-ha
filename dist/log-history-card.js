@@ -201,11 +201,11 @@ function iconSvg(e) {
         stroke="${c.replace('0.50','0.25')}" stroke-width="1.5" stroke-linecap="round"/>`);
   }
 
-  if (e.typ === 'szambo') return s('rgba(255,159,10,0.85)', c => `
+  if (e.typ === 'szambo') { const sc = e.akcja === 'ALERT_KRYTYCZNY' ? 'rgba(255,69,58,0.85)' : 'rgba(255,159,10,0.85)'; return s(sc, c => `
     <rect x="3" y="11" width="18" height="8" rx="2" fill="${c.replace('0.85','0.45')}"/>
     <path d="M7 11V8a5 5 0 0110 0v3" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>
     <circle cx="8" cy="15" r="1" fill="${c}"/>
-    <circle cx="16" cy="15" r="1" fill="${c}"/>`);
+    <circle cx="16" cy="15" r="1" fill="${c}"/>`) }
 
   if (e.typ === 'wjazd') {
     const people = Array.isArray(e.kto) ? e.kto : [e.kto];
@@ -355,8 +355,9 @@ function nodeStyle(e) {
     return e.akcja === 'ON'  ? { bg: 'rgba(255,214,10,0.14)', outline: 'rgba(255,214,10,0.25)' }
          : e.akcja === 'KEEP'? { bg: 'rgba(255,159,10,0.12)', outline: 'rgba(255,159,10,0.22)' }
          :                     { bg: 'rgba(99,99,102,0.18)',  outline: 'rgba(99,99,102,0.20)' };
-  if (e.typ === 'szambo')
-    return { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' };
+  if (e.typ === 'szambo') return e.akcja === 'ALERT_KRYTYCZNY'
+    ? { bg: 'rgba(255,69,58,0.14)', outline: 'rgba(255,69,58,0.25)' }
+    : { bg: 'rgba(255,159,10,0.14)', outline: 'rgba(255,159,10,0.25)' };
   if (e.typ === 'wjazd') {
     const people = Array.isArray(e.kto) ? e.kto : [e.kto];
     return people.length > 1 || people[0] === 'mk'
