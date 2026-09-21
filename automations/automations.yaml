@@ -1224,6 +1224,16 @@
       sequence:
       - delay:
           minutes: 70
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.iphone_tk
+            state: home
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: device_tracker.iphone_monika
+            state: home
       - action: cover.close_cover
         target:
           entity_id:
@@ -1407,9 +1417,14 @@
   description: >
     Zapisuje stan sensor.water_2_total o 3:00 rano
     jako punkt odniesienia do pomiaru zużycia nawodnienia.
+    Pomijana gdy input_boolean.ogrod_lato jest wyłączony.
   triggers:
     - trigger: time
       at: "03:00:00"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.ogrod_lato
+      state: "on"
   actions:
     - action: input_number.set_value
       target:
@@ -1431,9 +1446,14 @@
     Oblicza różnicę water_2_total między 03:00 a 06:40
     i dodaje ją do input_number.ogrod_2.
     Ignoruje dzień jeśli delta < 100 litrów (nawodnienie nie zadziałało).
+    Pomijana gdy input_boolean.ogrod_lato jest wyłączony.
   triggers:
     - trigger: time
       at: "06:40:00"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.ogrod_lato
+      state: "on"
   actions:
     - variables:
         przed: "{{ states('input_number.water_2_snapshot') | float(0) }}"
