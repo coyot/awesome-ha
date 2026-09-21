@@ -225,8 +225,15 @@ class AhaEnergyHistoryCard extends HTMLElement {
     entities.forEach(ent => {
       const rows = this._stats[ent.entity] || [];
       dayArr.forEach(day => {
-        const dateStr = day.date.toISOString().slice(0, 10); // YYYY-MM-DD
-        const row = rows.find(r => r.start && r.start.slice(0, 10) === dateStr);
+        const dateStr = day.date.toISOString().slice(0, 10); // YYYY-MM-DD UTC
+        const row = rows.find(r => {
+          if (r.start == null) return false;
+          // HA 2024.2+: start is Unix timestamp (seconds); older: ISO string
+          const iso = typeof r.start === 'number'
+            ? new Date(r.start * 1000).toISOString()
+            : r.start;
+          return iso.slice(0, 10) === dateStr;
+        });
         const kWh = (row?.change != null && row.change > 0) ? row.change : 0;
         day.values.push({ entity: ent.entity, name: ent.name, color: ent.color, kWh });
       });
