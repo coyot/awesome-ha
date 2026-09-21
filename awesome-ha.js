@@ -21815,12 +21815,16 @@ window.customCards.push({
             }
           } else {
             const startDt = new Date(startRaw);
+            // Skip events that have already started/passed
+            if (startDt < new Date()) continue;
             const key     = this._dateKey(startDt);
+            const soonMs  = startDt.getTime() - Date.now();
             addToDay(key, {
               summary, location, color, allDay: false,
               time: `${_pad(startDt.getHours())}:${_pad(startDt.getMinutes())}`,
               sortKey: startDt.getHours() * 60 + startDt.getMinutes(),
               isStartDay: true,
+              soon: soonMs <= 2 * 3600 * 1000,
             });
           }
         }
@@ -21924,11 +21928,14 @@ window.customCards.push({
             : '';
 
           const eventsHTML = group.events.map(ev => {
-            const locHTML = ev.location
+            const locHTML  = ev.location
               ? `<span class="ev-loc">${_esc(ev.location)}</span>`
               : '';
-            return `<div class="ev-row" data-date="${group.key}" style="--ec:${ev.color}">
-              <span class="ev-time">${_esc(ev.time)}</span>
+            const soonDot  = ev.soon
+              ? `<span class="soon-dot"></span>`
+              : '';
+            return `<div class="ev-row${ev.soon ? ' ev-soon' : ''}" data-date="${group.key}" style="--ec:${ev.color}">
+              <span class="ev-time">${_esc(ev.time)}${soonDot}</span>
               <div class="ev-bar"></div>
               <div class="ev-body">
                 <span class="ev-name">${_esc(ev.summary)}</span>
@@ -22182,6 +22189,38 @@ window.customCards.push({
       .ev-loc {
         font-size: 10.5px; color: ${T4};
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+
+      /* ── Soon (≤2h) highlight ── */
+      .ev-row.ev-soon {
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        margin: 0 -4px;
+        padding: 5px 4px;
+      }
+      .ev-row.ev-soon .ev-bar {
+        box-shadow: 0 0 8px var(--ec), 0 0 3px var(--ec);
+        opacity: 1;
+      }
+      .ev-row.ev-soon .ev-name {
+        font-weight: 700;
+        color: rgba(255,255,255,0.95);
+      }
+      .ev-row.ev-soon .ev-time {
+        color: rgba(255,255,255,0.62);
+        font-weight: 600;
+      }
+      .soon-dot {
+        display: inline-block;
+        width: 5px; height: 5px; border-radius: 50%;
+        background: var(--ec);
+        margin-left: 4px;
+        vertical-align: middle;
+        animation: soon-pulse 2s ease-in-out infinite;
+      }
+      @keyframes soon-pulse {
+        0%,100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: 0.25; transform: scale(0.55); }
       }
 
       /* ── Empty / loading ── */
