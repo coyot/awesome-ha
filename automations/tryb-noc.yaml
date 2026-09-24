@@ -204,8 +204,9 @@
       to: "off"
 
   condition:
-    - condition: template
-      value_template: "{{ now().month in range(4, 10) }}"
+    - condition: state
+      entity_id: input_boolean.ogrod_lato
+      state: "on"
 
   action:
     - action: input_boolean.turn_on
