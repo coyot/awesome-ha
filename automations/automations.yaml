@@ -2219,12 +2219,17 @@
   alias: "Tryb nocny: przywróć pergola_auto przy wyłączeniu"
   description: >
     Gdy tryb_noc zostaje wyłączony (ręcznie lub automatycznie o wschodzie),
-    przywraca input_boolean.pergola_auto = ON.
+    przywraca input_boolean.pergola_auto = ON — tylko w sezonie letnim (kwiecień–wrzesień).
+    Poza sezonem użytkownik steruje ręcznie.
 
   trigger:
     - platform: state
       entity_id: input_boolean.tryb_noc
       to: "off"
+
+  condition:
+    - condition: template
+      value_template: "{{ now().month in range(4, 10) }}"
 
   action:
     - action: input_boolean.turn_on
