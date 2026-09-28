@@ -47,6 +47,7 @@ class SzamboAppleCard extends HTMLElement {
       entity_stale:        config.entity_stale        ?? null,
       entity_dom1_zaplata: config.entity_dom1_zaplata ?? null,
       entity_dom2_zaplata: config.entity_dom2_zaplata ?? null,
+      entity_scheduled:    config.entity_scheduled    ?? null,
       slim:                config.slim                ?? false,
     };
   }
@@ -407,15 +408,22 @@ class SzamboAppleCard extends HTMLElement {
     const isObserve = !isPlan && total >= warnObserve;
     const isOk      = !isPlan && !isObserve;
 
-    const clrD1    = isPlan ? CLR_D1_PLAN : isObserve ? CLR_D1_OBS : CLR_D1;
-    const clrD2    = isPlan ? CLR_D2_PLAN : isObserve ? CLR_D2_OBS : CLR_D2;
-    const totalClr = isPlan ? '#FF3B30' : isObserve ? '#FF9500' : '#34C759';
+    const isScheduled = isPlan || isObserve
+      ? (this._config.entity_scheduled
+          ? this._hass.states[this._config.entity_scheduled]?.state === 'on'
+          : false)
+      : false;
 
-    const alertTxt  = isPlan    ? 'Zaplanuj wywo\u00f3z!'
-                    : isObserve ? 'Obserwuj'
-                    :             'Poziom w normie';
-    const alertBg   = isPlan    ? '#3D1212' : isObserve ? '#3D2C0A' : '#1A2E1A';
-    const alertClr  = isPlan    ? '#FF6B6B' : isObserve ? '#FFD080' : '#34C759';
+    const clrD1    = isScheduled ? CLR_D1 : isPlan ? CLR_D1_PLAN : isObserve ? CLR_D1_OBS : CLR_D1;
+    const clrD2    = isScheduled ? CLR_D2 : isPlan ? CLR_D2_PLAN : isObserve ? CLR_D2_OBS : CLR_D2;
+    const totalClr = isScheduled ? '#0A84FF' : isPlan ? '#FF3B30' : isObserve ? '#FF9500' : '#34C759';
+
+    const alertTxt  = isScheduled ? 'Wyw\u00f3z zaplanowany \u2713'
+                    : isPlan      ? 'Zaplanuj wywo\u017az!'
+                    : isObserve   ? 'Obserwuj'
+                    :               'Poziom w normie';
+    const alertBg   = isScheduled ? '#0A2240' : isPlan ? '#3D1212' : isObserve ? '#3D2C0A' : '#1A2E1A';
+    const alertClr  = isScheduled ? '#0A84FF' : isPlan ? '#FF6B6B' : isObserve ? '#FFD080' : '#34C759';
     const alertIcon = isOk
       ? '<path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>'
       : '<path d="M12 2L1 21h22L12 2zm0 3l8.5 14.5h-17L12 5zm-1 6v4h2v-4h-2zm0 6v2h2v-2h-2z"/>';
@@ -1093,14 +1101,21 @@ class SzamboAppleCard extends HTMLElement {
     const isObserve = !isPlan && total >= warnObserve;
     const isOk      = !isPlan && !isObserve;
 
-    const clrD1    = isPlan ? CLR_D1_PLAN : isObserve ? CLR_D1_OBS : CLR_D1;
-    const clrD2    = isPlan ? CLR_D2_PLAN : isObserve ? CLR_D2_OBS : CLR_D2;
-    const totalClr = isPlan ? '#FF3B30' : isObserve ? '#FF9500' : '#34C759';
+    const isScheduled = isPlan || isObserve
+      ? (this._config.entity_scheduled
+          ? this._hass.states[this._config.entity_scheduled]?.state === 'on'
+          : false)
+      : false;
 
-    const alertTxt   = isPlan    ? 'Zam\u00f3w wyw\u00f3z!'
-                     : isObserve ? 'Obserwuj'
-                     :             'W normie';
-    const alertBgRgb = isPlan ? '255,59,48' : isObserve ? '255,149,0' : '52,199,89';
+    const clrD1    = isScheduled ? CLR_D1 : isPlan ? CLR_D1_PLAN : isObserve ? CLR_D1_OBS : CLR_D1;
+    const clrD2    = isScheduled ? CLR_D2 : isPlan ? CLR_D2_PLAN : isObserve ? CLR_D2_OBS : CLR_D2;
+    const totalClr = isScheduled ? '#0A84FF' : isPlan ? '#FF3B30' : isObserve ? '#FF9500' : '#34C759';
+
+    const alertTxt   = isScheduled ? 'Wyw\u00f3z zaplanowany \u2713'
+                     : isPlan      ? 'Zam\u00f3w wyw\u00f3z!'
+                     : isObserve   ? 'Obserwuj'
+                     :               'W normie';
+    const alertBgRgb = isScheduled ? '10,132,255' : isPlan ? '255,59,48' : isObserve ? '255,149,0' : '52,199,89';
 
     const tankSvg = this._renderTankSVG(
       d1pct, d2pct, emptPct, totalPct, observePct, planPct,
@@ -1132,7 +1147,7 @@ class SzamboAppleCard extends HTMLElement {
           gap: 12px;
           align-items: stretch;
           transition: border-color 0.4s ease;
-          ${!isOk ? `animation: szambo-slim-pulse ${isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
+          ${!isOk ? `animation: szambo-slim-pulse ${isScheduled ? '5s' : isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
         }
         .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
 

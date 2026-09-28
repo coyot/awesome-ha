@@ -377,6 +377,9 @@ input_boolean:
   ogrod_lato:
     name: Ogród Lato
     icon: mdi:flower
+  szambo_wywoz_zaplanowany:
+    name: "Wywóz szamba zaplanowany"
+    icon: mdi:calendar-check
 
 input_datetime:
   ogrod_1_ostatnia_aktualizacja:

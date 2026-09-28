@@ -7,6 +7,9 @@
     - input_button.wywoz_szamba
   conditions: []
   actions:
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.szambo_wywoz_zaplanowany
   - action: logbook.log
     data:
       name: "Wywóz szamba \U0001F69B"
@@ -142,6 +145,24 @@
   actions:
   - choose:
       - conditions:
+          - condition: state
+            entity_id: input_boolean.szambo_wywoz_zaplanowany
+            state: 'on'
+          - condition: numeric_state
+            entity_id: sensor.szambo_zuzycie
+            above: 9
+        sequence:
+          - action: notify.send_message
+            target:
+              entity_id: notify.iphone_tk
+            data:
+              title: "🔔 Szambo pełne — wywóz zaplanowany"
+              message: "Szambo: {{ states('sensor.szambo_zuzycie') }} m³. Wywóz zaplanowany ✓"
+  - condition: state
+    entity_id: input_boolean.szambo_wywoz_zaplanowany
+    state: 'off'
+  - choose:
+      - conditions:
           - condition: numeric_state
             entity_id: sensor.szambo_zuzycie
             above: 9
@@ -205,6 +226,9 @@
     for:
       minutes: 5
   actions:
+  - condition: state
+    entity_id: input_boolean.szambo_wywoz_zaplanowany
+    state: 'off'
   - action: notify.send_message
     target:
       entity_id: notify.iphone_tk
