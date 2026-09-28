@@ -34,6 +34,9 @@ views:
                   - switch.ogrod_lampy0
                   - switch.ogrod_lampy1
                   - light.teleco_shutters
+              - entity: input_boolean.ogrod_lato
+                name: Ogród Lato
+                color: "#4CAF50"
           - type: custom:aha-pergola-strip-card
             cover_entity: cover.pergola_lamele
             light_entity: light.pergola_spot
@@ -6163,7 +6166,7 @@ views:
             name2: Ogród 49/2
             step: 0.001
           - type: custom:aha-szambo-finance-card
-            cost: 320
+            cost: 330
             dom1_name: Dom 49/1
             dom2_name: Dom 49/2
             entity_dom1_zaplata: sensor.szambo_dom_1_do_zaplaty

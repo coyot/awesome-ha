@@ -3,7 +3,7 @@
  *
  * UŻYCIE:
  *   type: custom:szambo-finance-card
- *   cost: 320
+ *   cost: 330
  *   dom1_name: "Dom 49/1"
  *   dom2_name: "Dom 49/2"
  *   entity_dom1_zaplata: sensor.szambo_dom_1_do_zaplaty
@@ -23,7 +23,7 @@ class SzamboFinanceCard extends HTMLElement {
 
   setConfig(config) {
     this._config = {
-      cost:                config.cost                ?? 320,
+      cost:                config.cost                ?? 330,
       dom1_name:           config.dom1_name           ?? 'Dom 1',
       dom2_name:           config.dom2_name           ?? 'Dom 2',
       entity_dom1_zaplata: config.entity_dom1_zaplata ?? null,

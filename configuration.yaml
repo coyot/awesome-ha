@@ -58,7 +58,7 @@ template:
           {% set d1 = states('sensor.szambo_dom_1_zuzycie') | float(0) %}
           {% set d2 = states('sensor.szambo_dom_2_zuzycie') | float(0) %}
           {% set total = d1 + d2 %}
-          {{ ((d1 / total * 320) if total > 0 else 0) | round(2) }}
+          {{ ((d1 / total * 330) if total > 0 else 0) | round(2) }}
 
       - name: "Szambo dom 2 do zapłaty"
         unique_id: szambo_dom2_zaplata
@@ -67,7 +67,7 @@ template:
           {% set d1 = states('sensor.szambo_dom_1_zuzycie') | float(0) %}
           {% set d2 = states('sensor.szambo_dom_2_zuzycie') | float(0) %}
           {% set total = d1 + d2 %}
-          {{ ((d2 / total * 320) if total > 0 else 0) | round(2) }}
+          {{ ((d2 / total * 330) if total > 0 else 0) | round(2) }}
 
       - name: "Ogród 1 zużycie"
         unique_id: ogrod1_zuzycie
@@ -374,6 +374,9 @@ input_boolean:
   roleta_000d:
     name: Roleta 13 — Schody (Piętro)
     icon: mdi:blinds-horizontal
+  ogrod_lato:
+    name: Ogród Lato
+    icon: mdi:flower
 
 input_datetime:
   ogrod_1_ostatnia_aktualizacja:
@@ -780,5 +783,5 @@ rest_command:
     headers:
       Content-Type: application/json
     payload: >
-      {"dom1_m3": "{{ dom1_m3 }}", "dom1_zl": "{{ dom1_zl }}", "dom2_m3": "{{ dom2_m3 }}", "dom2_zl": "{{ dom2_zl }}", "lacznie_m3": "{{ lacznie_m3 }}", "koszt": "320"}
+      {"dom1_m3": "{{ dom1_m3 }}", "dom1_zl": "{{ dom1_zl }}", "dom2_m3": "{{ dom2_m3 }}", "dom2_zl": "{{ dom2_zl }}", "lacznie_m3": "{{ lacznie_m3 }}", "koszt": "330"}
       
