@@ -12,7 +12,7 @@
       name: "Wywóz szamba \U0001F69B"
       message: 'Dom 1: {{ states(''sensor.szambo_dom_1_zuzycie'') }} m³ = {{ states(''sensor.szambo_dom_1_do_zaplaty'')
         }} zł | Dom 2: {{ states(''sensor.szambo_dom_2_zuzycie'') }} m³ = {{ states(''sensor.szambo_dom_2_do_zaplaty'')
-        }} zł | Łącznie: {{ states(''sensor.szambo_zuzycie'') }} m³ = 320 zł
+        }} zł | Łącznie: {{ states(''sensor.szambo_zuzycie'') }} m³ = 330 zł
 
         '
   - action: rest_command.szambo_google_sheets
@@ -35,37 +35,6 @@
         }}}
 
         '
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: 3
-      milliseconds: 0
-  - action: input_number.set_value
-    target:
-      entity_id: input_number.szambo_wywoz
-    data:
-      value: '{{ states(''sensor.water_1_total_2'') | float(0) + states(''sensor.water_2_total'')
-        | float(0) }}'
-  - action: input_number.set_value
-    target:
-      entity_id: input_number.szambo_wywoz_dom_1
-    data:
-      value: '{{ states(''sensor.water_1_total_2'') | float(0) }}'
-  - action: input_number.set_value
-    target:
-      entity_id: input_number.szambo_wywoz_dom_2
-    data:
-      value: '{{ states(''sensor.water_2_total'') | float(0) }}'
-  - action: input_number.set_value
-    target:
-      entity_id: input_number.szambo_wywoz_ogrod_1
-    data:
-      value: '{{ states(''input_number.ogrod_1'') | float(0) }}'
-  - action: input_number.set_value
-    target:
-      entity_id: input_number.szambo_wywoz_ogrod_2
-    data:
-      value: '{{ states(''input_number.ogrod_2'') | float(0) }}'
   - action: input_text.set_value
     data:
       entity_id: input_text.szambo_h10
@@ -105,14 +74,47 @@
   - action: input_text.set_value
     data:
       entity_id: input_text.szambo_h1
-      value: '{"d":"{{ now().strftime(''%Y-%m-%d'') }}", "d1m":{{ states(''sensor.szambo_dom_1_zuzycie'')
-        | float(0) | round(2) }}, "d1z":{{ states(''sensor.szambo_dom_1_do_zaplaty'')
-        | float(0) | round(0) | int }}, "d2m":{{ states(''sensor.szambo_dom_2_zuzycie'')
-        | float(0) | round(2) }}, "d2z":{{ states(''sensor.szambo_dom_2_do_zaplaty'')
-        | float(0) | round(0) | int }}, "lm":{{ states(''sensor.szambo_zuzycie'')
-        | float(0) | round(2) }}}
+      value: '{"d":"{{ now().strftime(''%Y-%m-%d'') }}", "dni":{{ ((now().timestamp()
+        - as_timestamp(states(''input_datetime.ostatni_wywoz_szamba''), 0)) / 86400)
+        | round(0) | int }}, "d1m":{{ states(''sensor.szambo_dom_1_zuzycie'') | float(0)
+        | round(2) }}, "d1z":{{ states(''sensor.szambo_dom_1_do_zaplaty'') | float(0)
+        | round(0) | int }}, "d2m":{{ states(''sensor.szambo_dom_2_zuzycie'') | float(0)
+        | round(2) }}, "d2z":{{ states(''sensor.szambo_dom_2_do_zaplaty'') | float(0)
+        | round(0) | int }}, "lm":{{ states(''sensor.szambo_zuzycie'') | float(0)
+        | round(2) }}}
 
         '
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 3
+      milliseconds: 0
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz
+    data:
+      value: '{{ states(''sensor.water_1_total_2'') | float(0) + states(''sensor.water_2_total'')
+        | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_dom_1
+    data:
+      value: '{{ states(''sensor.water_1_total_2'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_dom_2
+    data:
+      value: '{{ states(''sensor.water_2_total'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_ogrod_1
+    data:
+      value: '{{ states(''input_number.ogrod_1'') | float(0) }}'
+  - action: input_number.set_value
+    target:
+      entity_id: input_number.szambo_wywoz_ogrod_2
+    data:
+      value: '{{ states(''input_number.ogrod_2'') | float(0) }}'
   - target:
       entity_id: input_datetime.ostatni_wywoz_szamba
     data:
