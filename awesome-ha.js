@@ -20420,6 +20420,30 @@ function sectionIconOpen(n = 3) {
   return `<svg viewBox="0 0 ${3 + n*9 + 3} 24" xmlns="http://www.w3.org/2000/svg" height="16">${icons.join('')}</svg>`;
 }
 
+/* ── Miniaturki mieszane (część otwarta, część zamknięta) ──────────────────── */
+function sectionIconMixed(states) {
+  const n = states.length;
+  const icons = [];
+  for (let i = 0; i < n; i++) {
+    const x = 3 + i * 9;
+    if (states[i]) {
+      icons.push(`<rect x="${x}" y="4" width="6" height="16" rx="1" fill="rgba(133,183,235,0.13)" stroke="#85B7EB" stroke-width="0.8"/>`);
+      icons.push(`<rect x="${x}" y="4" width="6" height="4" rx="1" fill="#85B7EB"/>`);
+    } else {
+      icons.push(`<rect x="${x}" y="4" width="6" height="16" rx="1" fill="rgba(140,145,155,0.18)" stroke="rgba(140,145,155,0.55)" stroke-width="0.8"/>`);
+      icons.push(`<rect x="${x}" y="4" width="6" height="2.5" rx="0.7" fill="rgba(140,145,155,0.55)"/>`);
+    }
+  }
+  return `<svg viewBox="0 0 ${3 + n*9 + 3} 24" xmlns="http://www.w3.org/2000/svg" height="16">${icons.join('')}</svg>`;
+}
+
+/* ── Helper: ikona sekcji zależna od stanów ─────────────────────────────────── */
+function sectionStateIcon(states) {
+  const hasOpen = states.some(s => s);
+  if (hasOpen) return sectionIconMixed(states);
+  return sectionIconClosed(Math.min(states.length, 3));
+}
+
 /* ── Styles ─────────────────────────────────────────────────────────────────── */
 const RS_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20821,6 +20845,7 @@ class AhaRollershutterCard extends HTMLElement {
       const stateClasses = this._sectionStateClasses(section);
       const stateText    = this._sectionStateText(section);
       const entCount     = (section.entities || []).length;
+      const sectStates   = (section.entities || []).map(e => this._isOpen(e.boolean));
 
       /* ── Section header (clickable) ── */
       const sectHdr = document.createElement('div');
@@ -20855,9 +20880,7 @@ class AhaRollershutterCard extends HTMLElement {
 
       const sectStateIcon = document.createElement('div');
       sectStateIcon.className = 'rs-sect-state-icon';
-      sectStateIcon.innerHTML = stateClasses.includes('sect-has-open')
-        ? sectionIconOpen(Math.min(entCount, 3))
-        : sectionIconClosed(Math.min(entCount, 3));
+      sectStateIcon.innerHTML = sectionStateIcon(sectStates);
 
       const sectStateTxt = document.createElement('span');
       sectStateTxt.className = 'rs-sect-state-txt';
@@ -21041,10 +21064,8 @@ class AhaRollershutterCard extends HTMLElement {
         const stateIcon = sectHdr.querySelector('.rs-sect-state-icon');
         const stateTxt  = sectHdr.querySelector('.rs-sect-state-txt');
         if (stateIcon) {
-          const entCount = (section.entities || []).length;
-          stateIcon.innerHTML = stateClasses.includes('sect-has-open')
-            ? sectionIconOpen(Math.min(entCount, 3))
-            : sectionIconClosed(Math.min(entCount, 3));
+          const states = (section.entities || []).map(e => this._isOpen(e.boolean));
+          stateIcon.innerHTML = sectionStateIcon(states);
         }
         if (stateTxt) stateTxt.textContent = this._sectionStateText(section);
       }
