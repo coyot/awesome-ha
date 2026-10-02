@@ -253,21 +253,22 @@ const RS_STYLES = `
     gap: 6px;
   }
   .rs-sect-grp-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.12);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: rgba(255,255,255,0.50);
+    color: rgba(255,255,255,0.55);
     font-family: inherit;
     transition: transform 0.1s, background 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
   }
-  .rs-sect-grp-btn:active { transform: scale(0.90); background: rgba(133,183,235,0.18); color: rgba(133,183,235,0.90); border-color: rgba(133,183,235,0.35); }
+  .rs-sect-grp-btn:active { transform: scale(0.88); background: rgba(133,183,235,0.18); color: rgba(133,183,235,0.90); border-color: rgba(133,183,235,0.35); }
+  .rs-sect-grp-btn[hidden] { display: none; }
 
   /* ── Collapsible body ── */
   .rs-sect-body {
@@ -461,6 +462,9 @@ class AhaRollershutterCard extends HTMLElement {
     return 'sect-has-open';
   }
 
+  _sectionAllOpen(section)  { return (section.entities || []).length > 0 && (section.entities || []).every(e => this._isOpen(e.boolean)); }
+  _sectionAllClosed(section){ return (section.entities || []).every(e => !this._isOpen(e.boolean)); }
+
   _sectionStateText(section) {
     const total = (section.entities || []).length;
     const open  = this._sectionOpenCount(section);
@@ -561,17 +565,22 @@ class AhaRollershutterCard extends HTMLElement {
       if (hasGroup) {
         const grpBtns = document.createElement('div');
         grpBtns.className = 'rs-sect-grp-btns';
+        grpBtns.dataset.sIdx = sIdx;
 
         const btnOpen = document.createElement('button');
         btnOpen.className = 'rs-sect-grp-btn';
+        btnOpen.dataset.grp = 'open';
         btnOpen.innerHTML = SVG_UP;
         btnOpen.title = 'Otwórz wszystkie';
+        btnOpen.hidden = this._sectionAllOpen(section);
         btnOpen.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'open'); });
 
         const btnClose = document.createElement('button');
         btnClose.className = 'rs-sect-grp-btn';
+        btnClose.dataset.grp = 'close';
         btnClose.innerHTML = SVG_DOWN;
         btnClose.title = 'Zamknij wszystkie';
+        btnClose.hidden = this._sectionAllClosed(section);
         btnClose.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'close'); });
 
         grpBtns.appendChild(btnOpen);
@@ -734,6 +743,14 @@ class AhaRollershutterCard extends HTMLElement {
           stateIcon.innerHTML = sectionStateIcon(states);
         }
         if (stateTxt) stateTxt.textContent = this._sectionStateText(section);
+
+        const grpBtns = r.querySelector(`.rs-sect-grp-btns[data-s-idx="${sIdx}"]`);
+        if (grpBtns) {
+          const btnOpen  = grpBtns.querySelector('[data-grp="open"]');
+          const btnClose = grpBtns.querySelector('[data-grp="close"]');
+          if (btnOpen)  btnOpen.hidden  = this._sectionAllOpen(section);
+          if (btnClose) btnClose.hidden = this._sectionAllClosed(section);
+        }
       }
       if (box) {
         const stateClasses = this._sectionStateClasses(section);
