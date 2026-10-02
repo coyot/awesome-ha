@@ -20614,6 +20614,7 @@ const RS_STYLES = `
     background: rgba(255,255,255,0.022);
     padding: 0 12px;
     margin-bottom: 4px;
+    margin-left: 14px;
     transition: border-color 0.35s;
   }
   .rs-group-box.sect-has-open {
