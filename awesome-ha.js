@@ -20420,6 +20420,30 @@ function sectionIconOpen(n = 3) {
   return `<svg viewBox="0 0 ${3 + n*9 + 3} 24" xmlns="http://www.w3.org/2000/svg" height="16">${icons.join('')}</svg>`;
 }
 
+/* ── Ikona grupowa do iconboxa sekcji (28×28 viewBox) ──────────────────────── */
+function rsGroupIconSvg(states) {
+  const n = Math.min(states.length, 3);
+  const shown = states.slice(0, n);
+  const w = 7, gap = 2.5;
+  const totalW = n * w + (n - 1) * gap;
+  const startX = (28 - totalW) / 2;
+  const icons = [];
+  for (let i = 0; i < n; i++) {
+    const x = startX + i * (w + gap);
+    if (shown[i]) {
+      icons.push(`<rect x="${x}" y="4" width="${w}" height="20" rx="1.2" fill="rgba(133,183,235,0.13)" stroke="#85B7EB" stroke-width="0.9"/>`);
+      icons.push(`<rect x="${x}" y="4" width="${w}" height="5" rx="1.2" fill="#85B7EB"/>`);
+    } else {
+      icons.push(`<rect x="${x}" y="4" width="${w}" height="20" rx="1.2" fill="rgba(160,165,175,0.15)" stroke="rgba(160,165,175,0.65)" stroke-width="0.9"/>`);
+      icons.push(`<rect x="${x}" y="3.5" width="${w}" height="3" rx="0.8" fill="rgba(160,165,175,0.55)"/>`);
+      icons.push(`<rect x="${x+0.5}" y="9"  width="${w-1}" height="2.2" rx="0.5" fill="rgba(160,165,175,0.22)" stroke="rgba(160,165,175,0.40)" stroke-width="0.5"/>`);
+      icons.push(`<rect x="${x+0.5}" y="13" width="${w-1}" height="2.2" rx="0.5" fill="rgba(160,165,175,0.22)" stroke="rgba(160,165,175,0.40)" stroke-width="0.5"/>`);
+      icons.push(`<rect x="${x+0.5}" y="17" width="${w-1}" height="2.2" rx="0.5" fill="rgba(160,165,175,0.22)" stroke="rgba(160,165,175,0.40)" stroke-width="0.5"/>`);
+    }
+  }
+  return `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28">${icons.join('')}</svg>`;
+}
+
 /* ── Miniaturki mieszane (część otwarta, część zamknięta) ──────────────────── */
 function sectionIconMixed(states) {
   const n = states.length;
@@ -20494,107 +20518,73 @@ const RS_STYLES = `
     box-shadow: 0 0 8px #30d158;
   }
 
-  /* ── Section header (clickable, collapsible) ── */
+  /* ── Section header (clickable, collapsible) — row-style ── */
   .rs-sect-hdr {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin: 8px 0 0;
-    padding: 7px 10px;
-    border-radius: 10px;
+    gap: 13px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.028);
+    border: 0.5px solid rgba(255,255,255,0.09);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.35s;
     -webkit-tap-highlight-color: transparent;
   }
-  .rs-sect-hdr:active { background: rgba(255,255,255,0.04); }
+  .rs-sect-hdr:active { background: rgba(255,255,255,0.055); }
+  .rs-sect-hdr.sect-has-open { border-color: rgba(133,183,235,0.18); }
 
-  .rs-sect-hdr-left {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    flex: 1;
-    min-width: 0;
-  }
-  .rs-sect-chevron {
-    color: rgba(255,255,255,0.25);
+  /* Iconbox sekcji */
+  .rs-sect-iconbox {
+    width: 42px; height: 42px;
+    border-radius: 12px;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    transition: color 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(142,142,147,0.07);
+    border: 0.5px solid rgba(142,142,147,0.15);
+    transition: background 0.35s, border-color 0.35s, box-shadow 0.45s;
   }
-  .rs-sect-hdr:active .rs-sect-chevron { color: rgba(255,255,255,0.50); }
+  .rs-sect-iconbox.open {
+    background: rgba(133,183,235,0.10);
+    border-color: rgba(133,183,235,0.22);
+    animation: rs-pulse 2.5s ease-in-out infinite;
+  }
 
+  /* Mid: name + state */
+  .rs-sect-mid { flex: 1; min-width: 0; }
   .rs-sect-name {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.28);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 0.25s;
-  }
-  .rs-sect-hdr.sect-has-open .rs-sect-name { color: rgba(255,255,255,0.45); }
-
-  .rs-sect-hdr-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  /* ── Section state badge (w nagłówku) ── */
-  .rs-sect-state {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .rs-sect-state-icon {
-    display: flex;
-    align-items: center;
-    opacity: 0.7;
+    font-size: 14px; font-weight: 700;
+    color: rgba(255,255,255,0.88);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .rs-sect-state-txt {
-    font-size: 10px;
-    color: rgba(255,255,255,0.22);
+    font-size: 11px;
+    color: #636366;
+    margin-top: 2px;
     transition: color 0.25s;
     white-space: nowrap;
   }
-  .rs-sect-hdr.sect-has-open .rs-sect-state-txt { color: rgba(133,183,235,0.70); }
-  .rs-sect-hdr.sect-all-open .rs-sect-state-txt { color: rgba(133,183,235,0.85); }
+  .rs-sect-hdr.sect-has-open .rs-sect-state-txt { color: rgba(133,183,235,0.75); }
+  .rs-sect-hdr.sect-all-open .rs-sect-state-txt { color: rgba(48,209,88,0.80); }
 
-  .rs-sect-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: rgba(142,142,147,0.30);
-    transition: background 0.3s, box-shadow 0.3s;
+  /* Chevron */
+  .rs-sect-chevron {
+    color: rgba(255,255,255,0.18);
     flex-shrink: 0;
+    display: flex; align-items: center;
+    transition: color 0.2s;
   }
-  .rs-sect-hdr.sect-has-open .rs-sect-dot {
-    background: #85B7EB;
-    box-shadow: 0 0 6px rgba(133,183,235,0.60);
-  }
-  .rs-sect-hdr.sect-all-open .rs-sect-dot {
-    background: #30d158;
-    box-shadow: 0 0 6px rgba(48,209,88,0.60);
-  }
+  .rs-sect-hdr:active .rs-sect-chevron { color: rgba(255,255,255,0.45); }
 
-  /* ── Section group buttons (w nagłówku, zawsze widoczne) ── */
-  .rs-sect-grp-btns {
-    display: flex;
-    gap: 6px;
-  }
+  /* ── Section group buttons ── */
+  .rs-sect-grp-btns { display: flex; gap: 6px; }
   .rs-sect-grp-btn {
-    width: 38px;
-    height: 38px;
+    width: 38px; height: 38px;
     border-radius: 11px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     color: rgba(255,255,255,0.55);
     font-family: inherit;
@@ -20851,49 +20841,39 @@ class AhaRollershutterCard extends HTMLElement {
       const entCount     = (section.entities || []).length;
       const sectStates   = (section.entities || []).map(e => this._isOpen(e.boolean));
 
-      /* ── Section header (clickable) ── */
+      /* ── Section header (row-style, clickable) ── */
       const sectHdr = document.createElement('div');
       sectHdr.className = `rs-sect-hdr ${stateClasses}`;
       sectHdr.dataset.sIdx = sIdx;
 
-      /* Left: chevron + name */
-      const sectLeft = document.createElement('div');
-      sectLeft.className = 'rs-sect-hdr-left';
+      /* Iconbox */
+      const sectIconbox = document.createElement('div');
+      sectIconbox.className = 'rs-sect-iconbox' + (stateClasses.includes('sect-has-open') ? ' open' : '');
+      sectIconbox.innerHTML = rsGroupIconSvg(sectStates);
 
+      /* Mid: name + state */
+      const sectMid = document.createElement('div');
+      sectMid.className = 'rs-sect-mid';
+
+      const sectName = document.createElement('div');
+      sectName.className = 'rs-sect-name';
+      sectName.textContent = section.name || '';
+
+      const sectStateTxt = document.createElement('div');
+      sectStateTxt.className = 'rs-sect-state-txt';
+      sectStateTxt.textContent = stateText;
+
+      sectMid.appendChild(sectName);
+      sectMid.appendChild(sectStateTxt);
+
+      /* Chevron */
       const chevron = document.createElement('span');
       chevron.className = 'rs-sect-chevron';
       chevron.innerHTML = collapsed ? SVG_CHEVRON_RIGHT : SVG_CHEVRON_DOWN;
 
-      const sectName = document.createElement('span');
-      sectName.className = 'rs-sect-name';
-      sectName.textContent = section.name || '';
-
-      sectLeft.appendChild(chevron);
-      sectLeft.appendChild(sectName);
-
-      /* Right: state + group buttons */
-      const sectRight = document.createElement('div');
-      sectRight.className = 'rs-sect-hdr-right';
-
-      /* State */
-      const sectState = document.createElement('div');
-      sectState.className = 'rs-sect-state';
-
-      const sectDot = document.createElement('div');
-      sectDot.className = 'rs-sect-dot';
-
-      const sectStateIcon = document.createElement('div');
-      sectStateIcon.className = 'rs-sect-state-icon';
-      sectStateIcon.innerHTML = sectionStateIcon(sectStates);
-
-      const sectStateTxt = document.createElement('span');
-      sectStateTxt.className = 'rs-sect-state-txt';
-      sectStateTxt.textContent = stateText;
-
-      sectState.appendChild(sectDot);
-      sectState.appendChild(sectStateIcon);
-      sectState.appendChild(sectStateTxt);
-      sectRight.appendChild(sectState);
+      sectHdr.appendChild(sectIconbox);
+      sectHdr.appendChild(sectMid);
+      sectHdr.appendChild(chevron);
 
       /* Group buttons (jeśli sekcja ma group service) */
       if (hasGroup) {
@@ -20919,11 +20899,8 @@ class AhaRollershutterCard extends HTMLElement {
 
         grpBtns.appendChild(btnOpen);
         grpBtns.appendChild(btnClose);
-        sectRight.appendChild(grpBtns);
+        sectHdr.appendChild(grpBtns);
       }
-
-      sectHdr.appendChild(sectLeft);
-      sectHdr.appendChild(sectRight);
 
       /* Toggle on header click */
       sectHdr.addEventListener('click', () => this._toggleSection(sIdx));
@@ -21067,15 +21044,19 @@ class AhaRollershutterCard extends HTMLElement {
       const box     = r.querySelector(`.rs-group-box[data-s-idx="${sIdx}"]`);
       if (sectHdr) {
         const stateClasses = this._sectionStateClasses(section);
+        const states       = (section.entities || []).map(e => this._isOpen(e.boolean));
         sectHdr.classList.toggle('sect-has-open', stateClasses.includes('sect-has-open'));
         sectHdr.classList.toggle('sect-all-open',  stateClasses.includes('sect-all-open'));
 
-        const stateIcon = sectHdr.querySelector('.rs-sect-state-icon');
-        const stateTxt  = sectHdr.querySelector('.rs-sect-state-txt');
-        if (stateIcon) {
-          const states = (section.entities || []).map(e => this._isOpen(e.boolean));
-          stateIcon.innerHTML = sectionStateIcon(states);
+        const sectIconbox = sectHdr.querySelector('.rs-sect-iconbox');
+        if (sectIconbox) {
+          const wasOpen = sectIconbox.classList.contains('open');
+          const isOpen  = stateClasses.includes('sect-has-open');
+          sectIconbox.innerHTML = rsGroupIconSvg(states);
+          if (isOpen !== wasOpen) sectIconbox.classList.toggle('open', isOpen);
         }
+
+        const stateTxt = sectHdr.querySelector('.rs-sect-state-txt');
         if (stateTxt) stateTxt.textContent = this._sectionStateText(section);
 
         const grpBtns = r.querySelector(`.rs-sect-grp-btns[data-s-idx="${sIdx}"]`);
