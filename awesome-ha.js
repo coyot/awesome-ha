@@ -20886,32 +20886,30 @@ class AhaRollershutterCard extends HTMLElement {
       sectHdr.appendChild(sectMid);
       sectHdr.appendChild(chevron);
 
-      /* Group buttons (jeśli sekcja ma group service) */
-      if (hasGroup) {
-        const grpBtns = document.createElement('div');
-        grpBtns.className = 'rs-sect-grp-btns';
-        grpBtns.dataset.sIdx = sIdx;
+      /* Group buttons — zawsze widoczne */
+      const grpBtns = document.createElement('div');
+      grpBtns.className = 'rs-sect-grp-btns';
+      grpBtns.dataset.sIdx = sIdx;
 
-        const btnOpen = document.createElement('button');
-        btnOpen.className = 'rs-sect-grp-btn';
-        btnOpen.dataset.grp = 'open';
-        btnOpen.innerHTML = SVG_UP;
-        btnOpen.title = 'Otwórz wszystkie';
-        btnOpen.hidden = this._sectionAllOpen(section);
-        btnOpen.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'open'); });
+      const btnOpen = document.createElement('button');
+      btnOpen.className = 'rs-sect-grp-btn';
+      btnOpen.dataset.grp = 'open';
+      btnOpen.innerHTML = SVG_UP;
+      btnOpen.title = 'Otwórz wszystkie';
+      btnOpen.hidden = this._sectionAllOpen(section);
+      btnOpen.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'open'); });
 
-        const btnClose = document.createElement('button');
-        btnClose.className = 'rs-sect-grp-btn';
-        btnClose.dataset.grp = 'close';
-        btnClose.innerHTML = SVG_DOWN;
-        btnClose.title = 'Zamknij wszystkie';
-        btnClose.hidden = this._sectionAllClosed(section);
-        btnClose.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'close'); });
+      const btnClose = document.createElement('button');
+      btnClose.className = 'rs-sect-grp-btn';
+      btnClose.dataset.grp = 'close';
+      btnClose.innerHTML = SVG_DOWN;
+      btnClose.title = 'Zamknij wszystkie';
+      btnClose.hidden = this._sectionAllClosed(section);
+      btnClose.addEventListener('click', ev => { ev.stopPropagation(); this._groupAction(section, 'close'); });
 
-        grpBtns.appendChild(btnOpen);
-        grpBtns.appendChild(btnClose);
-        sectHdr.appendChild(grpBtns);
-      }
+      grpBtns.appendChild(btnOpen);
+      grpBtns.appendChild(btnClose);
+      sectHdr.appendChild(grpBtns);
 
       /* Toggle on header click */
       sectHdr.addEventListener('click', () => this._toggleSection(sIdx));
@@ -20981,11 +20979,6 @@ class AhaRollershutterCard extends HTMLElement {
         row.appendChild(btns);
         box.appendChild(row);
       });
-
-      /* Group row na dole boxa (gdy brak nagłówkowych buttonów — fallback) */
-      if (!hasGroup) {
-        // Brak dodatkowego wiersza — obsługa grupowa tylko w nagłówku
-      }
 
       body.appendChild(box);
       card.appendChild(body);
@@ -21100,15 +21093,29 @@ class AhaRollershutterCard extends HTMLElement {
 
   _groupAction(section, dir) {
     if (!this._hass) return;
+    const hasGroupSvc = !!(section.group_open_service && section.group_open_entity &&
+                           section.group_close_service && section.group_close_entity);
     if (dir === 'open') {
-      const [domain, svc] = section.group_open_service.split('.');
-      this._hass.callService(domain, svc, { entity_id: section.group_open_entity });
+      if (hasGroupSvc) {
+        const [domain, svc] = section.group_open_service.split('.');
+        this._hass.callService(domain, svc, { entity_id: section.group_open_entity });
+      } else {
+        (section.entities || []).forEach(e => {
+          if (e.entity) this._hass.callService('cover', 'open_cover', { entity_id: e.entity });
+        });
+      }
       (section.entities || []).forEach(e => {
         if (e.boolean) this._hass.callService('input_boolean', 'turn_on', { entity_id: e.boolean });
       });
     } else {
-      const [domain, svc] = section.group_close_service.split('.');
-      this._hass.callService(domain, svc, { entity_id: section.group_close_entity });
+      if (hasGroupSvc) {
+        const [domain, svc] = section.group_close_service.split('.');
+        this._hass.callService(domain, svc, { entity_id: section.group_close_entity });
+      } else {
+        (section.entities || []).forEach(e => {
+          if (e.entity) this._hass.callService('cover', 'close_cover', { entity_id: e.entity });
+        });
+      }
       (section.entities || []).forEach(e => {
         if (e.boolean) this._hass.callService('input_boolean', 'turn_off', { entity_id: e.boolean });
       });
