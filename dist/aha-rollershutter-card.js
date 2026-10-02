@@ -192,14 +192,24 @@ const RS_STYLES = `
     padding: 10px 12px;
     margin-top: 8px;
     border-radius: 13px;
-    background: rgba(255,255,255,0.028);
-    border: 0.5px solid rgba(255,255,255,0.09);
+    background: linear-gradient(135deg, rgba(255,255,255,0.058) 0%, rgba(255,255,255,0.016) 100%);
+    border: 0.5px solid rgba(255,255,255,0.10);
+    border-left: 2.5px solid rgba(160,165,175,0.28);
     cursor: pointer;
-    transition: background 0.15s, border-color 0.35s;
+    transition: background 0.35s, border-color 0.35s;
     -webkit-tap-highlight-color: transparent;
   }
-  .rs-sect-hdr:active { background: rgba(255,255,255,0.055); }
-  .rs-sect-hdr.sect-has-open { border-color: rgba(133,183,235,0.18); }
+  .rs-sect-hdr:active { background: linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%); }
+  .rs-sect-hdr.sect-has-open {
+    background: linear-gradient(135deg, rgba(133,183,235,0.10) 0%, rgba(133,183,235,0.022) 100%);
+    border-color: rgba(133,183,235,0.18);
+    border-left-color: rgba(133,183,235,0.55);
+  }
+  .rs-sect-hdr.sect-all-open {
+    background: linear-gradient(135deg, rgba(48,209,88,0.08) 0%, rgba(48,209,88,0.016) 100%);
+    border-color: rgba(48,209,88,0.15);
+    border-left-color: rgba(48,209,88,0.55);
+  }
 
   /* Iconbox sekcji */
   .rs-sect-iconbox {
@@ -459,8 +469,8 @@ class AhaRollershutterCard extends HTMLElement {
   _sectionStateText(section) {
     const total = (section.entities || []).length;
     const open  = this._sectionOpenCount(section);
-    if (open === 0)     return 'zamknięte';
-    if (open === total) return 'wszystkie otwarte';
+    if (open === 0)     return `zamknięte (${total})`;
+    if (open === total) return `wszystkie otwarte (${total})`;
     return `${open}/${total} otwarte`;
   }
 
