@@ -197,8 +197,9 @@ class ActionAppleCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this._gateInterval    = null;
-    this._gateActivatedAt = 0;
+    this._gateInterval      = null;
+    this._gateActivatedAt   = 0;
+    this._lastKnownTrigger  = null;   /* last_triggered z HA — do wykrywania zewnętrznych triggerów */
   }
 
   disconnectedCallback() {
@@ -219,14 +220,33 @@ class ActionAppleCard extends HTMLElement {
       ? hass.states[this._config.condition.entity]?.state
       : null;
 
-    /* uruchom timer bramy jeśli jest aktywna (np. po odświeżeniu strony) */
-    if (this._config.gate_timing && !this._gateInterval) {
-      if (!this._gateActivatedAt) {
+    /* Obserwuj last_triggered skryptu — wykrywa wyzwolenie z automatyzacji/zewnątrz */
+    if (this._config.gate_timing) {
+      const lastTriggered = hass.states[this._config.entity]?.attributes?.last_triggered;
+      if (lastTriggered && lastTriggered !== this._lastKnownTrigger) {
+        this._lastKnownTrigger = lastTriggered;
+        const triggerMs = new Date(lastTriggered).getTime();
+        const gt = this._config.gate_timing;
+        const totalMs = ((gt.opening ?? 5) + (gt.open ?? 20) + (gt.closing ?? 5)) * 1000;
+        const isRecent = Date.now() - triggerMs < totalMs + 2000;
+        if (isRecent) {
+          const diff = Math.abs(triggerMs - (this._gateActivatedAt || 0));
+          if (diff > 2000) {
+            /* Zewnętrzny trigger — sync do timestampu z HA */
+            this._gateActivatedAt = triggerMs;
+            try { localStorage.setItem(this._gateKey(), triggerMs.toString()); } catch(e) {}
+            this._startGateTimer();
+          }
+        }
+      } else if (!this._gateInterval && !this._gateActivatedAt) {
+        /* Fallback: odtwórz stan po przeładowaniu strony z localStorage */
         const saved = parseInt(localStorage.getItem(this._gateKey()) || '0');
-        if (saved) this._gateActivatedAt = saved;
+        if (saved) {
+          this._gateActivatedAt = saved;
+          const gp = this._getGatePhase();
+          if (gp && gp.phase !== 'closed') this._startGateTimer();
+        }
       }
-      const gp = this._getGatePhase();
-      if (gp && gp.phase !== 'closed') this._startGateTimer();
     }
 
     if (
