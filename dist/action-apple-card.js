@@ -107,7 +107,8 @@ class ActionAppleCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this._gateInterval = null;
+    this._gateInterval    = null;
+    this._gateActivatedAt = 0;
   }
 
   disconnectedCallback() {
@@ -130,6 +131,10 @@ class ActionAppleCard extends HTMLElement {
 
     /* uruchom timer bramy jeśli jest aktywna (np. po odświeżeniu strony) */
     if (this._config.gate_timing && !this._gateInterval) {
+      if (!this._gateActivatedAt) {
+        const saved = parseInt(localStorage.getItem(this._gateKey()) || '0');
+        if (saved) this._gateActivatedAt = saved;
+      }
       const gp = this._getGatePhase();
       if (gp && gp.phase !== 'closed') this._startGateTimer();
     }
@@ -154,7 +159,7 @@ class ActionAppleCard extends HTMLElement {
   _getGatePhase() {
     const gt = this._config?.gate_timing;
     if (!gt) return null;
-    const at = parseInt(localStorage.getItem(this._gateKey()) || '0');
+    const at = this._gateActivatedAt || parseInt(localStorage.getItem(this._gateKey()) || '0');
     if (!at) return { phase: 'closed', progress: 0, remaining: 0 };
 
     const elapsed  = (Date.now() - at) / 1000;
@@ -180,10 +185,11 @@ class ActionAppleCard extends HTMLElement {
     const gt    = this._config.gate_timing;
     const total = ((gt?.opening ?? 5) + (gt?.open ?? 20) + (gt?.closing ?? 5)) * 1000 + 500;
     this._gateInterval = setInterval(() => {
-      const at = parseInt(localStorage.getItem(this._gateKey()) || '0');
+      const at = this._gateActivatedAt;
       if (!at || Date.now() - at > total) {
         clearInterval(this._gateInterval);
         this._gateInterval = null;
+        this._gateActivatedAt = 0;
       }
       this._render();
     }, 250);
@@ -241,12 +247,13 @@ class ActionAppleCard extends HTMLElement {
 
     /* badge progress (procent paska) */
     let gateBarPct = 0;
-    let gateStatusTxt = '';
+    let gatePhaseLabel = '';
+    let gateCountSec = 0;
     if (gateActive) {
-      const sec = Math.ceil(gp.remaining);
-      if (gp.phase === 'opening') { gateBarPct = gp.progress * 100;       gateStatusTxt = `otwiera się… ${sec}s`; }
-      if (gp.phase === 'open')    { gateBarPct = (1 - gp.progress) * 100; gateStatusTxt = `otwarte — zamknie się za ${sec}s`; }
-      if (gp.phase === 'closing') { gateBarPct = gp.progress * 100;       gateStatusTxt = `zamyka się… ${sec}s`; }
+      gateCountSec = Math.ceil(gp.remaining);
+      if (gp.phase === 'opening') { gateBarPct = gp.progress * 100;       gatePhaseLabel = 'otwiera się'; }
+      if (gp.phase === 'open')    { gateBarPct = (1 - gp.progress) * 100; gatePhaseLabel = 'otwarte'; }
+      if (gp.phase === 'closing') { gateBarPct = gp.progress * 100;       gatePhaseLabel = 'zamyka się'; }
     }
 
     const name     = cfg.name ?? this._hass?.states?.[cfg.entity]?.attributes?.friendly_name ?? cfg.entity ?? '—';
@@ -334,6 +341,13 @@ class ActionAppleCard extends HTMLElement {
           height: 100%;
           border-radius: 99px;
           transition: width 0.22s linear;
+        }
+        .gate-count {
+          font-size: 17px;
+          font-weight: 800;
+          font-family: -apple-system, 'SF Pro Display', monospace;
+          letter-spacing: -1px;
+          line-height: 1;
         }
 
         .outer {
@@ -601,12 +615,15 @@ class ActionAppleCard extends HTMLElement {
               ${subLabel}
             </div>` : ''}
             ${gateActive ? `
-              <div class="gate-status" style="color:${gc.label};">${gateStatusTxt}</div>
+              <div class="gate-status" style="color:${gc.label};">${gatePhaseLabel}</div>
               <div class="gate-bar"><div class="gate-bar-fill" style="width:${gateBarPct.toFixed(1)}%;background:linear-gradient(90deg,${gc.barGrad});"></div></div>
             ` : ''}
           </div>
-          <div class="badge">
-            ${isNav ? navIconHTML : checkHTML}
+          <div class="badge" style="${gateActive ? `background:${gc.icBg};border-color:${gc.icBorder};box-shadow:0 0 14px ${gc.icon}50,0 2px 8px rgba(0,0,0,0.2);` : ''}">
+            ${gateActive
+              ? `<span class="gate-count" style="color:${gc.icon};">${gateCountSec}</span>`
+              : (isNav ? navIconHTML : checkHTML)
+            }
           </div>
         </div>
       </div>
@@ -764,7 +781,9 @@ class ActionAppleCard extends HTMLElement {
 
     /* Uruchom timer bramy */
     if (this._config.gate_timing) {
-      localStorage.setItem(this._gateKey(), Date.now().toString());
+      const now = Date.now();
+      this._gateActivatedAt = now;
+      try { localStorage.setItem(this._gateKey(), now.toString()); } catch(e) {}
       this._startGateTimer();
     }
 
