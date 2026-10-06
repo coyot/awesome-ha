@@ -130,6 +130,56 @@ const BUILTIN_ICONS = {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Animowany SVG bramy dwuskrzydłowej (widok z góry)                 */
+/*  openness: 0 = zamknięta, 1 = w pełni otwarta                     */
+/*  Zawiasy na zewnętrznych krawędziach — skrzydła otwierają się      */
+/*  do środka tworząc kształt \/                                      */
+/* ------------------------------------------------------------------ */
+function gateIconSvg(openness, accentColor) {
+  const c  = accentColor || (openness > 0.04 ? '#85B7EB' : 'rgba(160,165,175,0.72)');
+  const cf = openness > 0.04 ? 'rgba(133,183,235,0.52)' : 'rgba(160,165,175,0.48)';
+  const wf = openness > 0.04 ? '0.13' : '0.07';
+
+  /* zawiasy w środku pionowych słupków */
+  const lHx = 5.5, lHy = 14;
+  const rHx = 22.5, rHy = 14;
+  const wLen = 9, wH = 3;
+
+  /* kąt obrotu: 0 = zamknięte (poziomo), 78° = otwarte (prawie równolegle do słupka) */
+  const deg = openness * 78;
+
+  /* nity/dekoracje na skrzydłach — dwa pionowe pręty */
+  function wingDeco(x1, y1, w, angle, cx, cy) {
+    const pos1 = x1 + w * 0.3, pos2 = x1 + w * 0.7;
+    return `
+      <line x1="${pos1}" y1="${y1}" x2="${pos1}" y2="${y1 + wH}"
+            stroke="${c}" stroke-width="0.5" opacity="0.6"
+            transform="rotate(${angle}, ${cx}, ${cy})"/>
+      <line x1="${pos2}" y1="${y1}" x2="${pos2}" y2="${y1 + wH}"
+            stroke="${c}" stroke-width="0.5" opacity="0.6"
+            transform="rotate(${angle}, ${cx}, ${cy})"/>`;
+  }
+
+  return `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
+    <!-- Słupki -->
+    <rect x="1.5" y="2" width="4" height="24" rx="1.8" fill="${cf}"/>
+    <rect x="22.5" y="2" width="4" height="24" rx="1.8" fill="${cf}"/>
+    <!-- Lewe skrzydło -->
+    <rect x="${lHx}" y="${lHy - wH/2}" width="${wLen}" height="${wH}" rx="1.2"
+          fill="rgba(133,183,235,${wf})" stroke="${c}" stroke-width="1"
+          transform="rotate(${deg}, ${lHx}, ${lHy})"/>
+    ${wingDeco(lHx, lHy - wH/2, wLen, deg, lHx, lHy)}
+    <!-- Prawe skrzydło -->
+    <rect x="${rHx - wLen}" y="${rHy - wH/2}" width="${wLen}" height="${wH}" rx="1.2"
+          fill="rgba(133,183,235,${wf})" stroke="${c}" stroke-width="1"
+          transform="rotate(${-deg}, ${rHx}, ${rHy})"/>
+    ${wingDeco(rHx - wLen, rHy - wH/2, wLen, -deg, rHx, rHy)}
+    <!-- Zamek gdy zamknięta -->
+    ${openness < 0.04 ? `<circle cx="14" cy="14" r="1.8" fill="${c}" opacity="0.55"/>` : ''}
+  </svg>`;
+}
+
+/* ------------------------------------------------------------------ */
 /*  MDI icon resolver — używa ha-icon z HA jeśli dostępne             */
 /* ------------------------------------------------------------------ */
 function buildIconHTML(iconStr, size = 22) {
@@ -300,7 +350,18 @@ class ActionAppleCard extends HTMLElement {
 
     const name     = cfg.name ?? this._hass?.states?.[cfg.entity]?.attributes?.friendly_name ?? cfg.entity ?? '—';
     const iconSize = isCompact ? 18 : 22;
-    const iconHTML = buildIconHTML(cfg.icon, iconSize);
+
+    /* Ikonka bramy animowana wg stanu, zastępuje statyczną ikonkę */
+    let gateOpenness = 0;
+    if (gp) {
+      if (gp.phase === 'opening') gateOpenness = gp.progress;
+      else if (gp.phase === 'open') gateOpenness = 1;
+      else if (gp.phase === 'closing') gateOpenness = 1 - gp.progress;
+    }
+    const iconHTML = cfg.gate_timing
+      ? gateIconSvg(gateOpenness, gc?.icon)
+      : buildIconHTML(cfg.icon, iconSize);
+
     const subLabel = isNav ? (cfg.subtitle ?? 'otwórz panel') : null;
 
     /* kolory zależne od warunku / stanu bramy */
