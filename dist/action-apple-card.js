@@ -107,6 +107,11 @@ class ActionAppleCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    this._gateInterval = null;
+  }
+
+  disconnectedCallback() {
+    if (this._gateInterval) { clearInterval(this._gateInterval); this._gateInterval = null; }
   }
 
   setConfig(config) {
@@ -123,6 +128,12 @@ class ActionAppleCard extends HTMLElement {
       ? hass.states[this._config.condition.entity]?.state
       : null;
 
+    /* uruchom timer bramy jeśli jest aktywna (np. po odświeżeniu strony) */
+    if (this._config.gate_timing && !this._gateInterval) {
+      const gp = this._getGatePhase();
+      if (gp && gp.phase !== 'closed') this._startGateTimer();
+    }
+
     if (
       !this._rendered ||
       stateNow !== this._lastFriendlyName ||
@@ -135,6 +146,48 @@ class ActionAppleCard extends HTMLElement {
   }
 
   getCardSize() { return 1; }
+
+  /* ── Gate timing helpers ── */
+
+  _gateKey() { return `aha_gate_at_${this._config.entity}`; }
+
+  _getGatePhase() {
+    const gt = this._config?.gate_timing;
+    if (!gt) return null;
+    const at = parseInt(localStorage.getItem(this._gateKey()) || '0');
+    if (!at) return { phase: 'closed', progress: 0, remaining: 0 };
+
+    const elapsed  = (Date.now() - at) / 1000;
+    const opening  = gt.opening ?? 5;
+    const open     = gt.open    ?? 20;
+    const closing  = gt.closing ?? 5;
+    const total    = opening + open + closing;
+
+    if (elapsed >= total) return { phase: 'closed', progress: 0, remaining: 0 };
+    if (elapsed < opening) {
+      return { phase: 'opening', progress: elapsed / opening, remaining: opening - elapsed };
+    }
+    if (elapsed < opening + open) {
+      const e2 = elapsed - opening;
+      return { phase: 'open', progress: e2 / open, remaining: open - e2 };
+    }
+    const e3 = elapsed - opening - open;
+    return { phase: 'closing', progress: e3 / closing, remaining: closing - e3 };
+  }
+
+  _startGateTimer() {
+    if (this._gateInterval) clearInterval(this._gateInterval);
+    const gt    = this._config.gate_timing;
+    const total = ((gt?.opening ?? 5) + (gt?.open ?? 20) + (gt?.closing ?? 5)) * 1000 + 500;
+    this._gateInterval = setInterval(() => {
+      const at = parseInt(localStorage.getItem(this._gateKey()) || '0');
+      if (!at || Date.now() - at > total) {
+        clearInterval(this._gateInterval);
+        this._gateInterval = null;
+      }
+      this._render();
+    }, 250);
+  }
 
   _isNav() {
     return this._config.variant === 'nav' ||
@@ -174,16 +227,38 @@ class ActionAppleCard extends HTMLElement {
     const isCompact = !!cfg.compact;
     const isDanger  = this._evalCondition();
 
+    /* ── Gate state ── */
+    const gp = this._getGatePhase();   // null | {phase, progress, remaining}
+    const gateActive = gp && gp.phase !== 'closed';
+
+    /* kolory fazy bramy */
+    const GATE_COLORS = {
+      opening: { icon: '#F5A623', icBg: 'linear-gradient(135deg,rgba(245,166,35,0.20) 0%,rgba(200,140,20,0.25) 100%)', icBorder: 'rgba(245,166,35,0.30)', label: 'rgba(245,166,35,0.95)', barGrad: '#F5A623,#FFC060', pulse: 'gate-pulse-amber' },
+      open:    { icon: '#30D158', icBg: 'linear-gradient(135deg,rgba(48,209,88,0.20) 0%,rgba(35,160,65,0.25) 100%)',  icBorder: 'rgba(48,209,88,0.30)',   label: 'rgba(48,209,88,0.95)',   barGrad: '#30D158,#5AE080', pulse: '' },
+      closing: { icon: '#FF9F0A', icBg: 'linear-gradient(135deg,rgba(255,159,10,0.20) 0%,rgba(200,120,0,0.25) 100%)', icBorder: 'rgba(255,159,10,0.30)', label: 'rgba(255,159,10,0.95)', barGrad: '#FF9F0A,#FFB830', pulse: 'gate-pulse-orange' },
+    };
+    const gc = gateActive ? GATE_COLORS[gp.phase] : null;
+
+    /* badge progress (procent paska) */
+    let gateBarPct = 0;
+    let gateStatusTxt = '';
+    if (gateActive) {
+      const sec = Math.ceil(gp.remaining);
+      if (gp.phase === 'opening') { gateBarPct = gp.progress * 100;       gateStatusTxt = `otwiera się… ${sec}s`; }
+      if (gp.phase === 'open')    { gateBarPct = (1 - gp.progress) * 100; gateStatusTxt = `otwarte — zamknie się za ${sec}s`; }
+      if (gp.phase === 'closing') { gateBarPct = gp.progress * 100;       gateStatusTxt = `zamyka się… ${sec}s`; }
+    }
+
     const name     = cfg.name ?? this._hass?.states?.[cfg.entity]?.attributes?.friendly_name ?? cfg.entity ?? '—';
     const iconSize = isCompact ? 18 : 22;
     const iconHTML = buildIconHTML(cfg.icon, iconSize);
     const subLabel = isNav ? (cfg.subtitle ?? 'otwórz panel') : null;
 
-    /* kolory zależne od warunku */
-    const idleColor      = isDanger ? '#FF453A'                       : '#8E8E93';
-    const hoverColor     = isDanger ? '#FF3B30'                       : '#F5A623';
-    const hoverGlow      = isDanger ? 'rgba(255,59,48,0.7)'           : 'rgba(245,166,35,0.7)';
-    const hoverShadow    = isDanger ? 'rgba(255,59,48,0.25)'          : 'rgba(245,166,35,0.25)';
+    /* kolory zależne od warunku / stanu bramy */
+    const idleColor      = gc ? gc.icon  : isDanger ? '#FF453A'              : '#8E8E93';
+    const hoverColor     = gc ? gc.icon  : isDanger ? '#FF3B30'              : '#F5A623';
+    const hoverGlow      = gc ? `${gc.icon}b3` : isDanger ? 'rgba(255,59,48,0.7)'  : 'rgba(245,166,35,0.7)';
+    const hoverShadow    = gc ? `${gc.icon}40` : isDanger ? 'rgba(255,59,48,0.25)' : 'rgba(245,166,35,0.25)';
     const icBg           = isDanger ? '#3A1212'                       : '#242424';
     const icBorderTop    = isDanger ? '#5A2020'                       : '#404040';
 
@@ -226,8 +301,40 @@ class ActionAppleCard extends HTMLElement {
           0%, 100% { opacity: 0.6; }
           50% { opacity: 1; }
         }
+        @keyframes gate-pulse-amber {
+          0%,100% { box-shadow: 0 0 0 0 rgba(245,166,35,0), 0 4px 16px rgba(0,0,0,0.2); }
+          50%     { box-shadow: 0 0 0 4px rgba(245,166,35,0.22), 0 0 20px rgba(245,166,35,0.30), 0 4px 16px rgba(0,0,0,0.3); }
+        }
+        @keyframes gate-pulse-orange {
+          0%,100% { box-shadow: 0 0 0 0 rgba(255,159,10,0), 0 4px 16px rgba(0,0,0,0.2); }
+          50%     { box-shadow: 0 0 0 4px rgba(255,159,10,0.22), 0 0 20px rgba(255,159,10,0.30), 0 4px 16px rgba(0,0,0,0.3); }
+        }
 
         :host { display: block; }
+
+        .gate-status {
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: -0.1px;
+          margin-top: 3px;
+          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          -webkit-font-smoothing: antialiased;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .gate-bar {
+          height: 3px;
+          border-radius: 99px;
+          background: rgba(255,255,255,0.08);
+          margin-top: 5px;
+          overflow: hidden;
+        }
+        .gate-bar-fill {
+          height: 100%;
+          border-radius: 99px;
+          transition: width 0.22s linear;
+        }
 
         .outer {
           border-radius: ${isCompact ? '52px' : cfg.pill ? '102px' : '20px'};
@@ -257,7 +364,7 @@ class ActionAppleCard extends HTMLElement {
           box-shadow: 0 4px 16px rgba(0,0,0,0.2),
                       0 2px 4px rgba(0,0,0,0.1),
                       inset 0 1px 0 rgba(255,255,255,0.1);
-          ${isDanger ? 'animation: action-danger-pulse 2.5s ease-in-out infinite;' : ''}
+          ${gc?.pulse ? `animation: ${gc.pulse} 2.0s ease-in-out infinite;` : isDanger ? 'animation: action-danger-pulse 2.5s ease-in-out infinite;' : ''}
         }
 
         .card::before {
@@ -316,14 +423,14 @@ class ActionAppleCard extends HTMLElement {
           width: ${isNav ? '52px' : isCompact ? '36px' : '48px'};
           height: ${isNav ? '52px' : isCompact ? '36px' : '48px'};
           border-radius: ${isNav ? '16px' : isCompact ? '11px' : '14px'};
-          background: ${isDanger
+          background: ${gc ? gc.icBg : isDanger
             ? 'linear-gradient(135deg, rgba(58,18,18,0.8) 0%, rgba(44,14,14,0.9) 100%)'
             : isNav
               ? 'linear-gradient(135deg, rgba(28,42,58,0.6) 0%, rgba(18,32,48,0.8) 100%)'
               : 'linear-gradient(135deg, rgba(58,58,60,0.6) 0%, rgba(44,44,46,0.8) 100%)'};
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          border: 1px solid ${isDanger
+          border: 1px solid ${gc ? gc.icBorder : isDanger
             ? 'rgba(255,59,48,0.2)'
             : isNav
               ? 'rgba(90,200,250,0.15)'
@@ -493,6 +600,10 @@ class ActionAppleCard extends HTMLElement {
               </svg>
               ${subLabel}
             </div>` : ''}
+            ${gateActive ? `
+              <div class="gate-status" style="color:${gc.label};">${gateStatusTxt}</div>
+              <div class="gate-bar"><div class="gate-bar-fill" style="width:${gateBarPct.toFixed(1)}%;background:linear-gradient(90deg,${gc.barGrad});"></div></div>
+            ` : ''}
           </div>
           <div class="badge">
             ${isNav ? navIconHTML : checkHTML}
@@ -649,6 +760,12 @@ class ActionAppleCard extends HTMLElement {
       void card.offsetWidth;
       card.classList.add('fired');
       setTimeout(() => card.classList.remove('fired'), 900);
+    }
+
+    /* Uruchom timer bramy */
+    if (this._config.gate_timing) {
+      localStorage.setItem(this._gateKey(), Date.now().toString());
+      this._startGateTimer();
     }
 
     const tapAction = this._config.tap_action;
