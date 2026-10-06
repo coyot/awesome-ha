@@ -132,50 +132,43 @@ const BUILTIN_ICONS = {
 /* ------------------------------------------------------------------ */
 /*  Animowany SVG bramy dwuskrzydłowej (widok z góry)                 */
 /*  openness: 0 = zamknięta, 1 = w pełni otwarta                     */
-/*  Zawiasy na zewnętrznych krawędziach — skrzydła otwierają się      */
-/*  do środka tworząc kształt \/                                      */
+/*  Zawiasy przy słupkach — skrzydła otwierają się do środka \/       */
 /* ------------------------------------------------------------------ */
 function gateIconSvg(openness, accentColor) {
-  const c  = accentColor || (openness > 0.04 ? '#85B7EB' : 'rgba(160,165,175,0.72)');
-  const cf = openness > 0.04 ? 'rgba(133,183,235,0.52)' : 'rgba(160,165,175,0.48)';
-  const wf = openness > 0.04 ? '0.13' : '0.07';
+  const open = openness > 0.04;
+  const c        = accentColor || (open ? '#85B7EB' : 'rgba(160,165,175,0.72)');
+  const postFill = open ? 'rgba(133,183,235,0.50)' : 'rgba(160,165,175,0.42)';
 
-  /* zawiasy w środku pionowych słupków */
-  const lHx = 5.5, lHy = 14;
-  const rHx = 22.5, rHy = 14;
-  const wLen = 9, wH = 3;
+  /* Zawiasy na wewnętrznej krawędzi słupków, pionowy środek */
+  const lHx = 4.5, lHy = 14;
+  const rHx = 23.5, rHy = 14;
+  const armLen = 9.0;
 
-  /* kąt obrotu: 0 = zamknięte (poziomo), 78° = otwarte (prawie równolegle do słupka) */
-  const deg = openness * 78;
+  /* Kąt: 0° = zamknięte (skrzydła poziomo), 65° = otwarte (skrzydła do dołu \/) */
+  const angleRad = openness * 65 * Math.PI / 180;
 
-  /* nity/dekoracje na skrzydłach — dwa pionowe pręty */
-  function wingDeco(x1, y1, w, angle, cx, cy) {
-    const pos1 = x1 + w * 0.3, pos2 = x1 + w * 0.7;
-    return `
-      <line x1="${pos1}" y1="${y1}" x2="${pos1}" y2="${y1 + wH}"
-            stroke="${c}" stroke-width="0.5" opacity="0.6"
-            transform="rotate(${angle}, ${cx}, ${cy})"/>
-      <line x1="${pos2}" y1="${y1}" x2="${pos2}" y2="${y1 + wH}"
-            stroke="${c}" stroke-width="0.5" opacity="0.6"
-            transform="rotate(${angle}, ${cx}, ${cy})"/>`;
-  }
+  /* Końce skrzydeł — liczymy pozycję wprost, bez transform */
+  const lTipX = lHx + armLen * Math.cos(angleRad);
+  const lTipY = lHy + armLen * Math.sin(angleRad);
+  const rTipX = rHx - armLen * Math.cos(angleRad);
+  const rTipY = rHy + armLen * Math.sin(angleRad);
 
   return `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
     <!-- Słupki -->
-    <rect x="1.5" y="2" width="4" height="24" rx="1.8" fill="${cf}"/>
-    <rect x="22.5" y="2" width="4" height="24" rx="1.8" fill="${cf}"/>
+    <rect x="0.5" y="3" width="4" height="22" rx="1.5" fill="${postFill}"/>
+    <rect x="23.5" y="3" width="4" height="22" rx="1.5" fill="${postFill}"/>
     <!-- Lewe skrzydło -->
-    <rect x="${lHx}" y="${lHy - wH/2}" width="${wLen}" height="${wH}" rx="1.2"
-          fill="rgba(133,183,235,${wf})" stroke="${c}" stroke-width="1"
-          transform="rotate(${deg}, ${lHx}, ${lHy})"/>
-    ${wingDeco(lHx, lHy - wH/2, wLen, deg, lHx, lHy)}
+    <line x1="${lHx}" y1="${lHy}" x2="${lTipX.toFixed(2)}" y2="${lTipY.toFixed(2)}"
+          stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>
     <!-- Prawe skrzydło -->
-    <rect x="${rHx - wLen}" y="${rHy - wH/2}" width="${wLen}" height="${wH}" rx="1.2"
-          fill="rgba(133,183,235,${wf})" stroke="${c}" stroke-width="1"
-          transform="rotate(${-deg}, ${rHx}, ${rHy})"/>
-    ${wingDeco(rHx - wLen, rHy - wH/2, wLen, -deg, rHx, rHy)}
+    <line x1="${rHx}" y1="${rHy}" x2="${rTipX.toFixed(2)}" y2="${rTipY.toFixed(2)}"
+          stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>
+    <!-- Zawias lewy -->
+    <circle cx="${lHx}" cy="${lHy}" r="1.8" fill="${c}" opacity="0.9"/>
+    <!-- Zawias prawy -->
+    <circle cx="${rHx}" cy="${rHy}" r="1.8" fill="${c}" opacity="0.9"/>
     <!-- Zamek gdy zamknięta -->
-    ${openness < 0.04 ? `<circle cx="14" cy="14" r="1.8" fill="${c}" opacity="0.55"/>` : ''}
+    ${openness < 0.04 ? `<circle cx="14" cy="${lHy}" r="1.5" fill="${c}" opacity="0.6"/>` : ''}
   </svg>`;
 }
 
