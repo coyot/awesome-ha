@@ -130,45 +130,50 @@ const BUILTIN_ICONS = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Animowany SVG bramy dwuskrzydłowej (widok z góry)                 */
+/*  Animowany SVG bramy dwuskrzydłowej — widok z PRZODU               */
 /*  openness: 0 = zamknięta, 1 = w pełni otwarta                     */
-/*  Zawiasy przy słupkach — skrzydła otwierają się do środka \/       */
+/*  Skrzydła zwężają się (foreshortening) gdy otwierają się do środka */
 /* ------------------------------------------------------------------ */
 function gateIconSvg(openness, accentColor) {
   const open = openness > 0.04;
   const c        = accentColor || (open ? '#85B7EB' : 'rgba(160,165,175,0.72)');
-  const postFill = open ? 'rgba(133,183,235,0.50)' : 'rgba(160,165,175,0.42)';
+  const postFill = open ? 'rgba(133,183,235,0.55)' : 'rgba(160,165,175,0.48)';
+  const wingFill = open ? 'rgba(133,183,235,0.15)' : 'rgba(160,165,175,0.10)';
 
-  /* Zawiasy na wewnętrznej krawędzi słupków, pionowy środek */
-  const lHx = 4.5, lHy = 14;
-  const rHx = 23.5, rHy = 14;
-  const armLen = 9.0;
+  /* Geometria — słupki po bokach, skrzydła w prześwicie */
+  const postW = 3.5;
+  const x1 = postW;          /* lewa krawędź prześwitu = 3.5  */
+  const x2 = 28 - postW;    /* prawa krawędź prześwitu = 24.5 */
+  const halfW = (x2 - x1) / 2; /* 10.5 — szerokość jednego skrzydła gdy zamknięte */
+  const gY1 = 4, gY2 = 24, gH = gY2 - gY1;
 
-  /* Kąt: 0° = zamknięte (skrzydła poziomo), 65° = otwarte (skrzydła do dołu \/) */
-  const angleRad = openness * 65 * Math.PI / 180;
+  /* Foreshortening: skrzydło zwęża się proporcjonalnie do cos(kąt) */
+  const angleRad = openness * 78 * Math.PI / 180;
+  const wW = Math.max(halfW * Math.cos(angleRad), 0.8);
 
-  /* Końce skrzydeł — liczymy pozycję wprost, bez transform */
-  const lTipX = lHx + armLen * Math.cos(angleRad);
-  const lTipY = lHy + armLen * Math.sin(angleRad);
-  const rTipX = rHx - armLen * Math.cos(angleRad);
-  const rTipY = rHy + armLen * Math.sin(angleRad);
+  /* Poziome szczeble na skrzydle (3 szt.) */
+  const bars = [0.28, 0.54, 0.78].map(t => {
+    const by = (gY1 + gH * t).toFixed(1);
+    return `<line x1="${x1}" y1="${by}" x2="${(x1 + wW).toFixed(2)}" y2="${by}"
+            stroke="${c}" stroke-width="0.7" opacity="0.5"/>
+            <line x1="${(x2 - wW).toFixed(2)}" y1="${by}" x2="${x2}" y2="${by}"
+            stroke="${c}" stroke-width="0.7" opacity="0.5"/>`;
+  }).join('');
 
   return `<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28">
     <!-- Słupki -->
-    <rect x="0.5" y="3" width="4" height="22" rx="1.5" fill="${postFill}"/>
-    <rect x="23.5" y="3" width="4" height="22" rx="1.5" fill="${postFill}"/>
-    <!-- Lewe skrzydło -->
-    <line x1="${lHx}" y1="${lHy}" x2="${lTipX.toFixed(2)}" y2="${lTipY.toFixed(2)}"
-          stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>
-    <!-- Prawe skrzydło -->
-    <line x1="${rHx}" y1="${rHy}" x2="${rTipX.toFixed(2)}" y2="${rTipY.toFixed(2)}"
-          stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>
-    <!-- Zawias lewy -->
-    <circle cx="${lHx}" cy="${lHy}" r="1.8" fill="${c}" opacity="0.9"/>
-    <!-- Zawias prawy -->
-    <circle cx="${rHx}" cy="${rHy}" r="1.8" fill="${c}" opacity="0.9"/>
+    <rect x="0" y="${gY1}" width="${postW}" height="${gH}" rx="1.2" fill="${postFill}"/>
+    <rect x="${x2}" y="${gY1}" width="${postW}" height="${gH}" rx="1.2" fill="${postFill}"/>
+    <!-- Lewe skrzydło (zawias przy lewym słupku) -->
+    <rect x="${x1}" y="${gY1}" width="${wW.toFixed(2)}" height="${gH}"
+          fill="${wingFill}" stroke="${c}" stroke-width="1" rx="0.5"/>
+    <!-- Prawe skrzydło (zawias przy prawym słupku) -->
+    <rect x="${(x2 - wW).toFixed(2)}" y="${gY1}" width="${wW.toFixed(2)}" height="${gH}"
+          fill="${wingFill}" stroke="${c}" stroke-width="1" rx="0.5"/>
+    <!-- Szczeble -->
+    ${bars}
     <!-- Zamek gdy zamknięta -->
-    ${openness < 0.04 ? `<circle cx="14" cy="${lHy}" r="1.5" fill="${c}" opacity="0.6"/>` : ''}
+    ${openness < 0.04 ? `<circle cx="14" cy="14" r="1.6" fill="${c}" opacity="0.65"/>` : ''}
   </svg>`;
 }
 
