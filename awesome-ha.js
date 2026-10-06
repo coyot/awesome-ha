@@ -14560,12 +14560,18 @@ window.customCards.push({
 
     _calendarItems() {
       const items = [];
+      const now = new Date();
       for (const cal of (this._config.calendars || [])) {
         const events = this._calEvents[cal.entity] || [];
         for (const ev of events) {
           const startRaw = ev.start?.dateTime || ev.start?.date || null;
           if (!startRaw) continue;
           const allDay  = !ev.start?.dateTime;
+          /* Pomiń minione wydarzenia z konkretną godziną */
+          if (!allDay) {
+            const endRaw = ev.end?.dateTime || null;
+            if (endRaw && new Date(endRaw) < now) continue;
+          }
           const start   = new Date(startRaw);
           const timeStr = allDay ? 'cały dzień' : `${pad(start.getHours())}:${pad(start.getMinutes())}`;
           const location = (ev.location || '').replace(/,?\s*Poland\s*$/i, '');

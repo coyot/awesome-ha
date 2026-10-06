@@ -23,6 +23,10 @@
  *     - date: '2026-05-22'              ← or hardcoded date
  *       name: Plastik
  *       color: '#FF9800'
+ *   calendars:
+ *     - entity: calendar.rodzinne        ← Google Calendar entity (shared/family)
+ *       name: Rodzinne                    (optional label)
+ *       color: '#9C27B0'                  (match the calendar's real Google color)
  *   days_fertilization: 14   (show fertil reminders up to N days ahead, default 14)
  *   days_waste: 3            (show waste reminders up to N days ahead, default 3)
  *   ai_task:
@@ -224,6 +228,10 @@
       this._aiLoading   = false;
       this._aiError     = null;
       this._aiLastFetch = 0;
+      this._calEvents    = {};
+      this._calLoading   = {};
+      this._calLastFetch = {};
+      this._painted       = false;
     }
 
     static getStubConfig() {
@@ -247,6 +255,9 @@
           { entity: 'sensor.harmonogram_plastik', name: 'Plastik', color: '#FF9800' },
           { entity: 'sensor.harmonogram_szklo',   name: 'Szkło',   color: '#9C27B0' },
         ],
+        calendars: [
+          { entity: 'calendar.rodzinne', name: 'Rodzinne', color: '#9C27B0' },
+        ],
         days_fertilization: 14,
         days_waste: 3,
         szambo: { entity: 'sensor.szambo_zuzycie', capacity: 10, warn_pct: 75 },
@@ -260,7 +271,7 @@
 
     setConfig(config) {
       this._config = {
-        people: [], fertilizations: [], waste: [],
+        people: [], fertilizations: [], waste: [], calendars: [],
         days_fertilization: 14, days_waste: 3,
         szambo: null,    // { entity, capacity, warn_pct }
         ai_task: null,   // { agent_id, prompt, refresh_interval }
@@ -277,8 +288,10 @@
         this._tick = setInterval(() => {
           this._render();
           this._maybeRefreshAI();
+          this._maybeRefreshCalendars();
         }, 60000);
         this._maybeRefreshAI();
+        this._maybeRefreshCalendars();
       }
     }
 
@@ -407,6 +420,68 @@
       }
     }
 
+    // ── Calendar events (today) ─────────────────────────────────────────────
+
+    async _maybeRefreshCalendars() {
+      const cals = this._config.calendars || [];
+      if (!cals.length || !this._hass) return;
+      const interval = 5 * 60 * 1000; // 5 min between refetches per calendar
+      const now = Date.now();
+
+      for (const cal of cals) {
+        if (!cal.entity) continue;
+        if (this._calLoading[cal.entity]) continue;
+        const hasData = this._calEvents[cal.entity] !== undefined;
+        if (hasData && (now - (this._calLastFetch[cal.entity] || 0)) < interval) continue;
+
+        this._calLoading[cal.entity] = true;
+        try {
+          const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+          const dayEnd   = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+          const url = `calendars/${cal.entity}?start=${encodeURIComponent(dayStart.toISOString())}&end=${encodeURIComponent(dayEnd.toISOString())}`;
+          const events = await this._hass.callApi('GET', url);
+          this._calEvents[cal.entity]    = Array.isArray(events) ? events : [];
+          this._calLastFetch[cal.entity] = Date.now();
+        } catch (e) {
+          console.error('[briefing-card] Calendar fetch error:', cal.entity, e);
+          this._calEvents[cal.entity] = this._calEvents[cal.entity] || [];
+        } finally {
+          this._calLoading[cal.entity] = false;
+        }
+      }
+      this._render();
+    }
+
+    _calendarItems() {
+      const items = [];
+      const now = new Date();
+      for (const cal of (this._config.calendars || [])) {
+        const events = this._calEvents[cal.entity] || [];
+        for (const ev of events) {
+          const startRaw = ev.start?.dateTime || ev.start?.date || null;
+          if (!startRaw) continue;
+          const allDay  = !ev.start?.dateTime;
+          /* Pomiń minione wydarzenia z konkretną godziną */
+          if (!allDay) {
+            const endRaw = ev.end?.dateTime || null;
+            if (endRaw && new Date(endRaw) < now) continue;
+          }
+          const start   = new Date(startRaw);
+          const timeStr = allDay ? 'cały dzień' : `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+          const location = (ev.location || '').replace(/,?\s*Poland\s*$/i, '');
+          items.push({
+            sortKey:  allDay ? -1 : start.getTime(),
+            time:     timeStr,
+            summary:  ev.summary || '(bez tytułu)',
+            location,
+            color:    cal.color || '#9C27B0',
+          });
+        }
+      }
+      items.sort((a, b) => a.sortKey - b.sortKey);
+      return items;
+    }
+
     // ── Main render ───────────────────────────────────────────────────────────
 
     _render() {
@@ -443,6 +518,19 @@
       // Forecast summary (array of {label, text})
       const fcAll        = hass.states[cfg.forecast_entity]?.attributes?.forecast || [];
       const summaryParts = buildSummaryParts(fcAll, now);
+      // Carousel keeps re-rendering every hass update (full innerHTML rebuild),
+      // which would restart the CSS animation from 0 each time and look like
+      // flicker. Anchor animation-delay to wall-clock phase instead of render
+      // time, so a fresh element always resumes at the correct point in the
+      // 10s loop and looks continuous across re-renders.
+      const SUM_CYCLE_SEC = 10;
+      const nowSec        = now.getTime() / 1000;
+      // Every hass update fully rebuilds the DOM (innerHTML), which would replay
+      // any "on-mount" CSS animation (e.g. the summary fade-in) on every single
+      // re-render and look like flicker. Only allow it on this element's actual
+      // first paint.
+      const firstPaint = !this._painted;
+      this._painted    = true;
 
       // Sun: sunset from sun.sun
       const sun = hass.states['sun.sun'];
@@ -501,6 +589,9 @@
       // Reminders
       const reminders = this._reminders();
 
+      // Calendar events (today)
+      const calendarItems = this._calendarItems();
+
       // ── HTML ──────────────────────────────────────────────────────────────────
 
       const chipsHtml = chips.map(c =>
@@ -524,6 +615,17 @@
           <span class="person-name">${p.name}</span>
           <span class="person-status">${homeLabel}</span>
           ${batHtml}
+        </div>`;
+      }).join('');
+
+      const calendarHtml = calendarItems.map(ev => {
+        const metaParts = [ev.time, ev.location].filter(Boolean);
+        return `<div class="reminder" style="--rc:${ev.color}">
+          ${_remIconCalendar(ev.color)}
+          <div class="rem-body">
+            <span class="rem-name">${escHtml(ev.summary)}</span>
+            ${metaParts.length ? `<span class="rem-sub">${escHtml(metaParts.join(', '))}</span>` : ''}
+          </div>
         </div>`;
       }).join('');
 
@@ -578,12 +680,13 @@
 
           <!-- Forecast summary (animated carousel when 2 parts) -->
           ${summaryParts.length ? `
-          <div class="summary-wrap${summaryParts.length > 1 ? ' animated' : ''}">
-            ${summaryParts.map((p, i) =>
-              `<div class="sum-slide" style="${summaryParts.length > 1 ? `animation-delay:${i * 5}s` : ''}">
+          <div class="summary-wrap${summaryParts.length > 1 ? ' animated' : ''}${firstPaint ? ' first-paint' : ''}">
+            ${summaryParts.map((p, i) => {
+              const delay = -(((nowSec + i * 5) % SUM_CYCLE_SEC));
+              return `<div class="sum-slide" style="${summaryParts.length > 1 ? `animation-delay:${delay.toFixed(2)}s` : ''}">
                 <span class="sum-label">${p.label}</span> ${p.text}
-              </div>`
-            ).join('')}
+              </div>`;
+            }).join('')}
           </div>` : ''}
 
           <!-- AI Briefing (in weather area, after forecast) -->
@@ -604,6 +707,12 @@
             </div>
           </div>` : ''}
 
+
+          <!-- Calendar (today) -->
+          ${calendarHtml ? `
+            <div class="sep"></div>
+            <div class="sect-label">Dziś w kalendarzu</div>
+            <div class="reminders">${calendarHtml}</div>` : ''}
 
           <!-- Reminders -->
           ${remindersHtml ? `
@@ -718,8 +827,9 @@
         border-radius: 11px; padding: 8px 11px;
         line-height: 1.5; letter-spacing: .01em;
       }
-      /* Static (1 part): simple fade-in */
-      .summary-wrap:not(.animated) .sum-slide {
+      /* Static (1 part): simple fade-in, only on this card's first paint —
+         re-renders (hass updates) must not replay it or the text flickers. */
+      .summary-wrap.first-paint:not(.animated) .sum-slide {
         animation: sum-fadein .4s ease both;
       }
       /* Animated (2 parts): cross-fade carousel, fixed height, centered text */
@@ -913,6 +1023,15 @@
         style="clip-path:inset(0 0 0 0 round 0 0 2px 2px)"/>
       <path d="M6 5V3.5a2 2 0 014 0V5" stroke="${col}" stroke-width="1.2" stroke-linecap="round" opacity=".70"/>
       <line x1="5" y1="9" x2="11" y2="9" stroke="${col}" stroke-width="1" stroke-linecap="round" opacity=".55"/>
+    </svg>`;
+  }
+
+  function _remIconCalendar(col) {
+    return `<svg class="rem-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke="${col}" stroke-width="1.2" opacity=".85"/>
+      <path d="M2.5 6.5h11" stroke="${col}" stroke-width="1.2" opacity=".85"/>
+      <path d="M5.5 2.5v2.5M10.5 2.5v2.5" stroke="${col}" stroke-width="1.2" stroke-linecap="round" opacity=".70"/>
+      <rect x="4.7" y="8.3" width="2.3" height="2.3" rx=".5" fill="${col}" opacity=".70"/>
     </svg>`;
   }
 
