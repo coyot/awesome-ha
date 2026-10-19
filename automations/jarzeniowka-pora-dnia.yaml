@@ -1,0 +1,70 @@
+- id: jarzeniowka_pora_dnia_zastosuj
+  alias: "Jarzeniówka: śledzenie pory dnia — zastosuj"
+  description: >
+    Gdy input_boolean.jarzeniowka_pora_dnia = on i lampa świeci, ustawia jasność
+    i barwę (color_temp_kelvin) wg sensor.swiatlo_pora_dnia. Wysyła komendę tylko
+    przy realnej różnicy (≥2% jasności lub ≥100K), żeby nie spamować Govee Cloud API.
+  triggers:
+    - trigger: state
+      entity_id: sensor.swiatlo_pora_dnia
+    - trigger: state
+      entity_id: light.jarzeniowka
+      from: "off"
+      to: "on"
+    - trigger: state
+      entity_id: input_boolean.jarzeniowka_pora_dnia
+      to: "on"
+    - trigger: homeassistant
+      event: start
+  conditions:
+    - condition: state
+      entity_id: input_boolean.jarzeniowka_pora_dnia
+      state: "on"
+    - condition: state
+      entity_id: light.jarzeniowka
+      state: "on"
+    - condition: template
+      value_template: "{{ states('sensor.swiatlo_pora_dnia') | is_number }}"
+  actions:
+    - variables:
+        tb: "{{ states('sensor.swiatlo_pora_dnia') | int }}"
+        tk: "{{ state_attr('sensor.swiatlo_pora_dnia', 'color_temp_kelvin') | int(4000) }}"
+        cb: "{{ ((state_attr('light.jarzeniowka', 'brightness') | int(0)) / 2.55) | round(0) | int }}"
+        ck: "{{ state_attr('light.jarzeniowka', 'color_temp_kelvin') | int(0) }}"
+        cm: "{{ state_attr('light.jarzeniowka', 'color_mode') }}"
+    - condition: template
+      value_template: "{{ cm != 'color_temp' or (cb - tb) | abs >= 2 or (ck - tk) | abs >= 100 }}"
+    - action: light.turn_on
+      target:
+        entity_id: light.jarzeniowka
+      data:
+        brightness_pct: "{{ tb }}"
+        color_temp_kelvin: "{{ tk }}"
+  mode: single
+  max_exceeded: silent
+
+- id: jarzeniowka_pora_dnia_reczna_zmiana
+  alias: "Jarzeniówka: śledzenie pory dnia — wyłącz przy ręcznej zmianie"
+  description: >
+    Jeśli użytkownik ręcznie zmieni jasność/kolor/efekt (np. w more-info) przy aktywnym
+    trybie pory dnia, tryb się wyłącza — tak jak "manual control" w Adaptive Lighting.
+  triggers:
+    - trigger: state
+      entity_id: light.jarzeniowka
+  conditions:
+    - condition: state
+      entity_id: input_boolean.jarzeniowka_pora_dnia
+      state: "on"
+    - condition: template
+      value_template: >
+        {% set f = trigger.from_state %}{% set t = trigger.to_state %}
+        {{ f is not none and t is not none and f.state == 'on' and t.state == 'on'
+           and t.context.user_id is not none and t.context.parent_id is none
+           and (f.attributes.brightness != t.attributes.brightness
+                or f.attributes.rgb_color != t.attributes.rgb_color
+                or f.attributes.effect != t.attributes.effect) }}
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.jarzeniowka_pora_dnia
+  mode: single
