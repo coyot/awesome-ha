@@ -5804,15 +5804,11 @@ views:
               - type: custom:aha-light-card
                 entity: light.szafka
                 name: Szafka
-                model: H61C3
                 room: Piętro
-                brand: Govee
               - type: custom:aha-light-card
                 entity: light.jarzeniowka
                 name: Jarzeniówka ściana
-                model: H6062
                 room: Piętro
-                brand: Govee
                 adaptive_entity: input_boolean.jarzeniowka_pora_dnia
                 adaptive_sensor: sensor.swiatlo_pora_dnia
                 icon: ceiling
