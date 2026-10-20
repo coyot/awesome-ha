@@ -374,6 +374,15 @@ class SzamboAppleCard extends HTMLElement {
     if (!this._hass) return;
     const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
 
+    // Tokeny powierzchni/tekstu (z fallbackiem, gdy aha-shared.js jest starszy)
+    const _T = (window.AHA && window.AHA.THEME) || {};
+    const SURFACE = (_T.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const TILE    = (_T.TILE)    || 'rgba(255,255,255,0.05)';
+    const TXT2 = (_T.SURFACE && _T.TEXT2) || 'rgba(255,255,255,0.62)';
+    const TXT3 = (_T.SURFACE && _T.TEXT3) || 'rgba(255,255,255,0.50)';
+    const TXT4 = (_T.SURFACE && _T.TEXT4) || 'rgba(255,255,255,0.48)';
+    const RAD  = (window.AHA && window.AHA.RADIUS) || { SLIM: 16, CARD: 20, TILE: 12 };
+
     const cap         = this._config.capacity;
     const warnObserve = this._config.warn_observe;
     const warnPlan    = this._config.warn_plan;
@@ -397,10 +406,16 @@ class SzamboAppleCard extends HTMLElement {
       ? this._hass.states[this._config.entity_stale]?.state === 'on'
       : false;
 
-    const pct = v => Math.min(Math.round((v / cap) * 100), 100);
+    // pctClamped — geometria zbiornika i paski (max 100); pctRaw — prawdziwy procent do tekstu
+    const pctClamped = v => Math.min(Math.round((v / cap) * 100), 100);
+    const pctRaw     = v => Math.round((v / cap) * 100);
+    const pct = pctClamped;
     const fmt = v => v.toFixed(2).replace('.', ',');
+    const fmt1 = v => v.toFixed(1).replace('.', ',');
 
     const totalPct    = pct(total);
+    const totalPctRaw = pctRaw(total);
+    const overM3      = total - cap;
     const observePct  = pct(warnObserve);
     const planPct     = pct(warnPlan);
 
@@ -448,19 +463,13 @@ class SzamboAppleCard extends HTMLElement {
         }
 
         .card {
-          background: linear-gradient(145deg,
-            rgba(44,44,46,0.95) 0%,
-            rgba(28,28,30,0.98) 100%);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
-          border-radius: 20px;
+          background: ${SURFACE};
+          border-radius: ${RAD.CARD}px;
           padding: 18px 20px;
           box-sizing: border-box;
-          font-family: -apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
           border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-                      0 2px 8px rgba(0,0,0,0.2);
           position: relative;
           overflow: hidden;
         }
@@ -490,18 +499,12 @@ class SzamboAppleCard extends HTMLElement {
           width: 34px;
           height: 34px;
           border-radius: 11px;
-          background: linear-gradient(135deg,
-            rgba(142,142,147,0.15) 0%,
-            rgba(99,99,102,0.2) 100%);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: ${TILE};
           border: 1px solid rgba(255,255,255,0.08);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #8E8E93;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
+          color: ${TXT2};
           position: relative;
         }
 
@@ -636,7 +639,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 11px;
           font-weight: 500;
           letter-spacing: -0.1px;
-          color: rgba(142,142,147,0.9);
+          color: ${TXT3};
           text-align: center;
           flex-shrink: 0;
         }
@@ -664,7 +667,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 15px;
           font-weight: 400;
           letter-spacing: -0.2px;
-          color: rgba(142,142,147,0.8);
+          color: ${TXT3};
           margin-left: 4px;
         }
 
@@ -682,9 +685,17 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 12px;
           font-weight: 400;
           letter-spacing: -0.1px;
-          color: rgba(142,142,147,0.75);
+          color: ${TXT3};
           margin-top: 4px;
           margin-bottom: 12px;
+        }
+
+        .total-over {
+          font-size: 11px;
+          font-weight: 500;
+          color: #E24B4A;
+          margin-top: 3px;
+          font-variant-numeric: tabular-nums;
         }
 
         .bar-bg {
@@ -745,7 +756,7 @@ class SzamboAppleCard extends HTMLElement {
           font-weight: 600;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          color: rgba(142,142,147,0.85);
+          color: ${TXT3};
           margin-bottom: 8px;
         }
 
@@ -769,7 +780,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 13px;
           font-weight: 400;
           letter-spacing: -0.2px;
-          color: rgba(174,174,178,0.95);
+          color: ${TXT2};
           flex: 1;
         }
 
@@ -784,7 +795,7 @@ class SzamboAppleCard extends HTMLElement {
         .row-unit {
           font-size: 11px;
           font-weight: 400;
-          color: rgba(142,142,147,0.7);
+          color: ${TXT4};
           margin-left: 2px;
         }
 
@@ -796,15 +807,9 @@ class SzamboAppleCard extends HTMLElement {
         .billing {
           margin-top: 14px;
           padding: 14px 16px;
-          background: linear-gradient(135deg,
-            rgba(28,28,30,0.6) 0%,
-            rgba(18,18,20,0.8) 100%);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: ${TILE};
           border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 14px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.2),
-                      inset 0 1px 0 rgba(255,255,255,0.05);
+          border-radius: ${RAD.TILE}px;
         }
 
         .billing-header {
@@ -819,7 +824,7 @@ class SzamboAppleCard extends HTMLElement {
           font-weight: 600;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          color: rgba(142,142,147,0.85);
+          color: ${TXT3};
         }
 
         .billing-total {
@@ -853,7 +858,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 13px;
           font-weight: 400;
           letter-spacing: -0.2px;
-          color: rgba(174,174,178,0.95);
+          color: ${TXT2};
           flex: 1;
         }
 
@@ -900,7 +905,7 @@ class SzamboAppleCard extends HTMLElement {
         .billing-sub {
           font-size: 11px;
           font-weight: 400;
-          color: rgba(142,142,147,0.7);
+          color: ${TXT4};
           text-align: right;
         }
 
@@ -964,8 +969,9 @@ class SzamboAppleCard extends HTMLElement {
               <div>
                 <span class="total-val">${fmt(total)}</span>
                 <span class="total-unit">m\u00b3</span>
-                <span class="total-pct">${totalPct}%</span>
+                <span class="total-pct">${totalPctRaw}%</span>
               </div>
+              ${totalPctRaw > 100 ? `<div class="total-over">+${fmt1(overM3)} m\u00b3 ponad pojemno\u015b\u0107</div>` : ''}
               <div class="total-sub">zu\u017cycie \u0142\u0105cznie</div>
               <div class="bar-bg">
                 <div class="bar-fill" style="width:${totalPct}%;background:${totalClr};"></div>
@@ -1021,7 +1027,7 @@ class SzamboAppleCard extends HTMLElement {
 
         <div class="alert">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="${alertClr}">${alertIcon}</svg>
-          <span class="alert-txt">${alertTxt} \u00b7 zosta\u0142o ${fmt(cap - total)} m\u00b3</span>
+          <span class="alert-txt">${alertTxt} \u00b7 ${total > cap ? 'zbiornik przepe\u0142niony' : `zosta\u0142o ${fmt(cap - total)} m\u00b3`}</span>
         </div>
 
         ${(dom1zl > 0 || dom2zl > 0) ? `
@@ -1065,6 +1071,15 @@ class SzamboAppleCard extends HTMLElement {
   _renderSlim() {
     if (!this._hass) return;
     const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
+
+    // Tokeny powierzchni/tekstu (z fallbackiem, gdy aha-shared.js jest starszy)
+    const _T = (window.AHA && window.AHA.THEME) || {};
+    const SURFACE = (_T.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const TILE    = (_T.TILE)    || 'rgba(255,255,255,0.05)';
+    const TXT2 = (_T.SURFACE && _T.TEXT2) || 'rgba(255,255,255,0.62)';
+    const TXT3 = (_T.SURFACE && _T.TEXT3) || 'rgba(255,255,255,0.50)';
+    const TXT4 = (_T.SURFACE && _T.TEXT4) || 'rgba(255,255,255,0.48)';
+    const RAD  = (window.AHA && window.AHA.RADIUS) || { SLIM: 16, CARD: 20, TILE: 12 };
     // SLIM — full rewrite
 
     const cap         = this._config.capacity;
@@ -1087,10 +1102,16 @@ class SzamboAppleCard extends HTMLElement {
       ? this._hass.states[this._config.entity_stale]?.state === 'on'
       : false;
 
-    const pct = v => Math.min(Math.round((v / cap) * 100), 100);
+    // pctClamped — geometria zbiornika (max 100); pctRaw — prawdziwy procent do tekstu
+    const pctClamped = v => Math.min(Math.round((v / cap) * 100), 100);
+    const pctRaw     = v => Math.round((v / cap) * 100);
+    const pct = pctClamped;
     const fmt = v => v.toFixed(2).replace('.', ',');
+    const fmt1 = v => v.toFixed(1).replace('.', ',');
 
-    const totalPct   = pct(total);
+    const totalPct    = pct(total);
+    const totalPctRaw = pctRaw(total);
+    const overM3      = total - cap;
     const observePct = pct(warnObserve);
     const planPct    = pct(warnPlan);
     const d1pct      = pct(d1sz);
@@ -1137,7 +1158,7 @@ class SzamboAppleCard extends HTMLElement {
 
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 16px;
+          border-radius: ${RAD.SLIM}px;
           padding: 14px 16px;
           box-sizing: border-box;
           font-family: -apple-system, system-ui, sans-serif;
@@ -1147,7 +1168,7 @@ class SzamboAppleCard extends HTMLElement {
           gap: 12px;
           align-items: stretch;
           transition: border-color 0.4s ease;
-          ${!isOk ? `animation: szambo-slim-pulse ${isScheduled ? '5s' : isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
+          ${!isOk ? `animation: szambo-slim-pulse ${isScheduled ? '3.5s' : isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
         }
         .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
 
@@ -1278,7 +1299,7 @@ class SzamboAppleCard extends HTMLElement {
         .val-lbl {
           font-size: 9px;
           font-weight: 400;
-          color: rgba(142,142,147,0.55);
+          color: ${TXT4};
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -1292,7 +1313,7 @@ class SzamboAppleCard extends HTMLElement {
         .val-unit {
           font-size: 10px;
           font-weight: 400;
-          color: rgba(142,142,147,0.6);
+          color: ${TXT4};
           margin-left: 1px;
         }
 
@@ -1304,7 +1325,7 @@ class SzamboAppleCard extends HTMLElement {
         .billing-lbl {
           font-size: 10px;
           font-weight: 500;
-          color: rgba(142,142,147,0.50);
+          color: ${TXT4};
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -1315,7 +1336,7 @@ class SzamboAppleCard extends HTMLElement {
           font-variant-numeric: tabular-nums;
         }
         .billing-sep {
-          color: rgba(142,142,147,0.30);
+          color: ${TXT4};
           font-size: 10px;
         }
 
@@ -1340,15 +1361,24 @@ class SzamboAppleCard extends HTMLElement {
         .metric-unit {
           font-size: 11px;
           font-weight: 400;
-          color: rgba(142,142,147,0.65);
+          color: ${TXT3};
           text-align: right;
         }
         .metric-pct {
           font-size: 15px;
           font-weight: 600;
-          color: rgba(142,142,147,0.80);
+          color: ${TXT2};
           font-variant-numeric: tabular-nums;
           text-align: right;
+        }
+        .metric-over {
+          font-size: 11px;
+          font-weight: 500;
+          color: #E24B4A;
+          font-variant-numeric: tabular-nums;
+          text-align: right;
+          line-height: 1.25;
+          max-width: 78px;
         }
       </style>
 
@@ -1417,7 +1447,8 @@ class SzamboAppleCard extends HTMLElement {
         <div class="metric">
           <div class="metric-val">${fmt(total)}</div>
           <div class="metric-unit">m\u00b3</div>
-          <div class="metric-pct">${totalPct}%</div>
+          <div class="metric-pct">${totalPctRaw}%</div>
+          ${totalPctRaw > 100 ? `<div class="metric-over">+${fmt1(overM3)} m\u00b3 ponad pojemno\u015b\u0107</div>` : ''}
         </div>
       </div>
     `;

@@ -18,24 +18,74 @@ window.AHA.SZAMBO = {
   CLR_D2_PLAN: '#FF3B30',
 };
 
-// Apple-style dark theme — surfaces, status, text
+// ── Paleta akcentów (design system z claude.md) — jedno źródło prawdy ──
+window.AHA.ACCENT = {
+  WORK:  '#97C459',   // praca: koszenie, sprzątanie, OK, komfort
+  INFO:  '#85B7EB',   // powrót, chłodzenie, informacja, zimno
+  HEAT:  '#EF9F27',   // grzanie, ostrzeżenie, ciepło
+  ERROR: '#E24B4A',   // błąd, alarm, upał
+  IDLE:  '#5F5E5A',   // bezczynność
+  LIGHT: '#FFD60A',   // światło / gniazdko włączone
+};
+window.AHA.ACCENT_RGB = {
+  WORK: '151,196,89', INFO: '133,183,235', HEAT: '239,159,39',
+  ERROR: '226,75,74', IDLE: '95,94,90', LIGHT: '255,214,10',
+};
+
+// Kolory przełączników trybów (nie stany!) — bez czerwieni, która znaczy "błąd"
+window.AHA.MODE = ['#30B0FF', '#A86AC2', '#5DCAA5', '#FFB347', '#4CAF50'];
+
+// Dark theme — powierzchnie, statusy, tekst (navy wg claude.md)
 window.AHA.THEME = {
-  BG1:      '#1C1C1E',   // primary surface
-  BG2:      '#2C2C2E',   // secondary surface
-  BG3:      '#3A3A3C',   // tertiary surface
-  BG4:      '#48484A',   // quaternary / muted element
+  SURFACE:       'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)', // tło każdej karty
+  SURFACE_SOLID: '#0c1424',                 // tam, gdzie gradient nie działa (apexcharts, windy)
+  TILE:          'rgba(255,255,255,0.05)',  // kafelki wewnątrz karty
+  TILE2:         'rgba(255,255,255,0.08)',
 
-  SUCCESS:  '#34C759',
-  WARNING:  '#FF9500',
-  ERROR:    '#FF453A',
-  INFO:     '#5AC8FA',
+  // @deprecated — szarości iOS; zostawione jako aliasy dla starych kart
+  BG1:      '#0c1424',
+  BG2:      'rgba(255,255,255,0.06)',
+  BG3:      'rgba(255,255,255,0.10)',
+  BG4:      'rgba(255,255,255,0.16)',
 
-  TEXT1:    'rgba(255,255,255,0.98)',
-  TEXT2:    '#AEAEB2',
-  TEXT3:    '#8E8E93',
-  TEXT4:    '#636366',
+  SUCCESS:  window.AHA.ACCENT.WORK,
+  WARNING:  window.AHA.ACCENT.HEAT,
+  ERROR:    window.AHA.ACCENT.ERROR,
+  INFO:     window.AHA.ACCENT.INFO,
 
-  BORDER:   'rgba(255,255,255,0.08)',
+  // Tekst na navy — wszystkie poziomy >= 4.5:1 (WCAG AA) na #0d1828
+  TEXT1:    'rgba(255,255,255,0.94)',
+  TEXT2:    'rgba(255,255,255,0.62)',   // 7.4:1  podtytuły
+  TEXT3:    'rgba(255,255,255,0.50)',   // 5.2:1  etykiety, jednostki
+  TEXT4:    'rgba(255,255,255,0.48)',   // 4.9:1  najniższy poziom tekstu
+
+  BORDER:      'rgba(255,255,255,0.08)',
+  BORDER_SLIM: '0.5px solid rgba(255,255,255,0.08)',
+  BORDER_FULL: '1px solid rgba(255,255,255,0.08)',
+};
+
+// Skala zaokrągleń
+window.AHA.RADIUS = { CHIP: 6, TILE: 12, SLIM: 16, CARD: 20, PILL: 99 };
+
+// Profile temperatur dla gauge'ów: jedna skala na profil, progi stanów
+//   cold < cold, warm >= warm, hot >= hot; alarm (pulsowanie) tylko dla stanów z listy alarm
+window.AHA.TEMP_PROFILES = {
+  indoor:  { min: 14,  max: 30, frost: 10, cold: 18, warm: 26, hot: 29 },
+  outdoor: { min: -20, max: 40, frost: 0,  cold: 5,  warm: 28, hot: 35 },
+};
+
+// Zmienne CSS do wstrzyknięcia w :host — karty bez JS-owego THEME też z nich korzystają
+window.AHA.cssVars = function () {
+  const A = window.AHA.ACCENT, T = window.AHA.THEME;
+  return `--aha-work:${A.WORK};--aha-info:${A.INFO};--aha-heat:${A.HEAT};--aha-error:${A.ERROR};--aha-idle:${A.IDLE};` +
+         `--aha-surface:${T.SURFACE};--aha-tile:${T.TILE};` +
+         `--aha-text1:${T.TEXT1};--aha-text2:${T.TEXT2};--aha-text3:${T.TEXT3};--aha-text4:${T.TEXT4};` +
+         `--aha-font:${window.AHA.FONT};`;
+};
+
+// Standardowy puls aktywnego stanu: 5px / 0.18 przy 50%
+window.AHA.pulse = function (name, rgb, px = 5, alpha = 0.18) {
+  return `@keyframes ${name}{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0)}50%{box-shadow:0 0 0 ${px}px rgba(${rgb},${alpha})}}`;
 };
 
 // SF Pro font stack
@@ -347,11 +397,12 @@ class ActionAppleCard extends HTMLElement {
     const gp = this._getGatePhase();   // null | {phase, progress, remaining}
     const gateActive = gp && gp.phase !== 'closed';
 
-    /* kolory fazy bramy */
+    /* kolory fazy bramy — paleta ACCENT (HEAT = ruch bramy, WORK = otwarta) */
+    const A = (window.AHA && window.AHA.ACCENT) || { WORK: '#97C459', INFO: '#85B7EB', HEAT: '#EF9F27', ERROR: '#E24B4A' };
     const GATE_COLORS = {
-      opening: { icon: '#F5A623', icBg: 'linear-gradient(135deg,rgba(245,166,35,0.20) 0%,rgba(200,140,20,0.25) 100%)', icBorder: 'rgba(245,166,35,0.30)', label: 'rgba(245,166,35,0.95)', barGrad: '#F5A623,#FFC060', pulse: 'gate-pulse-amber' },
-      open:    { icon: '#30D158', icBg: 'linear-gradient(135deg,rgba(48,209,88,0.20) 0%,rgba(35,160,65,0.25) 100%)',  icBorder: 'rgba(48,209,88,0.30)',   label: 'rgba(48,209,88,0.95)',   barGrad: '#30D158,#5AE080', pulse: '' },
-      closing: { icon: '#FF9F0A', icBg: 'linear-gradient(135deg,rgba(255,159,10,0.20) 0%,rgba(200,120,0,0.25) 100%)', icBorder: 'rgba(255,159,10,0.30)', label: 'rgba(255,159,10,0.95)', barGrad: '#FF9F0A,#FFB830', pulse: 'gate-pulse-orange' },
+      opening: { icon: A.HEAT, icBg: 'rgba(239,159,39,0.16)', icBorder: 'rgba(239,159,39,0.30)', label: 'rgba(239,159,39,0.95)', barGrad: `${A.HEAT},#F5B95A`, pulse: 'gate-pulse-heat' },
+      open:    { icon: A.WORK, icBg: 'rgba(151,196,89,0.16)', icBorder: 'rgba(151,196,89,0.30)', label: 'rgba(151,196,89,0.95)', barGrad: `${A.WORK},#B3D884`, pulse: '' },
+      closing: { icon: A.HEAT, icBg: 'rgba(239,159,39,0.16)', icBorder: 'rgba(239,159,39,0.30)', label: 'rgba(239,159,39,0.95)', barGrad: `${A.HEAT},#F5B95A`, pulse: 'gate-pulse-heat' },
     };
     const gc = gateActive ? GATE_COLORS[gp.phase] : null;
 
@@ -383,14 +434,12 @@ class ActionAppleCard extends HTMLElement {
     const subLabel = isNav ? (cfg.subtitle ?? 'otwórz panel') : null;
 
     /* kolory zależne od warunku / stanu bramy */
-    const idleColor      = gc ? gc.icon  : isDanger ? '#FF453A'              : '#8E8E93';
-    const hoverColor     = gc ? gc.icon  : isDanger ? '#FF3B30'              : '#F5A623';
-    const hoverGlow      = gc ? `${gc.icon}b3` : isDanger ? 'rgba(255,59,48,0.7)'  : 'rgba(245,166,35,0.7)';
-    const hoverShadow    = gc ? `${gc.icon}40` : isDanger ? 'rgba(255,59,48,0.25)' : 'rgba(245,166,35,0.25)';
-    const icBg           = isDanger ? '#3A1212'                       : '#242424';
-    const icBorderTop    = isDanger ? '#5A2020'                       : '#404040';
+    const idleColor      = gc ? gc.icon  : isDanger ? A.ERROR : '#8E8E93';
+    const hoverColor     = gc ? gc.icon  : isDanger ? A.ERROR : A.HEAT;
+    const SURFACE = (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const TILE    = (window.AHA && window.AHA.THEME && window.AHA.THEME.TILE) || 'rgba(255,255,255,0.05)';
 
-    const navIconHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5AC8FA" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+    const navIconHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${A.INFO}" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
     const checkHTML   = `
       <svg width="${isCompact ? 11 : 14}" height="${isCompact ? 11 : 14}" viewBox="0 0 24 24" fill="none">
         <polyline class="check-path" points="4,12 10,18 20,6"
@@ -414,28 +463,14 @@ class ActionAppleCard extends HTMLElement {
           0%   { transform: scale(0); opacity: 0.22; }
           100% { transform: scale(3.5); opacity: 0; }
         }
+        /* alarm: 6px / 0.22, ruch bramy: 5px / 0.18 — bez rozmytego glow */
         @keyframes action-danger-pulse {
-          0%, 100% {
-            box-shadow: 0 0 0 0 rgba(255,59,48,0),
-                        0 4px 16px rgba(0,0,0,0.2);
-          }
-          50% {
-            box-shadow: 0 0 0 4px rgba(255,59,48,0.3),
-                        0 0 20px rgba(255,59,48,0.4),
-                        0 4px 16px rgba(0,0,0,0.3);
-          }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(226,75,74,0); }
+          50%      { box-shadow: 0 0 0 6px rgba(226,75,74,0.22); }
         }
-        @keyframes action-glow {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-        @keyframes gate-pulse-amber {
-          0%,100% { box-shadow: 0 0 0 0 rgba(245,166,35,0), 0 4px 16px rgba(0,0,0,0.2); }
-          50%     { box-shadow: 0 0 0 4px rgba(245,166,35,0.22), 0 0 20px rgba(245,166,35,0.30), 0 4px 16px rgba(0,0,0,0.3); }
-        }
-        @keyframes gate-pulse-orange {
-          0%,100% { box-shadow: 0 0 0 0 rgba(255,159,10,0), 0 4px 16px rgba(0,0,0,0.2); }
-          50%     { box-shadow: 0 0 0 4px rgba(255,159,10,0.22), 0 0 20px rgba(255,159,10,0.30), 0 4px 16px rgba(0,0,0,0.3); }
+        @keyframes gate-pulse-heat {
+          0%,100% { box-shadow: 0 0 0 0 rgba(239,159,39,0); }
+          50%     { box-shadow: 0 0 0 5px rgba(239,159,39,0.18); }
         }
 
         :host { display: block; }
@@ -472,18 +507,14 @@ class ActionAppleCard extends HTMLElement {
         }
 
         .outer {
-          border-radius: ${isCompact ? '52px' : cfg.pill ? '102px' : '20px'};
+          border-radius: ${isCompact || cfg.pill ? '99px' : '20px'};
           padding: 0;
           background: transparent;
         }
 
         .card {
-          background: linear-gradient(145deg,
-            rgba(56,56,58,0.95) 0%,
-            rgba(44,44,46,0.98) 100%);
-          backdrop-filter: blur(30px);
-          -webkit-backdrop-filter: blur(30px);
-          border-radius: ${isCompact ? '50px' : cfg.pill ? '100px' : '18px'};
+          background: ${SURFACE};
+          border-radius: ${isCompact || cfg.pill ? '99px' : '20px'};
           padding: ${isNav ? '18px 20px' : isCompact ? '10px 14px' : '15px 18px'};
           display: flex;
           align-items: center;
@@ -496,39 +527,15 @@ class ActionAppleCard extends HTMLElement {
           -webkit-tap-highlight-color: transparent;
           box-sizing: border-box;
           border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.2),
-                      0 2px 4px rgba(0,0,0,0.1),
-                      inset 0 1px 0 rgba(255,255,255,0.1);
           ${gc?.pulse ? `animation: ${gc.pulse} 2.0s ease-in-out infinite;` : isDanger ? 'animation: action-danger-pulse 2.5s ease-in-out infinite;' : ''}
         }
 
-        .card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255,255,255,0.15) 50%,
-            transparent 100%);
-          pointer-events: none;
-        }
-
         .card:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(0,0,0,0.3),
-                      0 2px 8px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.12);
           border-color: rgba(255,255,255,0.12);
         }
 
         .card:active {
-          transform: translateY(0) scale(0.98);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2),
-                      0 1px 2px rgba(0,0,0,0.1),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
+          transform: scale(0.98);
         }
 
         .card.fired {
@@ -554,21 +561,20 @@ class ActionAppleCard extends HTMLElement {
           animation: action-ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* kafelek ikony — TILE, radius 12 */
         .ic {
           width: ${isNav ? '52px' : isCompact ? '36px' : '48px'};
           height: ${isNav ? '52px' : isCompact ? '36px' : '48px'};
-          border-radius: ${isNav ? '16px' : isCompact ? '11px' : '14px'};
+          border-radius: ${isCompact ? '10px' : '12px'};
           background: ${gc ? gc.icBg : isDanger
-            ? 'linear-gradient(135deg, rgba(58,18,18,0.8) 0%, rgba(44,14,14,0.9) 100%)'
+            ? 'rgba(226,75,74,0.14)'
             : isNav
-              ? 'linear-gradient(135deg, rgba(28,42,58,0.6) 0%, rgba(18,32,48,0.8) 100%)'
-              : 'linear-gradient(135deg, rgba(58,58,60,0.6) 0%, rgba(44,44,46,0.8) 100%)'};
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+              ? 'rgba(133,183,235,0.10)'
+              : TILE};
           border: 1px solid ${gc ? gc.icBorder : isDanger
-            ? 'rgba(255,59,48,0.2)'
+            ? 'rgba(226,75,74,0.25)'
             : isNav
-              ? 'rgba(90,200,250,0.15)'
+              ? 'rgba(133,183,235,0.15)'
               : 'rgba(255,255,255,0.08)'};
           display: flex;
           align-items: center;
@@ -576,53 +582,27 @@ class ActionAppleCard extends HTMLElement {
           color: ${idleColor};
           flex-shrink: 0;
           position: relative;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-
-        .ic::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: radial-gradient(circle at 30% 30%,
-            ${isDanger
-              ? 'rgba(255,69,58,0.15)'
-              : isNav
-                ? 'rgba(90,200,250,0.1)'
-                : 'rgba(255,255,255,0.05)'} 0%,
-            transparent 70%);
-          pointer-events: none;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .card:hover .ic {
           color: ${hoverColor};
           background: ${isDanger
-            ? 'linear-gradient(135deg, rgba(255,59,48,0.25) 0%, rgba(200,40,35,0.3) 100%)'
+            ? 'rgba(226,75,74,0.22)'
             : isNav
-              ? 'linear-gradient(135deg, rgba(90,200,250,0.2) 0%, rgba(60,170,230,0.25) 100%)'
-              : 'linear-gradient(135deg, rgba(245,166,35,0.2) 0%, rgba(220,150,30,0.25) 100%)'};
+              ? 'rgba(133,183,235,0.18)'
+              : 'rgba(239,159,39,0.16)'};
           border-color: ${isDanger
-            ? 'rgba(255,59,48,0.4)'
+            ? 'rgba(226,75,74,0.40)'
             : isNav
-              ? 'rgba(90,200,250,0.3)'
-              : 'rgba(245,166,35,0.3)'};
-          box-shadow: 0 0 20px ${hoverShadow},
-                      0 0 40px ${hoverShadow},
-                      0 4px 12px rgba(0,0,0,0.2),
-                      inset 0 1px 0 rgba(255,255,255,0.15);
-          transform: scale(1.05);
+              ? 'rgba(133,183,235,0.30)'
+              : 'rgba(239,159,39,0.30)'};
         }
 
         .card.fired .ic {
-          background: ${isNav
-            ? 'linear-gradient(135deg, rgba(90,200,250,0.35) 0%, rgba(60,170,230,0.4) 100%)'
-            : 'linear-gradient(135deg, rgba(255,224,158,0.9) 0%, rgba(255,200,100,0.95) 100%)'};
-          color: ${isNav ? '#5AC8FA' : '#8B5A00'};
-          border-color: ${isNav ? 'rgba(90,200,250,0.5)' : 'rgba(255,200,100,0.6)'};
-          box-shadow: 0 0 24px ${isNav ? 'rgba(90,200,250,0.4)' : 'rgba(245,166,35,0.5)'},
-                      0 4px 12px rgba(0,0,0,0.2);
+          background: ${isNav ? 'rgba(133,183,235,0.28)' : 'rgba(239,159,39,0.85)'};
+          color: ${isNav ? A.INFO : '#3A2400'};
+          border-color: ${isNav ? 'rgba(133,183,235,0.5)' : 'rgba(239,159,39,0.6)'};
           transform: scale(1);
         }
 
@@ -635,14 +615,13 @@ class ActionAppleCard extends HTMLElement {
           font-size: ${isNav ? '17px' : isCompact ? '14px' : '15px'};
           font-weight: ${isNav ? '600' : '500'};
           letter-spacing: ${isNav ? '-0.4px' : '-0.3px'};
-          color: rgba(255,255,255,0.98);
-          font-family: -apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          color: rgba(255,255,255,0.94);
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          transition: color 0.2s ease;
+          transition: color 0.15s ease;
         }
 
         .card:hover .title {
@@ -653,69 +632,42 @@ class ActionAppleCard extends HTMLElement {
           font-size: 12px;
           font-weight: 500;
           letter-spacing: -0.1px;
-          color: #5AC8FA;
+          color: ${A.INFO};
           margin-top: 3px;
           display: flex;
           align-items: center;
           gap: 5px;
-          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
-          text-shadow: 0 0 8px rgba(90,200,250,0.3);
         }
 
         .badge {
           width: ${isNav ? '34px' : isCompact ? '24px' : '30px'};
           height: ${isNav ? '34px' : isCompact ? '24px' : '30px'};
           border-radius: 50%;
-          background: ${isNav
-            ? 'linear-gradient(135deg, rgba(28,42,58,0.8) 0%, rgba(18,32,48,0.95) 100%)'
-            : 'linear-gradient(135deg, rgba(58,58,60,0.6) 0%, rgba(44,44,46,0.8) 100%)'};
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1px solid ${isNav ? 'rgba(90,200,250,0.15)' : 'rgba(255,255,255,0.08)'};
+          background: ${isNav ? 'rgba(133,183,235,0.10)' : TILE};
+          border: 1px solid ${isNav ? 'rgba(133,183,235,0.15)' : 'rgba(255,255,255,0.08)'};
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
         }
 
-        .badge::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: radial-gradient(circle at 40% 30%,
-            ${isNav ? 'rgba(90,200,250,0.15)' : 'rgba(255,255,255,0.08)'} 0%,
-            transparent 70%);
-          pointer-events: none;
-        }
-
         .card:hover .badge {
-          transform: scale(1.08);
-          box-shadow: 0 0 12px ${isNav ? 'rgba(90,200,250,0.25)' : 'rgba(245,166,35,0.2)'},
-                      0 2px 8px rgba(0,0,0,0.2),
-                      inset 0 1px 0 rgba(255,255,255,0.12);
-          border-color: ${isNav ? 'rgba(90,200,250,0.3)' : 'rgba(245,166,35,0.2)'};
+          border-color: ${isNav ? 'rgba(133,183,235,0.3)' : 'rgba(239,159,39,0.25)'};
         }
 
         .card.fired .badge {
-          background: ${isNav
-            ? 'linear-gradient(135deg, rgba(90,200,250,0.35) 0%, rgba(60,170,230,0.4) 100%)'
-            : 'linear-gradient(135deg, rgba(52,199,89,0.9) 0%, rgba(40,180,70,0.95) 100%)'};
-          border-color: ${isNav ? 'rgba(90,200,250,0.5)' : 'rgba(52,199,89,0.6)'};
-          box-shadow: 0 0 20px ${isNav ? 'rgba(90,200,250,0.5)' : 'rgba(52,199,89,0.6)'},
-                      0 2px 8px rgba(0,0,0,0.2);
+          background: ${isNav ? 'rgba(133,183,235,0.30)' : 'rgba(151,196,89,0.85)'};
+          border-color: ${isNav ? 'rgba(133,183,235,0.5)' : 'rgba(151,196,89,0.6)'};
           transform: scale(1);
         }
 
         .check-path {
           stroke-dasharray: 30;
           stroke-dashoffset: 30;
-          filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
         }
 
         .card.fired .check-path {
@@ -730,7 +682,7 @@ class ActionAppleCard extends HTMLElement {
           <div class="texts">
             <div class="title">${name}</div>
             ${isNav ? `<div class="sub">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="#5AC8FA">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="${A.INFO}">
                 <path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
               </svg>
               ${subLabel}
@@ -740,7 +692,7 @@ class ActionAppleCard extends HTMLElement {
               <div class="gate-bar"><div class="gate-bar-fill" style="width:${gateBarPct.toFixed(1)}%;background:linear-gradient(90deg,${gc.barGrad});"></div></div>
             ` : ''}
           </div>
-          <div class="badge" style="${gateActive ? `background:${gc.icBg};border-color:${gc.icBorder};box-shadow:0 0 14px ${gc.icon}50,0 2px 8px rgba(0,0,0,0.2);` : ''}">
+          <div class="badge" style="${gateActive ? `background:${gc.icBg};border-color:${gc.icBorder};` : ''}">
             ${gateActive
               ? `<span class="gate-count" style="color:${gc.icon};">${gateCountSec}</span>`
               : (isNav ? navIconHTML : checkHTML)
@@ -801,41 +753,30 @@ class ActionAppleCard extends HTMLElement {
         }
       </style>
       <div class="action-modal" style="
-        background:linear-gradient(145deg, rgba(44,44,46,0.95) 0%, rgba(28,28,30,0.98) 100%);
-        backdrop-filter:blur(40px);
-        -webkit-backdrop-filter:blur(40px);
-        border-radius:24px;
+        background:${(window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)'};
+        border-radius:20px;
         padding:28px 24px 20px;
         width:300px;
         box-sizing:border-box;
         border:1px solid rgba(255,255,255,0.1);
-        box-shadow:0 20px 60px rgba(0,0,0,0.5),
-                   0 8px 24px rgba(0,0,0,0.3),
-                   inset 0 1px 0 rgba(255,255,255,0.1);
         text-align:center;
       ">
         <div style="
           width:56px;height:56px;border-radius:50%;
-          background:linear-gradient(135deg, rgba(255,149,0,0.2) 0%, rgba(200,110,0,0.25) 100%);
-          backdrop-filter:blur(10px);
-          -webkit-backdrop-filter:blur(10px);
-          border:1px solid rgba(255,149,0,0.3);
+          background:rgba(239,159,39,0.16);
+          border:1px solid rgba(239,159,39,0.3);
           display:flex;align-items:center;justify-content:center;
           margin:0 auto 18px;
-          box-shadow:0 0 20px rgba(255,149,0,0.3),
-                     0 4px 12px rgba(0,0,0,0.2),
-                     inset 0 1px 0 rgba(255,255,255,0.15);
         ">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF9F27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/>
-            <circle cx="12" cy="17" r="0.5" fill="#FF9500"/>
+            <circle cx="12" cy="17" r="0.5" fill="#EF9F27"/>
           </svg>
         </div>
         <div style="
           font-size:17px;font-weight:600;letter-spacing:-0.4px;
           color:rgba(255,255,255,0.98);margin-bottom:8px;
-          text-shadow:0 1px 2px rgba(0,0,0,0.3);
         ">${msg}</div>
         <div style="
           font-size:13px;font-weight:400;letter-spacing:-0.1px;
@@ -844,28 +785,20 @@ class ActionAppleCard extends HTMLElement {
         ">Tej akcji nie można cofnąć.</div>
         <div style="display:flex;gap:10px;">
           <button id="conf-cancel" class="action-btn" style="
-            flex:1;padding:14px;border-radius:14px;border:none;cursor:pointer;
-            background:linear-gradient(135deg, rgba(58,58,60,0.8) 0%, rgba(44,44,46,0.9) 100%);
-            backdrop-filter:blur(10px);
-            -webkit-backdrop-filter:blur(10px);
+            flex:1;padding:14px;border-radius:12px;border:none;cursor:pointer;
+            background:rgba(255,255,255,0.05);
             color:rgba(174,174,178,0.95);
             font-size:15px;font-weight:500;letter-spacing:-0.2px;
             font-family:inherit;
             border:1px solid rgba(255,255,255,0.08);
-            box-shadow:0 2px 8px rgba(0,0,0,0.2),
-                       inset 0 1px 0 rgba(255,255,255,0.08);
           ">${cancel}</button>
           <button id="conf-ok" class="action-btn" style="
-            flex:1;padding:14px;border-radius:14px;border:none;cursor:pointer;
-            background:linear-gradient(135deg, #FF9500 0%, #E68600 100%);
+            flex:1;padding:14px;border-radius:12px;border:none;cursor:pointer;
+            background:#EF9F27;
             color:#fff;
             font-size:15px;font-weight:600;letter-spacing:-0.2px;
             font-family:inherit;
-            border:1px solid rgba(255,170,50,0.4);
-            box-shadow:0 0 20px rgba(255,149,0,0.3),
-                       0 4px 12px rgba(0,0,0,0.3),
-                       inset 0 1px 0 rgba(255,255,255,0.2);
-            text-shadow:0 1px 2px rgba(0,0,0,0.2);
+            border:1px solid rgba(239,159,39,0.4);
           ">${confirm}</button>
         </div>
       </div>
@@ -1118,11 +1051,11 @@ class EntriesAppleCard extends HTMLElement {
   }
 
   _avatarImg(entry, size, border, shadow = false) {
-    const shadowStyle = shadow ? 'box-shadow:0 4px 12px rgba(0,0,0,0.3), 0 0 20px rgba(255,149,0,0.2);' : 'box-shadow:0 2px 6px rgba(0,0,0,0.15);';
+    const shadowStyle = '';
     const s = `width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${border};${shadowStyle}transition:transform 0.2s cubic-bezier(0.4,0,0.2,1);`;
     return entry.picture
       ? `<img style="${s}" src="${entry.picture}" alt="${entry.name}">`
-      : `<div style="${s}background:linear-gradient(135deg,#3A3A3C 0%,#2C2C2E 100%);display:flex;align-items:center;justify-content:center;color:#8E8E93;">${_ICON_PERSON}</div>`;
+      : `<div style="${s}background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;color:#8E8E93;">${_ICON_PERSON}</div>`;
   }
 
   _render() {
@@ -1163,12 +1096,12 @@ class EntriesAppleCard extends HTMLElement {
       const time     = group[0].timeLabel;
 
       // Dynamiczne kolory akcent ów — recent = żywy, old = wygaszony
-      const accentColor = isFirst ? '#FF9500' : age === 1 ? '#8E8E93' : '#636366';
+      const accentColor = isFirst ? '#EF9F27' : age === 1 ? '#8E8E93' : '#636366';
       const dotSize     = isFirst ? 13 : 10;
-      const dotGlow     = isFirst ? 'box-shadow:0 0 12px rgba(255,149,0,0.6), 0 0 24px rgba(255,149,0,0.3);' : '';
+      const dotGlow     = '';
 
       const avSize   = isFirst ? 48 : 38;
-      const avBorder = isFirst ? '#FF9500' : '#48484A';
+      const avBorder = isFirst ? '#EF9F27' : '#48484A';
       const avShadow = isFirst;
       const rowH     = isFirst ? ROW_H_FIRST : ROW_H_OTHER;
 
@@ -1213,29 +1146,15 @@ class EntriesAppleCard extends HTMLElement {
         }
 
         .card {
-          background: linear-gradient(145deg, rgba(28,28,30,0.95) 0%, rgba(18,18,20,0.98) 100%);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
+          background: ${(window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)'};
           border-radius: 20px;
           padding: 18px;
           box-sizing: border-box;
-          font-family: -apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
           border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
           position: relative;
           overflow: hidden;
-        }
-
-        .card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
-          pointer-events: none;
         }
 
         .header {
@@ -1249,27 +1168,20 @@ class EntriesAppleCard extends HTMLElement {
           width: 32px;
           height: 32px;
           border-radius: 10px;
-          background: linear-gradient(135deg, rgba(255,149,0,0.15) 0%, rgba(255,149,0,0.08) 100%);
-          border: 1px solid rgba(255,149,0,0.2);
+          background: linear-gradient(135deg, rgba(239,159,39,0.15) 0%, rgba(239,159,39,0.08) 100%);
+          border: 1px solid rgba(239,159,39,0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #FF9500;
-          box-shadow: 0 2px 8px rgba(255,149,0,0.15);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .header-ic:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(255,149,0,0.25);
+          color: #EF9F27;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .header-title {
           font-size: 15px;
           font-weight: 600;
           letter-spacing: -0.2px;
-          color: rgba(255,255,255,0.95);
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+          color: rgba(255,255,255,0.94);
         }
 
         .tl {
@@ -1284,7 +1196,7 @@ class EntriesAppleCard extends HTMLElement {
           bottom: 20px;
           width: 2px;
           background: linear-gradient(180deg,
-            rgba(255,149,0,0.4) 0%,
+            rgba(239,159,39,0.4) 0%,
             rgba(142,142,147,0.3) 30%,
             rgba(99,99,102,0.2) 70%,
             transparent 100%);
@@ -1309,7 +1221,7 @@ class EntriesAppleCard extends HTMLElement {
           position: absolute;
           left: -24px;
           border-radius: 50%;
-          border: 2.5px solid rgba(28,28,30,0.95);
+          border: 2.5px solid #0c1424;
           flex-shrink: 0;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -1328,17 +1240,16 @@ class EntriesAppleCard extends HTMLElement {
           display: flex;
           align-items: center;
           flex-shrink: 0;
-          border-radius: 50px;
+          border-radius: 99px;
           padding: 3px 8px 3px 3px;
-          background: rgba(255,149,0,0.08);
-          border: 1.5px solid rgba(255,149,0,0.3);
+          background: rgba(239,159,39,0.08);
+          border: 1.5px solid rgba(239,159,39,0.3);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .av-group.recent {
-          background: rgba(255,149,0,0.12);
-          border-color: rgba(255,149,0,0.5);
-          box-shadow: 0 4px 12px rgba(255,149,0,0.2);
+          background: rgba(239,159,39,0.12);
+          border-color: rgba(239,159,39,0.5);
         }
 
         .tl-info {
@@ -1377,7 +1288,7 @@ class EntriesAppleCard extends HTMLElement {
         .tl-sub {
           font-size: 11px;
           font-weight: 500;
-          color: rgba(255,149,0,0.7);
+          color: rgba(239,159,39,0.7);
           margin-top: 2px;
           letter-spacing: 0.1px;
         }
@@ -1395,8 +1306,7 @@ class EntriesAppleCard extends HTMLElement {
         .tl-time.latest {
           font-size: 13px;
           font-weight: 500;
-          color: #FF9500;
-          text-shadow: 0 0 8px rgba(255,149,0,0.3);
+          color: #EF9F27;
         }
 
         .toggle-btn {
@@ -1405,11 +1315,9 @@ class EntriesAppleCard extends HTMLElement {
           justify-content: center;
           gap: 6px;
           margin: 12px auto 0;
-          background: linear-gradient(135deg, rgba(44,44,46,0.8) 0%, rgba(58,58,60,0.6) 100%);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 24px;
+          border-radius: 99px;
           color: rgba(174,174,178,0.95);
           font-size: 13px;
           font-weight: 500;
@@ -1417,21 +1325,17 @@ class EntriesAppleCard extends HTMLElement {
           padding: 8px 16px;
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .toggle-btn:hover {
-          background: linear-gradient(135deg, rgba(58,58,60,0.9) 0%, rgba(72,72,74,0.7) 100%);
+          background: rgba(255,255,255,0.08);
           border-color: rgba(255,255,255,0.15);
           color: rgba(255,255,255,0.95);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .toggle-btn:active {
-          transform: translateY(0);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          transform: scale(0.98);
         }
       </style>
       <div class="card">
@@ -1636,7 +1540,7 @@ class GardenMetersCard extends HTMLElement {
           border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .header-title {
-          font-size: 11px; font-weight: 700; color: #636366;
+          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.48);
           letter-spacing: .08em; text-transform: uppercase;
         }
 
@@ -2224,6 +2128,15 @@ class SzamboAppleCard extends HTMLElement {
     if (!this._hass) return;
     const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
 
+    // Tokeny powierzchni/tekstu (z fallbackiem, gdy aha-shared.js jest starszy)
+    const _T = (window.AHA && window.AHA.THEME) || {};
+    const SURFACE = (_T.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const TILE    = (_T.TILE)    || 'rgba(255,255,255,0.05)';
+    const TXT2 = (_T.SURFACE && _T.TEXT2) || 'rgba(255,255,255,0.62)';
+    const TXT3 = (_T.SURFACE && _T.TEXT3) || 'rgba(255,255,255,0.50)';
+    const TXT4 = (_T.SURFACE && _T.TEXT4) || 'rgba(255,255,255,0.48)';
+    const RAD  = (window.AHA && window.AHA.RADIUS) || { SLIM: 16, CARD: 20, TILE: 12 };
+
     const cap         = this._config.capacity;
     const warnObserve = this._config.warn_observe;
     const warnPlan    = this._config.warn_plan;
@@ -2247,10 +2160,16 @@ class SzamboAppleCard extends HTMLElement {
       ? this._hass.states[this._config.entity_stale]?.state === 'on'
       : false;
 
-    const pct = v => Math.min(Math.round((v / cap) * 100), 100);
+    // pctClamped — geometria zbiornika i paski (max 100); pctRaw — prawdziwy procent do tekstu
+    const pctClamped = v => Math.min(Math.round((v / cap) * 100), 100);
+    const pctRaw     = v => Math.round((v / cap) * 100);
+    const pct = pctClamped;
     const fmt = v => v.toFixed(2).replace('.', ',');
+    const fmt1 = v => v.toFixed(1).replace('.', ',');
 
     const totalPct    = pct(total);
+    const totalPctRaw = pctRaw(total);
+    const overM3      = total - cap;
     const observePct  = pct(warnObserve);
     const planPct     = pct(warnPlan);
 
@@ -2298,19 +2217,13 @@ class SzamboAppleCard extends HTMLElement {
         }
 
         .card {
-          background: linear-gradient(145deg,
-            rgba(44,44,46,0.95) 0%,
-            rgba(28,28,30,0.98) 100%);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
-          border-radius: 20px;
+          background: ${SURFACE};
+          border-radius: ${RAD.CARD}px;
           padding: 18px 20px;
           box-sizing: border-box;
-          font-family: -apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
           border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4),
-                      0 2px 8px rgba(0,0,0,0.2);
           position: relative;
           overflow: hidden;
         }
@@ -2340,18 +2253,12 @@ class SzamboAppleCard extends HTMLElement {
           width: 34px;
           height: 34px;
           border-radius: 11px;
-          background: linear-gradient(135deg,
-            rgba(142,142,147,0.15) 0%,
-            rgba(99,99,102,0.2) 100%);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: ${TILE};
           border: 1px solid rgba(255,255,255,0.08);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #8E8E93;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
+          color: ${TXT2};
           position: relative;
         }
 
@@ -2486,7 +2393,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 11px;
           font-weight: 500;
           letter-spacing: -0.1px;
-          color: rgba(142,142,147,0.9);
+          color: ${TXT3};
           text-align: center;
           flex-shrink: 0;
         }
@@ -2514,7 +2421,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 15px;
           font-weight: 400;
           letter-spacing: -0.2px;
-          color: rgba(142,142,147,0.8);
+          color: ${TXT3};
           margin-left: 4px;
         }
 
@@ -2532,9 +2439,17 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 12px;
           font-weight: 400;
           letter-spacing: -0.1px;
-          color: rgba(142,142,147,0.75);
+          color: ${TXT3};
           margin-top: 4px;
           margin-bottom: 12px;
+        }
+
+        .total-over {
+          font-size: 11px;
+          font-weight: 500;
+          color: #E24B4A;
+          margin-top: 3px;
+          font-variant-numeric: tabular-nums;
         }
 
         .bar-bg {
@@ -2595,7 +2510,7 @@ class SzamboAppleCard extends HTMLElement {
           font-weight: 600;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          color: rgba(142,142,147,0.85);
+          color: ${TXT3};
           margin-bottom: 8px;
         }
 
@@ -2619,7 +2534,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 13px;
           font-weight: 400;
           letter-spacing: -0.2px;
-          color: rgba(174,174,178,0.95);
+          color: ${TXT2};
           flex: 1;
         }
 
@@ -2634,7 +2549,7 @@ class SzamboAppleCard extends HTMLElement {
         .row-unit {
           font-size: 11px;
           font-weight: 400;
-          color: rgba(142,142,147,0.7);
+          color: ${TXT4};
           margin-left: 2px;
         }
 
@@ -2646,15 +2561,9 @@ class SzamboAppleCard extends HTMLElement {
         .billing {
           margin-top: 14px;
           padding: 14px 16px;
-          background: linear-gradient(135deg,
-            rgba(28,28,30,0.6) 0%,
-            rgba(18,18,20,0.8) 100%);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: ${TILE};
           border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 14px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.2),
-                      inset 0 1px 0 rgba(255,255,255,0.05);
+          border-radius: ${RAD.TILE}px;
         }
 
         .billing-header {
@@ -2669,7 +2578,7 @@ class SzamboAppleCard extends HTMLElement {
           font-weight: 600;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          color: rgba(142,142,147,0.85);
+          color: ${TXT3};
         }
 
         .billing-total {
@@ -2703,7 +2612,7 @@ class SzamboAppleCard extends HTMLElement {
           font-size: 13px;
           font-weight: 400;
           letter-spacing: -0.2px;
-          color: rgba(174,174,178,0.95);
+          color: ${TXT2};
           flex: 1;
         }
 
@@ -2750,7 +2659,7 @@ class SzamboAppleCard extends HTMLElement {
         .billing-sub {
           font-size: 11px;
           font-weight: 400;
-          color: rgba(142,142,147,0.7);
+          color: ${TXT4};
           text-align: right;
         }
 
@@ -2814,8 +2723,9 @@ class SzamboAppleCard extends HTMLElement {
               <div>
                 <span class="total-val">${fmt(total)}</span>
                 <span class="total-unit">m\u00b3</span>
-                <span class="total-pct">${totalPct}%</span>
+                <span class="total-pct">${totalPctRaw}%</span>
               </div>
+              ${totalPctRaw > 100 ? `<div class="total-over">+${fmt1(overM3)} m\u00b3 ponad pojemno\u015b\u0107</div>` : ''}
               <div class="total-sub">zu\u017cycie \u0142\u0105cznie</div>
               <div class="bar-bg">
                 <div class="bar-fill" style="width:${totalPct}%;background:${totalClr};"></div>
@@ -2871,7 +2781,7 @@ class SzamboAppleCard extends HTMLElement {
 
         <div class="alert">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="${alertClr}">${alertIcon}</svg>
-          <span class="alert-txt">${alertTxt} \u00b7 zosta\u0142o ${fmt(cap - total)} m\u00b3</span>
+          <span class="alert-txt">${alertTxt} \u00b7 ${total > cap ? 'zbiornik przepe\u0142niony' : `zosta\u0142o ${fmt(cap - total)} m\u00b3`}</span>
         </div>
 
         ${(dom1zl > 0 || dom2zl > 0) ? `
@@ -2915,6 +2825,15 @@ class SzamboAppleCard extends HTMLElement {
   _renderSlim() {
     if (!this._hass) return;
     const { CLR_D1, CLR_D2, CLR_D1_OBS, CLR_D2_OBS, CLR_D1_PLAN, CLR_D2_PLAN } = window.AHA.SZAMBO;
+
+    // Tokeny powierzchni/tekstu (z fallbackiem, gdy aha-shared.js jest starszy)
+    const _T = (window.AHA && window.AHA.THEME) || {};
+    const SURFACE = (_T.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const TILE    = (_T.TILE)    || 'rgba(255,255,255,0.05)';
+    const TXT2 = (_T.SURFACE && _T.TEXT2) || 'rgba(255,255,255,0.62)';
+    const TXT3 = (_T.SURFACE && _T.TEXT3) || 'rgba(255,255,255,0.50)';
+    const TXT4 = (_T.SURFACE && _T.TEXT4) || 'rgba(255,255,255,0.48)';
+    const RAD  = (window.AHA && window.AHA.RADIUS) || { SLIM: 16, CARD: 20, TILE: 12 };
     // SLIM — full rewrite
 
     const cap         = this._config.capacity;
@@ -2937,10 +2856,16 @@ class SzamboAppleCard extends HTMLElement {
       ? this._hass.states[this._config.entity_stale]?.state === 'on'
       : false;
 
-    const pct = v => Math.min(Math.round((v / cap) * 100), 100);
+    // pctClamped — geometria zbiornika (max 100); pctRaw — prawdziwy procent do tekstu
+    const pctClamped = v => Math.min(Math.round((v / cap) * 100), 100);
+    const pctRaw     = v => Math.round((v / cap) * 100);
+    const pct = pctClamped;
     const fmt = v => v.toFixed(2).replace('.', ',');
+    const fmt1 = v => v.toFixed(1).replace('.', ',');
 
-    const totalPct   = pct(total);
+    const totalPct    = pct(total);
+    const totalPctRaw = pctRaw(total);
+    const overM3      = total - cap;
     const observePct = pct(warnObserve);
     const planPct    = pct(warnPlan);
     const d1pct      = pct(d1sz);
@@ -2987,7 +2912,7 @@ class SzamboAppleCard extends HTMLElement {
 
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 16px;
+          border-radius: ${RAD.SLIM}px;
           padding: 14px 16px;
           box-sizing: border-box;
           font-family: -apple-system, system-ui, sans-serif;
@@ -2997,7 +2922,7 @@ class SzamboAppleCard extends HTMLElement {
           gap: 12px;
           align-items: stretch;
           transition: border-color 0.4s ease;
-          ${!isOk ? `animation: szambo-slim-pulse ${isScheduled ? '5s' : isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
+          ${!isOk ? `animation: szambo-slim-pulse ${isScheduled ? '3.5s' : isPlan ? '2s' : '3s'} ease-in-out infinite;` : ''}
         }
         .card:active { transform: scale(0.97); transition: transform 0.15s ease; }
 
@@ -3128,7 +3053,7 @@ class SzamboAppleCard extends HTMLElement {
         .val-lbl {
           font-size: 9px;
           font-weight: 400;
-          color: rgba(142,142,147,0.55);
+          color: ${TXT4};
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -3142,7 +3067,7 @@ class SzamboAppleCard extends HTMLElement {
         .val-unit {
           font-size: 10px;
           font-weight: 400;
-          color: rgba(142,142,147,0.6);
+          color: ${TXT4};
           margin-left: 1px;
         }
 
@@ -3154,7 +3079,7 @@ class SzamboAppleCard extends HTMLElement {
         .billing-lbl {
           font-size: 10px;
           font-weight: 500;
-          color: rgba(142,142,147,0.50);
+          color: ${TXT4};
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -3165,7 +3090,7 @@ class SzamboAppleCard extends HTMLElement {
           font-variant-numeric: tabular-nums;
         }
         .billing-sep {
-          color: rgba(142,142,147,0.30);
+          color: ${TXT4};
           font-size: 10px;
         }
 
@@ -3190,15 +3115,24 @@ class SzamboAppleCard extends HTMLElement {
         .metric-unit {
           font-size: 11px;
           font-weight: 400;
-          color: rgba(142,142,147,0.65);
+          color: ${TXT3};
           text-align: right;
         }
         .metric-pct {
           font-size: 15px;
           font-weight: 600;
-          color: rgba(142,142,147,0.80);
+          color: ${TXT2};
           font-variant-numeric: tabular-nums;
           text-align: right;
+        }
+        .metric-over {
+          font-size: 11px;
+          font-weight: 500;
+          color: #E24B4A;
+          font-variant-numeric: tabular-nums;
+          text-align: right;
+          line-height: 1.25;
+          max-width: 78px;
         }
       </style>
 
@@ -3267,7 +3201,8 @@ class SzamboAppleCard extends HTMLElement {
         <div class="metric">
           <div class="metric-val">${fmt(total)}</div>
           <div class="metric-unit">m\u00b3</div>
-          <div class="metric-pct">${totalPct}%</div>
+          <div class="metric-pct">${totalPctRaw}%</div>
+          ${totalPctRaw > 100 ? `<div class="metric-over">+${fmt1(overM3)} m\u00b3 ponad pojemno\u015b\u0107</div>` : ''}
         </div>
       </div>
     `;
@@ -3347,6 +3282,8 @@ window.customCards.push({
  *   entity_current:  sensor.szambo_zuzycie
  *   entity_rate:     sensor.szambo_przyrost_dzienny
  *   capacity:        10       # m³, domyślnie 10
+ *   suppress_when_plan: true # opcjonalnie: w stanie planu/alarmu karta zwija się do jednej linii
+ *                            # (alarm pokazuje już karta zbiornika — bez dublowania czerwieni)
  *   tap_action:              # opcjonalnie
  *     action: more-info
  */
@@ -3387,6 +3324,7 @@ class SzamboPredictCard extends HTMLElement {
       warn_plan: config.warn_plan ?? DEFAULTS.WARN_PLAN,
       tap_action: config.tap_action ?? { action: 'more-info' },
       slim: config.slim ?? false,
+      suppress_when_plan: config.suppress_when_plan ?? false,
     };
   }
 
@@ -3432,7 +3370,7 @@ class SzamboPredictCard extends HTMLElement {
 
   _setupCard() {
     const style = document.createElement('style');
-    style.textContent = this._config.slim ? this._getSlimStyles() : this._getStyles();
+    style.textContent = (this._config.slim ? this._getSlimStyles() : this._getStyles()) + this._getCollapsedStyles();
     this.shadowRoot.appendChild(style);
 
     const card = document.createElement('div');
@@ -3516,10 +3454,60 @@ class SzamboPredictCard extends HTMLElement {
     const fmt = v => v.toFixed(3).replace('.', ',');
     const fmt2 = v => v.toFixed(2).replace('.', ',');
 
+    // Tryb zwinięty: alarm/plan sygnalizuje karta zbiornika, tu tylko jedna cicha linia
+    if (this._config.suppress_when_plan && (isFull || isPlan)) {
+      card.classList.add('collapsed');
+      card.innerHTML = this._renderCollapsed({ isFull, dateStr });
+      return;
+    }
+    card.classList.remove('collapsed');
+
     const args = { noData, isFull, daysInt, daysLabel, dayName, dateStr, accentClr, barColor, fillPct, current, cap, rate, weekly, remaining, fmt, fmt2 };
     card.innerHTML = this._config.slim
       ? this._renderSlimContent(args)
       : this._renderContent(args);
+  }
+
+  _renderCollapsed({ isFull, dateStr }) {
+    const right = isFull ? 'przekroczona' : (dateStr || '\u2014');
+    return `
+      <div class="collapsed-row">
+        <span class="collapsed-lbl">Prognoza pełnego zbiornika</span>
+        <span class="collapsed-val">${right}</span>
+      </div>
+    `;
+  }
+
+  _getCollapsedStyles() {
+    return `
+      .card.collapsed {
+        display: block;
+        padding: 12px 16px;
+        border: 0.5px solid rgba(255,255,255,0.08);
+        animation: none;
+        box-shadow: none;
+      }
+      .collapsed-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+      .collapsed-lbl {
+        color: rgba(255,255,255,0.62);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .collapsed-val {
+        color: rgba(255,255,255,0.94);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+    `;
   }
 
   _renderError(title, subtitle) {
@@ -3528,7 +3516,7 @@ class SzamboPredictCard extends HTMLElement {
         <div class="top-left">
           <div class="eyebrow">następny wywóz szamba</div>
           <div class="no-data">${title}</div>
-          <div style="font-size:12px;color:#636366;margin-top:4px;">${subtitle}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.48);margin-top:4px;">${subtitle}</div>
         </div>
         <div class="icon-box">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="${COLORS.RED}">
@@ -3728,7 +3716,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .date-str {
         font-size: 11px;
-        color: rgba(142,142,147,0.75);
+        color: rgba(255,255,255,0.50);
       }
 
       .stats-row {
@@ -3744,7 +3732,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .stat-lbl {
         font-size: 10px;
-        color: rgba(142,142,147,0.60);
+        color: rgba(255,255,255,0.48);
         text-transform: uppercase;
         letter-spacing: 0.2px;
       }
@@ -3757,12 +3745,12 @@ class SzamboPredictCard extends HTMLElement {
       }
       .stat-sep {
         font-size: 10px;
-        color: rgba(142,142,147,0.30);
+        color: rgba(255,255,255,0.48);
       }
 
       .sub {
         font-size: 11px;
-        color: rgba(142,142,147,0.65);
+        color: rgba(255,255,255,0.50);
       }
 
       /* right countdown */
@@ -3785,7 +3773,7 @@ class SzamboPredictCard extends HTMLElement {
       .metric-lbl {
         font-size: 11px;
         font-weight: 400;
-        color: rgba(142,142,147,0.65);
+        color: rgba(255,255,255,0.50);
         text-align: right;
       }
     `;
@@ -3798,13 +3786,13 @@ class SzamboPredictCard extends HTMLElement {
       }
       .card {
         background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-        border-radius: 18px;
+        border-radius: 20px;
         padding: 16px 18px;
         box-sizing: border-box;
-        font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+        font-family: -apple-system, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
         cursor: pointer;
-        transition: transform 0.1s ease, opacity 0.1s ease;
+        transition: transform 0.15s ease, opacity 0.15s ease;
       }
       .card:active {
         transform: scale(0.98);
@@ -3819,7 +3807,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .eyebrow {
         font-size: 11px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-bottom: 4px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -3839,7 +3827,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .days-lbl {
         font-size: 18px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
       }
       .date-row {
         display: flex;
@@ -3855,7 +3843,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .date-str {
         font-size: 12px;
-        color: #8E8E93;
+        color: rgba(255,255,255,0.62);
       }
       .no-data {
         font-size: 20px;
@@ -3865,7 +3853,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .subtitle {
         font-size: 12px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-top: 4px;
       }
       .subtitle.alert {
@@ -3875,7 +3863,7 @@ class SzamboPredictCard extends HTMLElement {
         width: 52px;
         height: 52px;
         border-radius: 16px;
-        background: #1C2A3A;
+        background: rgba(255,255,255,0.05);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3894,7 +3882,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .progress-labels span {
         font-size: 10px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
       }
       .progress-labels .today {
         font-weight: 500;
@@ -3902,7 +3890,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .track {
         height: 5px;
-        background: #3A3A3C;
+        background: rgba(255,255,255,0.08);
         border-radius: 3px;
         position: relative;
         margin-bottom: 4px;
@@ -3933,8 +3921,8 @@ class SzamboPredictCard extends HTMLElement {
       }
       .metric {
         flex: 1;
-        background: #3A3A3C;
-        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 12px;
         padding: 9px 11px;
         transition: transform 0.2s ease;
       }
@@ -3943,7 +3931,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .metric-label {
         font-size: 10px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-bottom: 3px;
         text-transform: uppercase;
         letter-spacing: 0.3px;
@@ -3955,7 +3943,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .metric-unit {
         font-size: 10px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-left: 1px;
       }
     `;
@@ -4049,10 +4037,11 @@ class SzamboFinanceCard extends HTMLElement {
         :host { display: block; }
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 18px;
+          border-radius: 20px;
           padding: 16px 18px;
           box-sizing: border-box;
-          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
+          border: 1px solid rgba(255,255,255,0.08);
           -webkit-font-smoothing: antialiased;
         }
         .header {
@@ -4061,12 +4050,12 @@ class SzamboFinanceCard extends HTMLElement {
         }
         .header-ic {
           width: 30px; height: 30px; border-radius: 9px;
-          background: rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.05);
           display: flex; align-items: center; justify-content: center;
-          color: #8E8E93;
+          color: rgba(255,255,255,0.62);
         }
-        .header-title { font-size: 13px; font-weight: 500; color: #AEAEB2; flex: 1; }
-        .header-cost  { font-size: 11px; color: #636366; }
+        .header-title { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.62); flex: 1; }
+        .header-cost  { font-size: 11px; color: rgba(255,255,255,0.48); }
 
         .body { display: flex; align-items: center; gap: 18px; }
 
@@ -4094,25 +4083,25 @@ class SzamboFinanceCard extends HTMLElement {
           /* prawa połowa = Dom2 */
         }
 
-        .arc { transition: opacity .2s; }
+        .arc { transition: opacity .15s; }
         .arc.faded   { opacity: .2; }
         .arc.hovered { opacity: 1; filter: brightness(1.15); }
 
         .legend { display: flex; gap: 12px; }
         .legend-item { display: flex; align-items: center; gap: 4px; }
         .legend-dot  { width: 7px; height: 7px; border-radius: 50%; }
-        .legend-lbl  { font-size: 10px; color: #636366; }
+        .legend-lbl  { font-size: 10px; color: rgba(255,255,255,0.48); }
 
         .receipt {
           flex: 1;
-          border-left: .5px solid #3A3A3C;
+          border-left: .5px solid rgba(255,255,255,0.08);
           padding-left: 16px;
         }
         .receipt-row {
           display: flex; align-items: center; justify-content: space-between;
           padding: 8px 0;
-          border-bottom: .5px dashed #3A3A3C;
-          transition: opacity .2s;
+          border-bottom: .5px dashed rgba(255,255,255,0.10);
+          transition: opacity .15s;
           cursor: default;
         }
         .receipt-row.faded   { opacity: .3; }
@@ -4120,7 +4109,7 @@ class SzamboFinanceCard extends HTMLElement {
 
         .receipt-left { display: flex; flex-direction: column; gap: 2px; }
         .receipt-name { font-size: 13px; color: #fff; font-weight: 500; }
-        .receipt-sub  { font-size: 10px; color: #636366; }
+        .receipt-sub  { font-size: 10px; color: rgba(255,255,255,0.48); }
         .receipt-val  { font-size: 16px; font-weight: 600; }
 
         .receipt-total {
@@ -4128,7 +4117,7 @@ class SzamboFinanceCard extends HTMLElement {
           padding: 10px 0 0;
         }
         .receipt-total-lbl {
-          font-size: 11px; color: #636366;
+          font-size: 11px; color: rgba(255,255,255,0.48);
           text-transform: uppercase; letter-spacing: .4px; font-weight: 500;
         }
         .receipt-total-val {
@@ -4153,7 +4142,7 @@ class SzamboFinanceCard extends HTMLElement {
           <div class="chart-col">
             <div class="chart-wrap">
               <svg viewBox="0 0 100 100" width="96" height="96">
-                <circle cx="50" cy="50" r="${R}" fill="none" stroke="#3A3A3C" stroke-width="16"/>
+                <circle cx="50" cy="50" r="${R}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16"/>
                 <circle id="arc1" class="arc" cx="50" cy="50" r="${R}" fill="none"
                   stroke="${CLR_D1}" stroke-width="16"
                   stroke-dasharray="${d1arc.toFixed(1)} ${d2arc.toFixed(1)}"
@@ -4168,7 +4157,7 @@ class SzamboFinanceCard extends HTMLElement {
                   font-size="14" font-weight="600" fill="#fff"
                   font-family="-apple-system,sans-serif">${cost}</text>
                 <text x="50" y="58" text-anchor="middle"
-                  font-size="8" fill="#636366"
+                  font-size="8" fill="rgba(255,255,255,0.48)"
                   font-family="-apple-system,sans-serif">z\u0142</text>
               </svg>
 
@@ -4297,7 +4286,7 @@ window.customCards.push({
 const _C = {
   textPrimary:   '#F5F5F7',
   textSecondary: window.AHA.THEME.TEXT2,
-  textTertiary:  window.AHA.THEME.TEXT4,
+  textTertiary:  window.AHA.THEME.TEXT3,   // #8E8E93 — wygaszony tekst, min. ~.50 alfa
   urgent:        window.AHA.THEME.ERROR,
   soon:          '#FF9F0A',
   later:         '#64D2FF',   // jasny błękit zamiast żółtego — wyraźny kontrast vs pomarańcz
@@ -4419,7 +4408,7 @@ class WasteScheduleAppleCard extends HTMLElement {
     if (n <= 3 && d < nextMonday)    return { color: _C.soon,     level: 'soon'     };
     if (d < weekAfterNext)           return { color: _C.later,    level: 'later'    };
     if (n <= 14)                     return { color: _C.upcoming, level: 'upcoming' };
-    return                                  { color: '#636366',   level: 'distant'  };
+    return                                  { color: 'rgba(255,255,255,0.48)',   level: 'distant'  };
   }
 
   /* ── Data ── */
@@ -4706,18 +4695,19 @@ class WasteScheduleAppleCard extends HTMLElement {
         .cal-today:hover, .cal-today.cal-hover {
           background: rgba(255,255,255,0.18);
         }
+        /* Wygaszone dni — min. alfa .50 dla czytelności */
         .cal-past {
-          opacity: 0.28;
+          opacity: 0.50;
         }
         .cal-weekend:not(.cal-today) {
-          opacity: 0.38;
+          opacity: 0.62;
         }
         .cal-weekend.cal-past {
-          opacity: 0.18;
+          opacity: 0.50;
         }
 
         .cal-letter {
-          font-size: 9px; font-weight: 500; color: ${_C.textTertiary};
+          font-size: 10px; font-weight: 500; color: ${_C.textTertiary};
           text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
         }
         .cal-today .cal-letter { color: ${_C.textSecondary}; }
@@ -4767,7 +4757,7 @@ class WasteScheduleAppleCard extends HTMLElement {
 
         /* Wygaszone — dziś po 7:30 */
         .list-done {
-          opacity: 0.42;
+          opacity: 0.50;
         }
         .list-done .list-chips .chip {
           filter: saturate(0.3);
@@ -4790,9 +4780,11 @@ class WasteScheduleAppleCard extends HTMLElement {
         }
         .list-date {
           font-size: 12px; font-weight: 400; color: ${_C.textSecondary};
-          text-transform: capitalize; flex: 1; min-width: 0;
+          flex: 1; min-width: 0;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+        /* Tylko pierwsza litera wielka: „Czwartek, 22 października” */
+        .list-date::first-letter { text-transform: uppercase; }
         .list-date strong {
           font-weight: 700;
           color: ${_C.textPrimary};
@@ -4808,7 +4800,7 @@ class WasteScheduleAppleCard extends HTMLElement {
         /* Ikona ✓ dla done */
         .done-check {
           font-size: 13px;
-          color: #4a4a4f;
+          color: rgba(255,255,255,0.50);
           margin-left: 4px;
           flex-shrink: 0;
         }
@@ -5223,7 +5215,7 @@ class AstronomicalEventsCard extends HTMLElement {
         font-weight: 600;
         letter-spacing: .10em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.28);
+        color: rgba(255,255,255,0.48);
       }
       .header-right {
         display: flex;
@@ -5242,7 +5234,7 @@ class AstronomicalEventsCard extends HTMLElement {
       }
       .header-count {
         font-size: 10px;
-        color: rgba(255,255,255,.20);
+        color: rgba(255,255,255,0.48);
       }
       .event {
         border-radius: 12px;
@@ -5284,7 +5276,7 @@ class AstronomicalEventsCard extends HTMLElement {
       }
       .event-date {
         font-size: 11px;
-        color: rgba(255,255,255,.30);
+        color: rgba(255,255,255,0.48);
         margin-top: 2px;
       }
       .badges {
@@ -5317,7 +5309,7 @@ class AstronomicalEventsCard extends HTMLElement {
         font-size: 9px;
         text-transform: uppercase;
         letter-spacing: .08em;
-        color: rgba(255,255,255,.28);
+        color: rgba(255,255,255,0.48);
         margin-top: 2px;
       }
       .chevron {
@@ -5347,7 +5339,7 @@ class AstronomicalEventsCard extends HTMLElement {
       .how {
         font-size: 11.5px;
         line-height: 1.55;
-        color: rgba(255,255,255,.35);
+        color: rgba(255,255,255,0.48);
         margin: 0 0 10px;
       }
       .tip-box {
@@ -5379,7 +5371,7 @@ class AstronomicalEventsCard extends HTMLElement {
         padding-top: 10px;
         border-top: 1px solid rgba(255,255,255,.06);
       }
-      .footer-info { font-size: 10px; color: rgba(255,255,255,.22); }
+      .footer-info { font-size: 10px; color: rgba(255,255,255,0.48); }
       .nav-btn {
         font-size: 11px;
         padding: 5px 14px;
@@ -5395,7 +5387,7 @@ class AstronomicalEventsCard extends HTMLElement {
       .nav-btn:disabled {
         border-color: rgba(255,255,255,.04);
         background: transparent;
-        color: rgba(255,255,255,.16);
+        color: rgba(255,255,255,0.48);
         cursor: default;
       }
       .urgent-bar {
@@ -5408,7 +5400,7 @@ class AstronomicalEventsCard extends HTMLElement {
       }
       .no-launches {
         font-size: 10px;
-        color: rgba(255,255,255,0.18);
+        color: rgba(255,255,255,0.48);
         text-align: center;
         padding: 6px 0 2px;
       }
@@ -5461,7 +5453,7 @@ class AstronomicalEventsCard extends HTMLElement {
 
         detailsContent = `
           ${ev.how ? `<div class="launch-meta">${chips}</div>` : ''}
-          ${ev.desc ? `<p class="desc">${ev.desc}</p>` : '<p class="desc" style="color:rgba(255,255,255,.25);">Brak opisu misji.</p>'}
+          ${ev.desc ? `<p class="desc">${ev.desc}</p>` : '<p class="desc" style="color:rgba(255,255,255,0.48);">Brak opisu misji.</p>'}
           <div class="tip-box" style="background:${c}.10);color:${c}.90);border:1px solid ${c}.22);">⏰ ${ev.tip}</div>`;
       } else {
         detailsContent = `
@@ -5675,7 +5667,7 @@ class ClimateAppleCard extends HTMLElement {
     const state    = this._hass.states[entityId];
 
     if (!state) {
-      this.shadowRoot.innerHTML = `<p style="padding:10px;color:#FF3B30;font-family:system-ui;font-size:12px;">Nie znaleziono: ${entityId}</p>`;
+      this.shadowRoot.innerHTML = `<p style="padding:10px;color:#E24B4A;font-family:system-ui;font-size:12px;">Nie znaleziono: ${entityId}</p>`;
       return;
     }
 
@@ -5703,7 +5695,9 @@ class ClimateAppleCard extends HTMLElement {
 
     const targetTemp = attr.temperature ?? 20;
     const name       = this._config.name ?? attr.friendly_name ?? entityId;
-    const accentClr  = isCooling ? '#32ADE6' : '#FF9500';
+    const A          = (window.AHA && window.AHA.ACCENT) || { INFO: '#85B7EB', HEAT: '#EF9F27', ERROR: '#E24B4A' };
+    const SURFACE    = (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const accentClr  = isCooling ? A.INFO : A.HEAT;
 
     const areaName   = this._getAreaName(entityId);
     const iconPath   = getIconPath(areaName ?? name);
@@ -5728,8 +5722,9 @@ class ClimateAppleCard extends HTMLElement {
 
         :host { display:block; }
 
+        /* Jedna powierzchnia: navy (AHA.THEME.SURFACE) — wcześniej jasny #E5E5EA w trybie domyślnym */
         .card {
-          border-radius: 18px;
+          border-radius: 20px;
           padding: 12px 14px;
           position: relative;
           overflow: hidden;
@@ -5737,24 +5732,19 @@ class ClimateAppleCard extends HTMLElement {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          background: #E5E5EA;
-          transition: background-color .5s cubic-bezier(.4,0,.2,1);
-          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          background: ${SURFACE};
+          border: 1px solid rgba(255,255,255,0.08);
+          transition: border-color .4s cubic-bezier(.4,0,.2,1);
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
         }
-        .card.on      { background: #FFE8B8; }
-        .card.cooling { background: #C8E4FF; }
-
-        @media (prefers-color-scheme: dark) {
-          .card         { background: #2C2C2E; }
-          .card.on      { background: #2D1E06; }
-          .card.cooling { background: #0A1A2E; }
-        }
+        .card.heating { border-color: rgba(239,159,39,0.28); }
+        .card.cooling { border-color: rgba(133,183,235,0.28); }
 
         .particles { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
         .pt { position:absolute; border-radius:50%; opacity:0; }
-        .card.heating .pt { background:#FF9500; animation:rise 2.4s ease-out infinite; }
-        .card.cooling .pt { background:#5AC8FA; animation:rise 2.8s ease-out infinite; }
+        .card.heating .pt { background:${A.HEAT}; animation:rise 2.4s ease-out infinite; }
+        .card.cooling .pt { background:${A.INFO}; animation:rise 2.8s ease-out infinite; }
         .pt:nth-child(1) { width:7px;  height:7px;  bottom:14px; left:12%; animation-delay:0s;   }
         .pt:nth-child(2) { width:4px;  height:4px;  bottom:8px;  left:35%; animation-delay:.65s; }
         .pt:nth-child(3) { width:6px;  height:6px;  bottom:18px; left:58%; animation-delay:1.2s; }
@@ -5767,56 +5757,42 @@ class ClimateAppleCard extends HTMLElement {
           position: relative;
         }
 
+        /* kafelek ikony — TILE, radius 12 */
         .ibadge {
-          width: 34px; height: 34px; border-radius: 10px;
-          background: #1C1C1E;
+          width: 34px; height: 34px; border-radius: 12px;
+          background: rgba(255,255,255,0.05);
           display: flex; align-items: center; justify-content: center;
-          color: #AEAEB2;
+          color: rgba(255,255,255,0.48);
           transition: background-color .4s, color .4s;
           flex-shrink: 0;
         }
-        .card.on .ibadge      { background: #3D2C0A; color: #FFD080; }
-        .card.cooling .ibadge { background: #0C233A; color: #5AC8FA; }
-
-        @media (prefers-color-scheme: dark) {
-          .ibadge               { background: #000; color: #636366; }
-          .card.on .ibadge      { background: #3D2C0A; color: #FFD080; }
-          .card.cooling .ibadge { background: #061628; color: #5AC8FA; }
-        }
+        .card.on .ibadge      { background: rgba(239,159,39,0.14); color: ${A.HEAT}; }
+        .card.cooling .ibadge { background: rgba(133,183,235,0.14); color: ${A.INFO}; }
 
         .sw {
-          width: 38px; height: 22px; border-radius: 11px;
-          background: #C7C7CC;
+          width: 38px; height: 22px; border-radius: 99px;
+          background: rgba(255,255,255,0.16);
           position: relative; cursor: pointer;
-          transition: background-color .22s;
+          transition: background-color .15s;
           flex-shrink: 0;
         }
-        .sw.on { background: #FF9500; }
-        .card.cooling .sw.on { background: #32ADE6; }
+        .sw.on { background: ${A.HEAT}; }
+        .card.cooling .sw.on { background: ${A.INFO}; }
         .sw-t {
           width: 18px; height: 18px; background: #fff; border-radius: 50%;
           position: absolute; top: 2px; left: 2px;
-          transition: transform .22s cubic-bezier(.4,0,.2,1);
-          box-shadow: 0 2px 4px rgba(0,0,0,.28);
+          transition: transform .15s cubic-bezier(.4,0,.2,1);
         }
         .sw.on .sw-t { transform: translateX(16px); }
 
-        @media (prefers-color-scheme: dark) {
-          .sw { background: #48484A; }
-        }
-
         .temp-cur {
           font-size: 36px; font-weight: 600; line-height: 1;
-          color: #1C1C1E; letter-spacing: -1.5px;
+          color: rgba(255,255,255,0.94); letter-spacing: -1.5px;
           position: relative;
         }
-        .temp-unit { font-size: 20px; font-weight: 400; color: #8E8E93; letter-spacing: 0; }
+        .temp-unit { font-size: 20px; font-weight: 400; color: rgba(255,255,255,0.50); letter-spacing: 0; }
 
-        @media (prefers-color-scheme: dark) {
-          .temp-cur { color: #FFFFFF; }
-        }
-
-        .sub { font-size: 12px; color: #8E8E93; margin-top: 1px; }
+        .sub { font-size: 12px; color: rgba(255,255,255,0.50); margin-top: 1px; }
 
         .bottom-row {
           display: flex;
@@ -5824,7 +5800,7 @@ class ClimateAppleCard extends HTMLElement {
           position: relative;
         }
 
-        .status-txt  { font-size: 11px; color: #8E8E93; }
+        .status-txt  { font-size: 11px; color: rgba(255,255,255,0.50); }
 
         .dots { display: flex; gap: 3px; align-items: center; margin-right: 4px; }
         .dot  {
@@ -6377,7 +6353,7 @@ class SolarClockCard extends HTMLElement {
       const meteorExtra = ev.hasMeteors
         ? `<div style="margin-top:5px;display:flex;align-items:center;gap:6px;">
             <div style="font-size:10px;font-weight:600;color:rgba(180,130,255,.92);background:rgba(150,90,255,.15);border:1px solid rgba(150,90,255,.35);padding:2px 8px;border-radius:8px;">+ Perseidy tej nocy</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35);">2 zjawiska jednocześnie</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);">2 zjawiska jednocześnie</div>
            </div>` : '';
       return `<div class="banner today" style="border-top:2px solid ${acB2};">
         <div class="banner-bg" style="background:${acL};"></div>
@@ -6403,7 +6379,7 @@ class SolarClockCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:11px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">Jutro: ${ev.label}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.40);margin-top:1px;">${sublabel}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;">${sublabel}</div>
           </div>
           <div class="banner-pill pulse-slow" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
         </div>
@@ -6417,7 +6393,7 @@ class SolarClockCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:10px;font-weight:600;color:${acM};text-transform:uppercase;letter-spacing:.06em;">${ev.label} za ${days} dni</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
           </div>
           <div class="banner-pill pulse-slow" style="font-size:11px;color:${acM};background:rgba(${acR},${acG},${acB},.14);border:1px solid rgba(${acR},${acG},${acB},.35);">${pillText}</div>
         </div>
@@ -6430,7 +6406,7 @@ class SolarClockCard extends HTMLElement {
         </div>
         <div class="banner-text">
           <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">${ev.label}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
         </div>
         <div class="banner-pill" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.25);">${pillText}</div>
       </div>
@@ -6555,7 +6531,7 @@ class SolarClockCard extends HTMLElement {
       .stats { display:flex; justify-content:space-between; align-items:flex-start; margin-top:7px; }
       .stat { display:flex; flex-direction:column; }
       .stat-val   { font-size:14px; font-weight:600; color:rgba(255,255,255,.82); letter-spacing:-.2px; }
-      .stat-label { font-size:9px; font-weight:500; color:rgba(255,255,255,.28); text-transform:uppercase; letter-spacing:.07em; margin-top:1px; }
+      .stat-label { font-size:9px; font-weight:500; color:rgba(255,255,255,0.48); text-transform:uppercase; letter-spacing:.07em; margin-top:1px; }
 
 
       /* ── ticker ─────────────────────────────────────────────────── */
@@ -6610,7 +6586,7 @@ class SolarClockCard extends HTMLElement {
       }
       .ticker-sub {
         font-size: 9.5px;
-        color: rgba(255,255,255,.35);
+        color: rgba(255,255,255,0.48);
         margin-top: 1px;
         white-space: nowrap;
         overflow: hidden;
@@ -6955,7 +6931,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     const f  = ([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
     const body  = [[x1-px,y1-py],[x2-px,y2-py],[x2+px,y2+py],[x1+px,y1+py]].map(f).join(' ');
     const shine = [[x1-px*.3,y1-py*.3],[x2-px*.3,y2-py*.3],[x2+px*.12,y2+py*.12],[x1+px*.12,y1+py*.12]].map(f).join(' ');
-    const c = color || 'rgba(255,159,10,.88)';
+    const c = color || 'rgba(239,159,39,.88)';
     return `<polygon points="${body}" fill="${c}"/>
       <polygon points="${shine}" fill="rgba(255,255,255,.22)"/>
       <circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="2.2" fill="rgba(0,0,0,.55)" stroke="${c}" stroke-width=".9"/>
@@ -6992,18 +6968,18 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
       /* ── glow wrapper ── */
-      .glow{ border-radius:18px; transition:box-shadow .5s ease; }
+      .glow{ border-radius:20px; transition:box-shadow .5s ease; }
       .glow.on{
         box-shadow:
-          0 0 0 1px rgba(255,159,10,.22),
-          0 0 18px 2px rgba(255,159,10,.14),
-          0 0 40px 6px rgba(255,159,10,.07);
+          0 0 0 1px rgba(239,159,39,.22),
+          0 0 18px 2px rgba(239,159,39,.14),
+          0 0 40px 6px rgba(239,159,39,.07);
       }
 
       /* ── card ── */
       .card{
         background:linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
-        border-radius:18px;
+        border-radius:20px;
         padding:14px 16px 16px;
         position:relative;
         overflow:hidden;
@@ -7031,9 +7007,9 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         color:rgba(255,255,255,.90);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       }
-      .room{font-size:11px;color:#636366;font-weight:400}
+      .room{font-size:11px;color:rgba(255,255,255,0.48);font-weight:400}
       .status{
-        font-size:11px;color:#636366;
+        font-size:11px;color:rgba(255,255,255,0.48);
         margin-top:3px;min-height:14px;
         transition:color .3s;
       }
@@ -7044,7 +7020,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         line-height:1;font-variant-numeric:tabular-nums;
         transition:color .3s;
       }
-      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,.28)}
+      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,0.48)}
 
       /* ── progress bar ── */
       .track{
@@ -7064,7 +7040,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
         border-radius:11px;
         font-size:10px;font-weight:600;
-        color:rgba(255,255,255,.35);
+        color:rgba(255,255,255,0.48);
         background:rgba(255,255,255,.04);
         cursor:pointer;
         border:.5px solid transparent;
@@ -7080,9 +7056,9 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
       .pill-pct{font-size:11px;font-weight:700;line-height:1}
       .pill-lbl{font-size:9px;font-weight:500;opacity:.7;line-height:1}
       .pill.on{
-        background:rgba(255,159,10,.16);
-        color:#ff9f0a;
-        border-color:rgba(255,159,10,.32);
+        background:rgba(239,159,39,.16);
+        color:#EF9F27;
+        border-color:rgba(239,159,39,.32);
       }
       .pill.pressed{
         background:rgba(255,255,255,.12);
@@ -7090,8 +7066,8 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
         transform:scale(.94);
       }
       .pill.on.pressed{
-        background:rgba(255,159,10,.28);
-        color:#ff9f0a;
+        background:rgba(239,159,39,.28);
+        color:#EF9F27;
       }
 
       /* ── action buttons ── */
@@ -7212,7 +7188,7 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     const dur = 420, t0 = performance.now();
     const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
     const tilt  = this._lastTilt ?? 0;
-    const color = tilt > 0 ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const color = tilt > 0 ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
     const svg   = this.shadowRoot.getElementById('icon');
     const step  = now => {
       const t = Math.min((now - t0) / dur, 1);
@@ -7228,8 +7204,8 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     this._lastTilt = tilt;
     const r   = this.shadowRoot;
     const on  = tilt > 0;
-    const acc = on ? '#ff9f0a' : 'rgba(142,142,147,.8)';
-    const slatColor = on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const acc = on ? '#EF9F27' : 'rgba(142,142,147,.8)';
+    const slatColor = on ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
 
     const pctEl    = r.getElementById('pct');
     const statusEl = r.getElementById('status');
@@ -7238,12 +7214,12 @@ customElements.define('aha-solar-clock-card', SolarClockCard);class TelecoCard e
     const iconbox  = r.getElementById('iconbox');
 
     if (pctEl)    { pctEl.textContent = tilt; pctEl.style.color = acc; }
-    if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366'; }
-    if (fillEl)   { fillEl.style.width = tilt + '%'; fillEl.style.background = on ? '#ff9f0a' : 'rgba(142,142,147,.4)'; }
+    if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); statusEl.style.color = on ? 'rgba(239,159,39,.70)' : '#636366'; }
+    if (fillEl)   { fillEl.style.width = tilt + '%'; fillEl.style.background = on ? '#EF9F27' : 'rgba(142,142,147,.4)'; }
     if (glowEl)   glowEl.classList.toggle('on', on);
     if (iconbox) {
-      iconbox.style.background = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
-      iconbox.style.border     = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.style.background = on ? 'rgba(239,159,39,.10)' : 'rgba(142,142,147,.07)';
+      iconbox.style.border     = `.5px solid ${on ? 'rgba(239,159,39,.20)' : 'rgba(142,142,147,.15)'}`;
     }
 
     r.querySelectorAll('.pill').forEach(b => {
@@ -7344,16 +7320,16 @@ class TelecoSlimCard extends HTMLElement {
   *{box-sizing:border-box;margin:0;padding:0}
   :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
-  .glow{border-radius:14px;transition:box-shadow .5s ease}
+  .glow{border-radius:16px;transition:box-shadow .5s ease}
   .glow.on{
     box-shadow:
-      0 0 0 1px rgba(255,159,10,.18),
-      0 0 14px 2px rgba(255,159,10,.10),
-      0 0 32px 4px rgba(255,159,10,.05);
+      0 0 0 1px rgba(239,159,39,.18),
+      0 0 14px 2px rgba(239,159,39,.10),
+      0 0 32px 4px rgba(239,159,39,.05);
   }
 
   .card{
-    background:linear-gradient(150deg, #0b1120 0%, #0d1828 100%);border-radius:14px;
+    background:linear-gradient(150deg, #0b1120 0%, #0d1828 100%);border-radius:16px;
     padding:11px 12px 9px;
     position:relative;overflow:hidden;
   }
@@ -7377,20 +7353,20 @@ class TelecoSlimCard extends HTMLElement {
     font-size:13px;font-weight:600;color:rgba(255,255,255,.90);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .status{font-size:10px;color:#636366;margin-top:1px;transition:color .3s}
+  .status{font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;transition:color .3s}
 
   .pct{
     font-size:19px;font-weight:700;letter-spacing:-.5px;
     font-variant-numeric:tabular-nums;flex-shrink:0;transition:color .3s;
   }
-  .pu{font-size:10px;font-weight:400;color:rgba(255,255,255,.28);margin-left:1px}
+  .pu{font-size:10px;font-weight:400;color:rgba(255,255,255,0.48);margin-left:1px}
 
   .acts{display:flex;gap:4px;flex-shrink:0}
   .act{
     width:28px;height:28px;border-radius:8px;
     display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.08);
-    cursor:pointer;color:rgba(255,255,255,.40);
+    cursor:pointer;color:rgba(255,255,255,0.48);
     transition:color .15s,background .15s,transform .1s;
     -webkit-tap-highlight-color:transparent;user-select:none;
   }
@@ -7442,7 +7418,7 @@ class TelecoSlimCard extends HTMLElement {
     const start = this._curDeg, diff = target - start;
     const dur = 380, t0 = performance.now();
     const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
-    const color = (this._lastTilt ?? 0) > 0 ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const color = (this._lastTilt ?? 0) > 0 ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
     const svg   = this.shadowRoot.getElementById('icon');
     const step  = now => {
       const t = Math.min((now - t0) / dur, 1);
@@ -7458,28 +7434,28 @@ class TelecoSlimCard extends HTMLElement {
     this._lastTilt = tilt;
     const r   = this.shadowRoot;
     const on  = tilt > 0;
-    const acc = on ? '#ff9f0a' : 'rgba(142,142,147,.75)';
+    const acc = on ? '#EF9F27' : 'rgba(142,142,147,.75)';
 
     r.getElementById('pct').textContent    = tilt;
     r.getElementById('pct').style.color    = acc;
     r.getElementById('status').textContent = this._label(tilt, st);
-    r.getElementById('status').style.color = on ? 'rgba(255,159,10,.65)' : '#636366';
+    r.getElementById('status').style.color = on ? 'rgba(239,159,39,.65)' : '#636366';
 
     const fill = r.getElementById('fill');
     fill.style.width      = tilt + '%';
-    fill.style.background = on ? '#ff9f0a' : 'rgba(142,142,147,.35)';
+    fill.style.background = on ? '#EF9F27' : 'rgba(142,142,147,.35)';
 
     r.getElementById('glow').classList.toggle('on', on);
     const ib = r.getElementById('iconbox');
-    ib.style.background  = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
-    ib.style.borderColor = on ? 'rgba(255,159,10,.20)'  : 'rgba(142,142,147,.14)';
+    ib.style.background  = on ? 'rgba(239,159,39,.10)' : 'rgba(142,142,147,.07)';
+    ib.style.borderColor = on ? 'rgba(239,159,39,.20)'  : 'rgba(142,142,147,.14)';
 
     const targetDeg = this._deg(tilt);
     if (Math.abs(targetDeg - this._curDeg) > 0.5) {
       this._animateTo(targetDeg);
     } else {
       const svg = r.getElementById('icon');
-      if (svg) svg.innerHTML = this._drawSlat(this._curDeg, on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)');
+      if (svg) svg.innerHTML = this._drawSlat(this._curDeg, on ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)');
     }
   }
 
@@ -7965,7 +7941,7 @@ window.customCards.push({
 
   _getTempState(t) {
     if (t === null) return {
-      label: 'OFFLINE', color: 'rgba(255,255,255,0.2)',
+      label: 'OFFLINE', color: 'rgba(255,255,255,0.48)',
       border: 'rgba(255,255,255,0.08)', bg: '#1C1C1E',
       fillPct: 0, bulbColor: 'rgba(255,255,255,0.15)',
       glowColor: 'rgba(255,255,255,0)', glowWidth: 5,
@@ -8319,17 +8295,45 @@ window.customCards.push({
  *   pills    — absolute overlay top-right, only non-normal states
  *   bottom   — room name HTML, muted
  *
+ * Config:
+ *   profile: indoor | outdoor     — progi z AHA.TEMP_PROFILES (brak = dotychczasowe progi)
+ *   thresholds: {frost, cold, warm, hot} — nadpisuje progi profilu
+ *   min_temp / max_temp           — domyślnie z profilu
+ *   Stany: mróz / zimno / komfort / ciepło / upał; puls tylko mróz i upał.
+ *   Outdoor: zimno i ciepło spokojne (tło navy, bez glow).
+ *   Karta <160px szerokości → .compact (bez etykiet min/max).
+ *
  * Hover focus mode:
  *   arc hovered  → brightens, tooltip appears
  *   opposite arc → dims to 20%
  *   chrome       → dims to 30%
  */
 
+// Fallbacki, gdyby aha-shared.js nie był załadowany przed kartą
+const _GAUGE_ACC = () => (window.AHA && window.AHA.ACCENT) || {
+  WORK: '#97C459', INFO: '#85B7EB', HEAT: '#EF9F27', ERROR: '#E24B4A', IDLE: '#5F5E5A', LIGHT: '#FFD60A',
+};
+const _GAUGE_RGB = () => (window.AHA && window.AHA.ACCENT_RGB) || {
+  WORK: '151,196,89', INFO: '133,183,235', HEAT: '239,159,39', ERROR: '226,75,74', IDLE: '95,94,90', LIGHT: '255,214,10',
+};
+const _GAUGE_SURFACE = () => (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE)
+  || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+const _GAUGE_PROFILES = () => (window.AHA && window.AHA.TEMP_PROFILES) || {
+  indoor:  { min: 14,  max: 30, frost: 10, cold: 18, warm: 26, hot: 29 },
+  outdoor: { min: -20, max: 40, frost: 0,  cold: 5,  warm: 28, hot: 35 },
+};
+// Brak `profile` w configu → dotychczasowe progi (kompatybilność wsteczna)
+const _GAUGE_LEGACY = { min: -10, max: 40, frost: 5, cold: 17, warm: 26, hot: 31 };
+const _gaugePulse = (name, rgb) => (window.AHA && typeof window.AHA.pulse === 'function')
+  ? window.AHA.pulse(name, rgb, 5, 0.18)
+  : `@keyframes ${name}{0%,100%{box-shadow:0 0 0 0 rgba(${rgb},0)}50%{box-shadow:0 0 0 5px rgba(${rgb},0.18)}}`;
+
 class AhaTempGaugeCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
     this._uid = Math.random().toString(36).slice(2, 7);
+    this._compact = false;
   }
 
   static getStubConfig() {
@@ -8338,14 +8342,69 @@ class AhaTempGaugeCard extends HTMLElement {
       temp_entity: 'sensor.salon_temperature',
       humidity_entity: 'sensor.salon_humidity',
       battery_entity: '',
-      min_temp: -10,
-      max_temp: 40,
+      profile: 'indoor',
     };
   }
 
   setConfig(config) {
     if (!config.temp_entity) throw new Error('temp_entity jest wymagane');
     this._config = config;
+    // Profil progów: indoor | outdoor (AHA.TEMP_PROFILES); brak → dotychczasowe progi
+    const profs = _GAUGE_PROFILES();
+    this._profileName = config.profile && profs[config.profile] ? config.profile : null;
+    const base = this._profileName ? profs[this._profileName] : _GAUGE_LEGACY;
+    const th  = config.thresholds || {};
+    const num = (v, d) => (v === undefined || v === null || v === '' || isNaN(parseFloat(v))) ? d : parseFloat(v);
+    this._prof = {
+      min:   num(config.min_temp, base.min),
+      max:   num(config.max_temp, base.max),
+      frost: num(th.frost, base.frost),
+      cold:  num(th.cold,  base.cold),
+      warm:  num(th.warm,  base.warm),
+      hot:   num(th.hot,   base.hot),
+    };
+    this._lastSig = null;
+    if (this._hass) this.hass = this._hass;
+  }
+
+  /* ── ResizeObserver: tryb compact (<160px) + skala tekstu wilgotności ── */
+  connectedCallback() {
+    if (typeof ResizeObserver === 'undefined') return;
+    if (!this._ro) this._ro = new ResizeObserver(() => this._onResize());
+    this._ro.observe(this);
+  }
+
+  disconnectedCallback() {
+    if (this._ro) { this._ro.disconnect(); this._ro = null; }
+  }
+
+  _onResize() {
+    const w = this.getBoundingClientRect().width;
+    const compact = w > 0 && w < 160;
+    if (compact !== this._compact) {
+      this._compact = compact;
+      this.shadowRoot.querySelector('.card')?.classList.toggle('compact', compact);
+    }
+    this._applyHumFont();
+  }
+
+  // Tekst wilgotności ~11px na ekranie niezależnie od skali viewBox
+  _applyHumFont() {
+    const svg = this.shadowRoot.querySelector('.gauge-svg');
+    const ht  = this.shadowRoot.querySelector('.hum-text');
+    if (!svg || !ht) return;
+    const r = svg.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const scale = Math.min(r.width / 200, r.height / 166);
+    if (!scale) return;
+    const fs = Math.max(9, Math.min(18, 11 / scale));
+    ht.setAttribute('font-size', fs.toFixed(1));
+    // Mała skala (większy font w jednostkach viewBox) → rozsuń temperaturę i wilgotność
+    if (ht.dataset.death === '1') return;
+    const tv = this.shadowRoot.getElementById('temp-hit');
+    const big = fs > 15;
+    if (tv) tv.setAttribute('y', big ? 80 : 86);
+    ht.setAttribute('y', big ? 110 : 112);
   }
 
   set hass(hass) {
@@ -8368,50 +8427,74 @@ class AhaTempGaugeCard extends HTMLElement {
     return parseFloat(s.state);
   }
 
+  /*
+   * Stany wg progów profilu:
+   *   t < frost → mróz (alarm, puls)   t < cold → zimno   t < warm → komfort
+   *   t < hot   → ciepło               t >= hot → upał (alarm, puls)
+   * Profil outdoor: zimno i ciepło są SPOKOJNE (tło navy, bez glow, tylko kolor łuku/liczby).
+   */
   _tempState(t) {
-    if (t === null) return {
-      key: 'offline', cardBg: 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)', cardBorder: 'rgba(255,255,255,0.07)',
+    const A = _GAUGE_ACC(), R = _GAUGE_RGB(), NAVY = _GAUGE_SURFACE();
+    const p = this._prof || _GAUGE_LEGACY;
+    const calm = this._profileName === 'outdoor';
+    if (t === null || isNaN(t)) return {
+      key: 'offline', cardBg: NAVY, cardBorder: 'rgba(255,255,255,0.07)',
       glowCss: '', tempColor: '#3a3a3c', iconBg: 'rgba(255,255,255,0.06)',
-      arcG0: 'rgba(255,255,255,0.18)', arcG1: 'rgba(255,255,255,0.06)', label: 'offline',
+      arcG0: 'rgba(255,255,255,0.18)', arcG1: 'rgba(255,255,255,0.06)', label: 'offline', calm: false,
     };
-    if (t < 5) return {
-      key: 'frost', cardBg: '#07101c', cardBorder: 'rgba(90,200,250,0.62)',
-      glowCss: 'radial-gradient(ellipse at 18% 12%, rgba(100,180,255,0.24) 0%, rgba(90,200,250,0.09) 40%, transparent 62%), radial-gradient(ellipse at 42% 22%, rgba(90,200,250,0.18) 0%, rgba(90,200,250,0.05) 48%, transparent 70%)',
-      tempColor: '#5AC8FA', iconBg: 'rgba(90,200,250,0.15)',
-      arcG0: '#8FDDFF', arcG1: '#1f7fd8', label: 'mróz',
+    if (t < p.frost) return {
+      key: 'frost', cardBg: '#07101c', cardBorder: `rgba(${R.INFO},0.62)`,
+      glowCss: `radial-gradient(ellipse at 18% 12%, rgba(${R.INFO},0.24) 0%, rgba(${R.INFO},0.09) 40%, transparent 62%), radial-gradient(ellipse at 42% 22%, rgba(${R.INFO},0.16) 0%, rgba(${R.INFO},0.05) 48%, transparent 70%)`,
+      tempColor: A.INFO, iconBg: `rgba(${R.INFO},0.15)`,
+      arcG0: '#CFE3F7', arcG1: '#4A86C5', label: 'mróz', calm: false,
     };
-    if (t < 17) return {
-      key: 'cold', cardBg: '#0e1822', cardBorder: 'rgba(90,200,250,0.22)',
-      glowCss: 'radial-gradient(ellipse at 30% 25%, rgba(90,200,250,0.13) 0%, transparent 58%)',
-      tempColor: '#7dd4f8', iconBg: 'rgba(90,200,250,0.11)',
-      arcG0: '#c0ecff', arcG1: '#5ab8ee', label: 'zimno',
+    if (t < p.cold) return calm ? {
+      key: 'cold', cardBg: NAVY, cardBorder: `rgba(${R.INFO},0.30)`,
+      glowCss: '', tempColor: A.INFO, iconBg: `rgba(${R.INFO},0.11)`,
+      arcG0: '#D6E7F8', arcG1: '#6A9FD8', label: 'zimno', calm: true,
+    } : {
+      key: 'cold', cardBg: '#0e1822', cardBorder: `rgba(${R.INFO},0.24)`,
+      glowCss: `radial-gradient(ellipse at 30% 25%, rgba(${R.INFO},0.12) 0%, transparent 58%)`,
+      tempColor: A.INFO, iconBg: `rgba(${R.INFO},0.11)`,
+      arcG0: '#D6E7F8', arcG1: '#6A9FD8', label: 'zimno', calm: false,
     };
-    if (t < 26) return {
-      key: 'comfort', cardBg: 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)', cardBorder: 'rgba(255,255,255,0.08)',
-      glowCss: '',
-      tempColor: '#ffffff', iconBg: 'rgba(255,255,255,0.08)',
-      arcG0: '#5cf087', arcG1: '#1c9e40', label: 'komfort',
+    if (t < p.warm) return {
+      key: 'comfort', cardBg: NAVY, cardBorder: 'rgba(255,255,255,0.08)',
+      glowCss: '', tempColor: '#ffffff', iconBg: 'rgba(255,255,255,0.08)',
+      arcG0: '#C4E29A', arcG1: '#6A9A34', label: 'komfort', calm: false,
     };
-    if (t < 31) return {
-      key: 'warm', cardBg: '#1c1100', cardBorder: 'rgba(255,159,10,0.40)',
-      glowCss: 'radial-gradient(ellipse at 60% 20%, rgba(255,159,10,0.24) 0%, rgba(255,100,0,0.10) 50%, transparent 70%)',
-      tempColor: '#FF9F0A', iconBg: 'rgba(255,159,10,0.14)',
-      arcG0: '#FFE066', arcG1: '#e87800', label: 'za ciepło',
+    if (t < p.hot) return calm ? {
+      key: 'warm', cardBg: NAVY, cardBorder: `rgba(${R.HEAT},0.35)`,
+      glowCss: '', tempColor: A.HEAT, iconBg: `rgba(${R.HEAT},0.12)`,
+      arcG0: '#F7CB7D', arcG1: '#C9790C', label: 'ciepło', calm: true,
+    } : {
+      key: 'warm', cardBg: '#1a1206', cardBorder: `rgba(${R.HEAT},0.40)`,
+      glowCss: `radial-gradient(ellipse at 60% 20%, rgba(${R.HEAT},0.16) 0%, rgba(${R.HEAT},0.05) 50%, transparent 70%)`,
+      tempColor: A.HEAT, iconBg: `rgba(${R.HEAT},0.14)`,
+      arcG0: '#F7CB7D', arcG1: '#C9790C', label: 'ciepło', calm: false,
     };
     return {
-      key: 'fire', cardBg: '#150200', cardBorder: 'rgba(255,69,58,0.72)',
-      glowCss: 'radial-gradient(ellipse at 50% 94%, rgba(255,110,0,0.62) 0%, rgba(210,30,0,0.28) 52%, transparent 72%)',
-      tempColor: '#FF9F4A', iconBg: 'rgba(255,69,58,0.17)',
-      arcG0: '#FFAA55', arcG1: '#cc1500', label: 'upał',
+      key: 'fire', cardBg: '#150404', cardBorder: `rgba(${R.ERROR},0.72)`,
+      glowCss: `radial-gradient(ellipse at 50% 94%, rgba(${R.ERROR},0.46) 0%, rgba(${R.ERROR},0.18) 52%, transparent 72%)`,
+      tempColor: '#F0807F', iconBg: `rgba(${R.ERROR},0.17)`,
+      arcG0: '#F4A48F', arcG1: '#B83433', label: 'upał', calm: false,
     };
   }
 
+  // Łuk wilgotności: komfort (35–80%) neutralny, poza komfortem akcenty
   _humArcColor(h) {
+    const A = _GAUGE_ACC(), R = _GAUGE_RGB();
     if (h === null) return 'rgba(255,255,255,0.15)';
-    if (h < 35)  return '#FF9F0A';
-    if (h < 66)  return '#30D158';
-    if (h < 81)  return '#0A84FF';
-    return '#FF453A';
+    if (h < 35)  return A.HEAT;
+    if (h > 80)  return A.INFO;
+    return `rgba(${R.INFO},0.45)`;
+  }
+
+  _humTextColor(h) {
+    const A = _GAUGE_ACC();
+    if (h !== null && h < 35) return A.HEAT;
+    if (h !== null && h > 80) return A.INFO;
+    return 'rgba(255,255,255,0.55)';
   }
 
   _render() {
@@ -8427,14 +8510,18 @@ class AhaTempGaugeCard extends HTMLElement {
     const humCol  = this._humArcColor(hum);
     const isOffline = temp === null;
 
-    const minT = parseFloat(cfg.min_temp ?? -10);
-    const maxT = parseFloat(cfg.max_temp ?? 40);
+    const A = _GAUGE_ACC(), RGB = _GAUGE_RGB();
+    const minT = this._prof.min;
+    const maxT = this._prof.max;
 
     const tempStr  = isOffline ? '—' : temp.toFixed(1) + '°';
     const isDeath  = temp !== null && temp >= 38;
     const humStr  = hum !== null ? hum.toFixed(0) + '%' : '—';
+    const humTxtCol = this._humTextColor(hum);
+    const hasHum  = !!cfg.humidity_entity;
 
-    const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / (maxT - minT) * 100));
+    const span    = (maxT - minT) || 1;
+    const fillPct = isOffline ? 0 : Math.max(0, Math.min(100, (temp - minT) / span * 100));
     const humPct  = hum !== null ? Math.max(0, Math.min(100, hum)) : 0;
 
     /* ── SVG gauge geometry ── */
@@ -8463,7 +8550,7 @@ class AhaTempGaugeCard extends HTMLElement {
     // Extreme-state glow on arc
 
     // Humidity zone label
-    const humZone = hum === null ? '' : hum < 35 ? 'sucho' : hum < 66 ? 'komfort' : hum < 81 ? 'wilgotno' : 'b. wilgotno';
+    const humZone = hum === null ? '' : hum < 35 ? 'sucho' : hum <= 80 ? 'komfort' : 'wilgotno';
 
     /* ── HTML tooltip helper (nie SVG — CSS px nie skalują się z viewBox) ── */
     const _ttHtml = (label, valStr, valColor, cls) => `
@@ -8475,10 +8562,11 @@ class AhaTempGaugeCard extends HTMLElement {
     /* ── Battery ── */
     const batHTML = (() => {
       if (bat === null || bat >= 25) return '';
-      const col   = bat < 20 ? '#FF453A' : 'rgba(255,255,255,0.38)';
+      const low   = bat < 20;   // niski poziom → procent widoczny na stałe
+      const col   = low ? A.ERROR : 'rgba(255,255,255,0.38)';
       const fillW = Math.round((Math.max(0, Math.min(100, bat)) / 100) * 13);
       return `
-        <div class="bat">
+        <div class="bat${low ? ' low' : ''}">
           <span class="bat-pct">${Math.round(bat)}%</span>
           <svg width="16" height="8" viewBox="0 0 22 11">
             <rect x=".5" y=".5" width="17" height="10" rx="2.5" fill="none" stroke="${col}" stroke-width="1.1"/>
@@ -8503,33 +8591,22 @@ class AhaTempGaugeCard extends HTMLElement {
     -webkit-tap-highlight-color: transparent; user-select: none; cursor: default;
     background: ${st.cardBg};
     border: 1px solid ${st.cardBorder};
-    transition: border-color .5s ease, transform .15s ease;
+    transition: border-color .4s ease, background .4s ease, transform .15s ease;
   }
   .card:active { transform: scale(0.97); }
 
   .bg-glow {
     position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    background: ${st.glowCss || 'none'}; transition: background .5s ease;
+    background: ${st.glowCss || 'none'}; transition: background .4s ease;
   }
 
-  /* ── card pulse — ten sam styl co ac.yaml / vacuum: prosty spread bez blur ── */
-  @keyframes frost-card {
-    0%,100% { box-shadow: 0 0 0 0   rgba(90,200,250,0); }
-    50%     { box-shadow: 0 0 0 5px rgba(90,200,250,0.22); }
-  }
-  @keyframes warm-card {
-    0%,100% { box-shadow: 0 0 0 0   rgba(255,159,10,0); }
-    50%     { box-shadow: 0 0 0 5px rgba(255,159,10,0.20); }
-  }
-  @keyframes fire-card {
-    0%,100% { box-shadow: 0 0 0 0   rgba(255,69,58,0); }
-    50%     { box-shadow: 0 0 0 6px rgba(255,69,58,0.30), 0 0 22px 3px rgba(255,100,0,0.20); }
-  }
+  /* ── puls karty — tylko stany alarmowe (mróz, upał): 5px / 0.18 przy 50% ── */
+  ${_gaugePulse('gauge-pulse-frost', RGB.INFO)}
+  ${_gaugePulse('gauge-pulse-fire', RGB.ERROR)}
   @keyframes frost-pulse  { 0%,100%{opacity:.5}  50%{opacity:.95} }
   @keyframes frost-arc    { 0%,100%{filter:brightness(1)}  50%{filter:brightness(1.28) saturate(1.3)} }
   @keyframes fire-arc     { 0%,100%{opacity:.9} 25%{opacity:1;filter:brightness(1.55) saturate(1.4)} 75%{opacity:.82;filter:brightness(.88)} }
   @keyframes fire-shimmer { 0%,100%{opacity:.55;transform:scaleY(1)} 50%{opacity:.9;transform:scaleY(1.07)} }
-  @keyframes heat-hue     { 0%,100%{filter:hue-rotate(0deg)} 50%{filter:hue-rotate(8deg)} }
   @keyframes death-pulse  { 0%,100%{opacity:.70} 50%{opacity:1} }
   @keyframes death-flicker { 0%,100%{opacity:1} 45%{opacity:.85} 50%{opacity:.60} 55%{opacity:.90} }
   .death-skull { animation: death-pulse 2.8s ease-in-out infinite; }
@@ -8537,9 +8614,8 @@ class AhaTempGaugeCard extends HTMLElement {
   @keyframes mirage-drift { 0%,100%{opacity:0;transform:scaleX(0.88)} 45%{opacity:1;transform:scaleX(1.06)} 90%{opacity:0;transform:scaleX(1.01)} }
   @keyframes ice-crystal-glow { 0%,100%{opacity:.07} 50%{opacity:.19} }
 
-  .card.frost { animation: frost-card 3.0s ease-in-out infinite; }
-  .card.warm  { animation: warm-card  3.5s ease-in-out infinite; }
-  .card.fire  { animation: fire-card  2.0s ease-in-out infinite, heat-hue 3.0s ease-in-out infinite; }
+  .card.frost { animation: gauge-pulse-frost 2.4s ease-in-out infinite; }
+  .card.fire  { animation: gauge-pulse-fire  2.4s ease-in-out infinite; }
   .card.frost .arc-temp-fill { animation: frost-arc 3.0s ease-in-out infinite; }
   .card.fire  .arc-temp-fill { animation: fire-arc  2.0s ease-in-out infinite; }
 
@@ -8564,26 +8640,26 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .card.comfort .state-label,
   .card.offline .state-label { display: none; }
-  .card.cold  .state-label { color: rgba(125,212,248,0.55); }
-  .card.frost .state-label { color: rgba(90,200,250,0.90); }
-  .card.warm  .state-label { color: rgba(255,159,10,0.90); }
-  .card.fire  .state-label { color: rgba(255,255,255,0.95); text-shadow: 0 0 12px rgba(255,120,0,0.92); }
+  .card.cold  .state-label { color: rgba(${RGB.INFO},0.75); }
+  .card.frost .state-label { color: rgba(${RGB.INFO},0.95); }
+  .card.warm  .state-label { color: rgba(${RGB.HEAT},0.90); }
+  .card.fire  .state-label { color: rgba(255,255,255,0.95); text-shadow: 0 0 12px rgba(${RGB.ERROR},0.90); }
 
   .mirage-overlay {
     display: none; position: absolute; left: -6%; right: -6%; top: 35%; height: 32px;
     pointer-events: none; z-index: 2; border-radius: 50%;
-    background: linear-gradient(transparent, rgba(255,140,40,0.13), transparent);
+    background: linear-gradient(transparent, rgba(${RGB.ERROR},0.12), transparent);
   }
   .card.fire .mirage-overlay { display: block; animation: mirage-drift 4.2s ease-in-out infinite; }
 
   .ice-glow-overlay {
     display: none; position: absolute; inset: 0; pointer-events: none; z-index: 1; border-radius: 19px;
-    background: radial-gradient(ellipse at 18% 12%, rgba(100,180,255,0.24) 0%, rgba(90,200,250,0.08) 40%, transparent 62%);
+    background: radial-gradient(ellipse at 18% 12%, rgba(${RGB.INFO},0.24) 0%, rgba(${RGB.INFO},0.08) 40%, transparent 62%);
   }
   .card.frost .ice-glow-overlay { display: block; animation: ice-crystal-glow 3.5s ease-in-out infinite; }
 
-  .card.frost .center-val { filter: drop-shadow(0 0 10px rgba(120,200,255,0.88)); }
-  .card.frost #g-temp     { filter: drop-shadow(0 0 5px  rgba(100,190,255,0.52)); }
+  .card.frost .center-val { filter: drop-shadow(0 0 10px rgba(${RGB.INFO},0.80)); }
+  .card.frost #g-temp     { filter: drop-shadow(0 0 5px  rgba(${RGB.INFO},0.50)); }
 
   /* ── room name HTML at bottom ── */
   .room-name {
@@ -8605,6 +8681,7 @@ class AhaTempGaugeCard extends HTMLElement {
     opacity: 0; pointer-events: none; transition: opacity .15s; backdrop-filter: blur(8px);
   }
   .bat:hover .bat-pct { opacity: 1; }
+  .bat.low .bat-pct  { opacity: 1; color: ${A.ERROR}; border-color: rgba(${RGB.ERROR},0.35); }
 
   /* ── gauge ── */
   .gauge-wrap {
@@ -8651,7 +8728,7 @@ class AhaTempGaugeCard extends HTMLElement {
   }
   .tt-label {
     font-size: 10px; font-weight: 500;
-    color: rgba(255,255,255,0.42); margin-bottom: 4px;
+    color: rgba(255,255,255,0.48); margin-bottom: 4px;
   }
   .tt-val {
     font-size: 22px; font-weight: 700;
@@ -8662,9 +8739,18 @@ class AhaTempGaugeCard extends HTMLElement {
     font-family: -apple-system,system-ui,sans-serif;
     font-size: 14px; font-weight: 500; fill: rgba(255,255,255,.38);
   }
+  /* wąska karta (<160px) — bez etykiet min/max */
+  .card.compact .range-text { display: none; }
+  .card.compact .gauge-wrap { padding-top: 10px; }
+
+  /* wilgotność — stały tekst pod temperaturą */
+  .hum-text {
+    font-family: -apple-system,system-ui,sans-serif;
+    font-weight: 500; transition: opacity .2s ease, fill .4s ease;
+  }
 </style>
 
-<div class="card ${st.key}">
+<div class="card ${st.key}${st.calm ? ' calm' : ''}${this._compact ? ' compact' : ''}">
   <div class="bg-glow"></div>
 
   <!-- frost crystals overlay -->
@@ -8692,8 +8778,8 @@ class AhaTempGaugeCard extends HTMLElement {
     <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>
         <radialGradient id="hr-${uid}" cx="50%" cy="100%" r="65%">
-          <stop offset="0%"   stop-color="rgba(255,90,0,.22)"/>
-          <stop offset="55%"  stop-color="rgba(200,40,0,.07)"/>
+          <stop offset="0%"   stop-color="rgba(${RGB.ERROR},.22)"/>
+          <stop offset="55%"  stop-color="rgba(${RGB.ERROR},.07)"/>
           <stop offset="100%" stop-color="transparent"/>
         </radialGradient>
       </defs>
@@ -8744,9 +8830,16 @@ class AhaTempGaugeCard extends HTMLElement {
 
       <!-- temperature value — wewnątrz wewnętrznego łuku, nad ikoną -->
       <text id="temp-hit" class="center-val"
-        x="${CX}" y="${isDeath ? CY + 55 : CY}"
+        x="${CX}" y="${isDeath ? CY + 50 : (hasHum ? CY - 4 : CY)}"
         text-anchor="middle" dominant-baseline="central"
-        ${isDeath ? `style="font-size:26px;font-weight:700;fill:rgba(255,85,25,0.95)"` : ''}>${tempStr}</text>
+        ${isDeath ? `style="font-size:26px;font-weight:700;fill:${A.ERROR}"` : ''}>${tempStr}</text>
+
+      <!-- wilgotność — stały tekst pod temperaturą (tylko gdy skonfigurowano encję) -->
+      ${hasHum ? `
+      <text class="hum-text" x="${CX}" y="${isDeath ? CY + 68 : CY + 22}" data-death="${isDeath ? 1 : 0}"
+        text-anchor="middle" dominant-baseline="central"
+        font-size="12" fill="${humTxtCol}">wilg. ${humStr}</text>
+      ` : ''}
 
       <!-- ══ TEMP ARC GROUP ══ -->
       <g id="g-temp" style="cursor:pointer">
@@ -8821,7 +8914,9 @@ class AhaTempGaugeCard extends HTMLElement {
 
 <!-- tooltips poza .card — nie są obcięte przez overflow:hidden, pozycjonowane względem :host -->
 ${_ttHtml('🌡️ Temperatura · ' + st.label, tempStr, st.tempColor, 'tt-temp')}
-${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum')}`;
+${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, hum !== null && hum >= 35 && hum <= 80 ? 'rgba(255,255,255,0.90)' : humCol, 'tt-hum')}`;
+
+    this._applyHumFont();
 
     /* click → more-info */
     this.shadowRoot.getElementById('g-temp')?.addEventListener('click', () => {
@@ -8852,10 +8947,12 @@ ${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum'
       const cv  = this.shadowRoot.getElementById('temp-hit');
       const sl  = this.shadowRoot.querySelector('.state-label');
       const rn  = this.shadowRoot.querySelector('.room-name');
+      const ht  = this.shadowRoot.querySelector('.hum-text');
 
       const enter = (showTT, dimArc) => {
         if (showTT)  showTT.style.opacity  = '1';
         if (cv)      cv.style.opacity      = '0';
+        if (ht)      ht.style.opacity      = '0';
         if (dimArc)  dimArc.style.opacity  = '0.18';
         if (sl)      sl.style.opacity      = '0.28';
         if (rn)      rn.style.opacity      = '0.28';
@@ -8864,6 +8961,7 @@ ${_ttHtml('💧 Wilgotność · ' + (humZone || '—'), humStr, humCol, 'tt-hum'
         if (ttT) ttT.style.opacity = '0';
         if (ttH) ttH.style.opacity = '0';
         if (cv)  cv.style.opacity  = '1';
+        if (ht)  ht.style.opacity  = '';
         if (gT)  gT.style.opacity  = '1';
         if (gH)  gH.style.opacity  = '1';
         if (sl)  sl.style.opacity  = '';
@@ -8931,14 +9029,11 @@ const STYLES = `
   @keyframes alarm-pulse {
     0%, 100% {
       background: #2c1410;
-      box-shadow: 0 0 0 0 rgba(255,69,58,0),
-                  0 2px 8px rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 0 rgba(226,75,74,0);
     }
     50% {
       background: #3a1610;
-      box-shadow: 0 0 0 5px rgba(255,69,58,0.28),
-                  0 0 22px rgba(255,69,58,0.5),
-                  0 2px 8px rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 6px rgba(226,75,74,0.22);
     }
   }
 
@@ -8998,11 +9093,11 @@ const STYLES = `
 
   /* ── STATE: alarm ── */
   .card.alarm {
-    border-color: rgba(255,69,58,0.3);
-    animation: alarm-pulse 1.5s ease-in-out infinite;
+    border-color: rgba(226,75,74,0.3);
+    animation: alarm-pulse 2.0s ease-in-out infinite;
   }
   .card.alarm .glow {
-    background: radial-gradient(ellipse at 30% 30%, rgba(255,69,58,0.18) 0%, transparent 68%);
+    background: radial-gradient(ellipse at 30% 30%, rgba(226,75,74,0.18) 0%, transparent 68%);
   }
 
   /* Glow overlay */
@@ -9063,21 +9158,21 @@ const STYLES = `
   }
   .closed  .icon-bg { background: rgba(142,142,147,0.12); }
   .open    .icon-bg { background: rgba(255,214,10,0.18); }
-  .alarm   .icon-bg { background: rgba(255,69,58,0.22); }
+  .alarm   .icon-bg { background: rgba(226,75,74,0.22); }
 
   .ring {
     position: absolute;
     width: 54px;
     height: 54px;
     border-radius: 16px;
-    border: 2px solid rgba(255,69,58,0.75);
+    border: 2px solid rgba(226,75,74,0.75);
     z-index: 1;
     pointer-events: none;
     display: none;
   }
   .alarm .ring {
     display: block;
-    animation: ring-pulse 1.5s ease-out infinite;
+    animation: ring-pulse 2.0s ease-out infinite;
   }
 
   ha-icon {
@@ -9087,7 +9182,7 @@ const STYLES = `
   .closed  ha-icon { color: #8e8e93; }
   .open    ha-icon { color: #ffd60a; }
   .alarm   ha-icon {
-    color: #ff453a;
+    color: #E24B4A;
     animation: icon-shake 0.8s ease-in-out infinite;
     transform-origin: top center;
   }
@@ -9129,11 +9224,11 @@ const STYLES = `
   .bat-tip {
     font-size: 10px; font-weight: 600;
     color: rgba(255,255,255,.80);
-    background: rgba(28,28,30,.92);
+    background: rgba(12,20,36,.95);
     border: .5px solid rgba(255,255,255,.15);
     border-radius: 6px; padding: 2px 6px;
     white-space: nowrap; opacity: 0; pointer-events: none;
-    transition: opacity .15s; backdrop-filter: blur(8px);
+    transition: opacity .15s;
   }
   .bat-wrap:hover .bat-tip { opacity: 1; }
   @media (max-width: 400px) { .bat-wrap { display: none; } }
@@ -9281,8 +9376,8 @@ class KontaktronCard extends HTMLElement {
     const pct     = parseFloat(s.state);
     if (pct >= 25) { this._batWrap.style.display = 'none'; return; }
     const low     = pct < 20;
-    const col     = low ? '#FF453A' : 'rgba(255,255,255,0.42)';
-    const fillCol = low ? '#FF453A' : 'rgba(255,255,255,0.50)';
+    const col     = low ? '#E24B4A' : 'rgba(255,255,255,0.42)';
+    const fillCol = low ? '#E24B4A' : 'rgba(255,255,255,0.50)';
     const fillW   = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
     this._batTip.textContent = Math.round(pct) + '%';
     this._batSvg.innerHTML = `
@@ -9648,13 +9743,13 @@ const KOS_STYLES = `
     display: flex; flex-direction: column; gap: 3px;
     padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 10px;
   }
-  .stat-label { font-size: 10px; color: rgba(255,255,255,0.35); }
+  .stat-label { font-size: 10px; color: rgba(255,255,255,0.48); }
   .stat-value { font-size: 14px; font-weight: 600; color: #F1EFE8; line-height: 1; }
 
   .bar-row   { display: flex; flex-direction: column; gap: 8px; }
   .bar-item  { display: flex; flex-direction: column; gap: 5px; }
   .bar-header{ display: flex; justify-content: space-between; align-items: center; }
-  .bar-label { font-size: 10px; color: rgba(255,255,255,0.35); }
+  .bar-label { font-size: 10px; color: rgba(255,255,255,0.48); }
   .bar-value { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.60); }
   .bar-track { height: 3px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
   .bar-fill  { height: 100%; border-radius: 99px; transition: width 1s ease; }
@@ -9962,8 +10057,8 @@ class KosiarkaCard extends HTMLElement {
                             background:${barGradFinal};transition:width 1s ease;"></div>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barLabel}</span>
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barRight}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barLabel}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barRight}</span>
               </div>
             </div>` : ''}
 
@@ -9974,7 +10069,7 @@ class KosiarkaCard extends HTMLElement {
                         gap:2px;min-width:52px;">
               <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
                            color:${batColor};">${rightVal}</span>
-              <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.48);white-space:nowrap;">${rightLabel}</span>
             </div>
             <button class="toggle-btn" title="Rozwiń">${kosSvgToggleExpand()}</button>
           </div>
@@ -10070,7 +10165,7 @@ class KosiarkaCard extends HTMLElement {
       sections.push(`
         <div class="section" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           ${hasBlade ? `<div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.4px;">Noże — przebieg</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:0.4px;">Noże — przebieg</span>
             ${bladeInfo}
           </div>` : '<div></div>'}
           <div style="display:flex;gap:8px;">${btns.join('')}</div>
@@ -10158,7 +10253,7 @@ class KosiarkaCard extends HTMLElement {
     }
 
     if (bars.length === 0)
-      return `<div style="font-size:11px;color:rgba(255,255,255,0.28);">Brak danych</div>`;
+      return `<div style="font-size:11px;color:rgba(255,255,255,0.48);">Brak danych</div>`;
 
     return `<div class="bar-row">${bars.map(b => `
       <div class="bar-item">
@@ -10207,7 +10302,7 @@ class KosiarkaCard extends HTMLElement {
     if (d.unavailable) {
       this.shadowRoot.innerHTML = `<style>${KOS_STYLES}</style>
         <div class="card slim" style="border:0.5px solid rgba(255,255,255,0.08);">
-          <div style="padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.30);">
+          <div style="padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.48);">
             Encja niedostępna: ${this._config.entity}
           </div>
         </div>`;
@@ -10362,7 +10457,7 @@ const POW_STYLES = `
     letter-spacing: -0.1px;
   }
   .active-label {
-    font-size: 11px; color: rgba(255,255,255,0.30);
+    font-size: 11px; color: rgba(255,255,255,0.48);
   }
 
   .total-watts {
@@ -10372,7 +10467,7 @@ const POW_STYLES = `
   }
   .total-unit { font-size: 14px; font-weight: 400; opacity: 0.65; }
 
-  .s-low  .total-watts { color: rgba(255,255,255,0.28); }
+  .s-low  .total-watts { color: rgba(255,255,255,0.48); }
   .s-mid  .total-watts { color: #FFD60A; }
   .s-high .total-watts { color: #FF9F0A; }
   .s-crit .total-watts { color: #FF453A; }
@@ -10407,7 +10502,7 @@ const POW_STYLES = `
     transition: color .3s ease;
   }
   .row.on  .row-name { color: rgba(255,255,255,0.88); }
-  .row.off .row-name { color: rgba(255,255,255,0.28); }
+  .row.off .row-name { color: rgba(255,255,255,0.48); }
 
   .row-bar-wrap {
     height: 3px; border-radius: 99px;
@@ -10427,11 +10522,11 @@ const POW_STYLES = `
     white-space: nowrap;
   }
   .row.on  .row-watts { color: rgba(255,255,255,0.75); }
-  .row.off .row-watts { color: rgba(255,255,255,0.20); }
+  .row.off .row-watts { color: rgba(255,255,255,0.48); }
 
   /* ── Unavailable ── */
-  .row.unavail .row-name  { color: rgba(255,255,255,0.18); font-style: italic; }
-  .row.unavail .row-watts { color: rgba(255,255,255,0.15); }
+  .row.unavail .row-name  { color: rgba(255,255,255,0.48); font-style: italic; }
+  .row.unavail .row-watts { color: rgba(255,255,255,0.48); }
 `;
 
 /* ── Helpers ── */
@@ -10637,7 +10732,7 @@ const SW_STYLES = `
 
   @keyframes sw-pulse {
     0%,100% { box-shadow: 0 0 0 0   rgba(255,214,10,0); }
-    50%     { box-shadow: 0 0 0 6px rgba(255,214,10,0.12); }
+    50%     { box-shadow: 0 0 0 5px rgba(255,214,10,0.18); }
   }
   .card {
     width: 100%; aspect-ratio: 1 / 1;
@@ -10668,18 +10763,20 @@ const SW_STYLES = `
   }
 
   .glow {
-    position: absolute; inset: 0;
+    position: absolute; inset: 0; border-radius: 19px;
     pointer-events: none; transition: background .4s ease;
   }
 
-  /* ── State text — under icon ── */
+  /* ── Etykieta stanu — jak w kontaktronie: absolutna u góry, nie przesuwa ikony ── */
   .state-text {
-    text-align: center; font-size: 10px; font-weight: 600;
-    padding-bottom: 2px; position: relative; z-index: 2; flex-shrink: 0;
-    transition: color .4s ease;
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    text-align: center; pointer-events: none;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    transition: color .4s ease, opacity .4s ease;
   }
-  .off .state-text { color: rgba(255,255,255,0.28); }
-  .on  .state-text { color: #FFD60A; }
+  .off .state-text { opacity: 0; }
+  .on  .state-text { opacity: 1; color: rgba(255,214,10,0.90); }
 
   /* ── Icon area — jak kontaktron ── */
   .icon-area {
@@ -10687,7 +10784,7 @@ const SW_STYLES = `
     position: relative; z-index: 2;
   }
   .icon-bg {
-    width: 42px; height: 42px; border-radius: 13px;
+    width: 42px; height: 42px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
     transition: background .4s ease;
   }
@@ -10768,12 +10865,12 @@ class AhaSwitchSocketCard extends HTMLElement {
     this._card.className = 'card off';
     this._card.innerHTML = `
       <div class="glow"></div>
+      <div class="state-text">wyłączone</div>
       <div class="icon-area">
         <div class="icon-bg">
           <div class="icon-inner"></div>
         </div>
       </div>
-      <div class="state-text">wyłączone</div>
       <div class="name">—</div>
     `;
 
@@ -10887,7 +10984,7 @@ const LH_STYLES = `
     background: rgba(255,255,255,0.04);
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.48);
     transition: background .2s ease, color .2s ease, border-color .2s ease;
   }
   .range-btn.active {
@@ -10917,7 +11014,7 @@ const LH_STYLES = `
     font-weight: 600;
     letter-spacing: .05em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.48);
     padding: 10px 0 8px;
     margin-left: -36px;
   }
@@ -10958,7 +11055,7 @@ const LH_STYLES = `
   }
   .entry-detail {
     font-size: 11px;
-    color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
     line-height: 1.3;
     white-space: normal;
@@ -10972,7 +11069,7 @@ const LH_STYLES = `
   }
   .entry-time {
     font-size: 10px;
-    color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.48);
     font-weight: 500;
     white-space: nowrap;
   }
@@ -10998,7 +11095,7 @@ const LH_STYLES = `
     text-align: center;
     padding: 28px 0;
     font-size: 12px;
-    color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.48);
   }
 
   /* ── Load more ── */
@@ -11012,7 +11109,7 @@ const LH_STYLES = `
     background: rgba(255,255,255,0.04);
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.48);
     text-align: center;
     transition: background .15s ease;
   }
@@ -12388,7 +12485,7 @@ const CARD_STYLES = `
   .dock-title {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -12461,7 +12558,7 @@ const CARD_STYLES = `
     padding-top: 8px;
     border-top: 1px solid rgba(255,255,255,0.05);
     font-size: 10px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
     text-align: center;
   }
 
@@ -12942,8 +13039,8 @@ class RoboVacuumCard extends HTMLElement {
                             background:${barGrad};transition:width 1s ease;"></div>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barLabel}</span>
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barPct.toFixed(0)}%</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barLabel}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barPct.toFixed(0)}%</span>
               </div>
             </div>
 
@@ -12955,7 +13052,7 @@ class RoboVacuumCard extends HTMLElement {
                         gap:2px;min-width:52px;">
               <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
                            color:${rightCol};">${rightVal}</span>
-              <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.48);white-space:nowrap;">${rightLabel}</span>
             </div>
             <button class="toggle-btn" title="Rozwiń">${svgToggleExpand()}</button>
           </div>
@@ -13502,7 +13599,7 @@ class RoboVacuumCard extends HTMLElement {
          <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0;
                       animation:vac-dot 1.8s ease-in-out infinite;"></span>
          <span style="font-size:10px;color:${col};font-weight:500;">${label}</span>
-         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.40);margin-left:2px;">${value}</span>` : ''}
+         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:2px;">${value}</span>` : ''}
        </div>`;
 
     // Row 1: quiet OK dots for all-ok items + problem chips
@@ -13867,7 +13964,7 @@ class RoboVacuumCard extends HTMLElement {
          <span style="width:5px;height:5px;border-radius:50%;background:${col};flex-shrink:0;
                       animation:vac-dot 1.8s ease-in-out infinite;"></span>
          <span style="font-size:10px;color:${col};font-weight:500;">${label}</span>
-         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.35);margin-left:2px;">${value}</span>` : ''}
+         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:2px;">${value}</span>` : ''}
        </div>`;
     };
 
@@ -13907,7 +14004,7 @@ class RoboVacuumCard extends HTMLElement {
       chips.push(`<div style="display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:7px;
                    background:rgba(239,159,39,0.08);border:1px solid rgba(239,159,39,0.15);">
          <span style="width:5px;height:5px;border-radius:50%;background:#EF9F27;flex-shrink:0;"></span>
-         <span style="font-size:10px;color:rgba(255,255,255,0.40);">Robot</span>
+         <span style="font-size:10px;color:rgba(255,255,255,0.48);">Robot</span>
          <span style="font-size:10px;color:#EF9F27;margin-left:auto;">${lbl}</span>
        </div>`);
     }
@@ -13982,7 +14079,7 @@ class RoboVacuumCard extends HTMLElement {
     if (totalArea  !== null) lifetimeParts.push(fmtArea(parseFloat(totalArea)));
     if (totalTime  !== null) lifetimeParts.push(fmtTime(totalTime));
     const lifetime = lifetimeParts.length
-      ? `<span style="font-size:10px;color:rgba(255,255,255,0.18);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
+      ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
       : '';
 
     return `<div class="consumables">${icons.join('')}${lifetime}</div>`;
@@ -14060,7 +14157,7 @@ class RoboVacuumCard extends HTMLElement {
     if (totalArea  !== null) lifetimeParts.push(fmtArea(parseFloat(totalArea)));
     if (totalTime  !== null) lifetimeParts.push(fmtTime(totalTime));
     const lifetime = lifetimeParts.length
-      ? `<span style="font-size:10px;color:rgba(255,255,255,0.18);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
+      ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
       : '';
 
     return `<div class="consumables">${icons.join('')}${lifetime}</div>`;
@@ -14443,7 +14540,7 @@ window.customCards.push({
         if (!isNaN(szVal)) {
           const pct = Math.round((szVal / szCap) * 100);
           if (pct >= szWarn) {
-            const color = pct >= 90 ? '#FF3B30' : '#FF9500';
+            const color = pct >= 90 ? '#E24B4A' : '#EF9F27';
             const left  = (szCap - szVal).toFixed(1);
             items.push({
               days: -1,  // not date-based — sort to front when critical, after urgent dates
@@ -14710,7 +14807,7 @@ window.customCards.push({
           ? `<img src="${p.img}" alt="${p.name}">`
           : `<span class="person-initial">${p.initial}</span>`;
         const batHtml = p.bat !== null
-          ? `<span class="person-bat" style="color:${p.bat < 20 ? '#FF6B6B' : 'rgba(255,255,255,0.25)'}">${p.bat}%</span>`
+          ? `<span class="person-bat" style="color:${p.bat < 20 ? '#E24B4A' : 'rgba(255,255,255,0.25)'}">${p.bat}%</span>`
           : '';
         return `<div class="person">
           <div class="person-avatar">
@@ -14847,7 +14944,7 @@ window.customCards.push({
       .card {
         position: relative;
         background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-        border-radius: 24px;
+        border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.08);
         overflow: hidden;
         padding: 18px 18px 16px;
@@ -14871,11 +14968,11 @@ window.customCards.push({
       }
       .date {
         font-size: 11px; font-weight: 500;
-        color: rgba(255,255,255,0.32); letter-spacing: .02em;
+        color: rgba(255,255,255,0.48); letter-spacing: .02em;
       }
       .time {
         font-size: 26px; font-weight: 200;
-        color: rgba(255,255,255,0.30); letter-spacing: -1px;
+        color: rgba(255,255,255,0.48); letter-spacing: -1px;
         padding-top: 2px;
       }
 
@@ -14897,7 +14994,7 @@ window.customCards.push({
       .wx-left { display: flex; align-items: center; gap: 10px; }
       .wx-text {}
       .wx-cond {
-        font-size: 11px; color: rgba(255,255,255,0.38);
+        font-size: 11px; color: rgba(255,255,255,0.48);
         margin-bottom: 2px; font-weight: 500;
       }
       .wx-temp {
@@ -14928,7 +15025,7 @@ window.customCards.push({
         to   { opacity: 1; }
       }
       .summary-wrap {
-        font-size: 11.5px; color: rgba(255,255,255,0.42);
+        font-size: 11.5px; color: rgba(255,255,255,0.48);
         background: rgba(255,255,255,0.045);
         border-radius: 11px; padding: 8px 11px;
         line-height: 1.5; letter-spacing: .01em;
@@ -14963,7 +15060,7 @@ window.customCards.push({
       /* Section label */
       .sect-label {
         font-size: 9px; font-weight: 700; letter-spacing: .10em;
-        color: rgba(255,255,255,0.20); text-transform: uppercase;
+        color: rgba(255,255,255,0.48); text-transform: uppercase;
         margin-bottom: 7px;
       }
 
@@ -14995,8 +15092,7 @@ window.customCards.push({
         border: 2px solid #0d1828;
       }
       .dot-home {
-        background: #30D158;
-        box-shadow: 0 0 6px rgba(48,209,88,0.60);
+        background: #97C459;
       }
       .dot-away { background: rgba(255,255,255,0.22); }
       .person-name {
@@ -15004,7 +15100,7 @@ window.customCards.push({
         text-align: center;
       }
       .person-status {
-        font-size: 10px; color: rgba(255,255,255,0.30);
+        font-size: 10px; color: rgba(255,255,255,0.48);
         text-align: center;
       }
       .person-bat { font-size: 9.5px; font-weight: 600; }
@@ -15013,7 +15109,6 @@ window.customCards.push({
         width: 10px; height: 10px; border-radius: 50%;
         border: 2px solid #0d1828;
         background: #ffd65a;
-        box-shadow: 0 0 6px rgba(255,214,90,0.70);
       }
 
       /* Reminders */
@@ -15036,7 +15131,7 @@ window.customCards.push({
         color: rgba(255,255,255,0.72);
       }
       .rem-sub {
-        font-size: 10px; color: rgba(255,255,255,0.32);
+        font-size: 10px; color: rgba(255,255,255,0.48);
       }
       .rem-when {
         font-size: 10.5px; font-weight: 700;
@@ -15056,11 +15151,11 @@ window.customCards.push({
       }
       .ai-box-label {
         font-size: 9px; font-weight: 700; letter-spacing: .10em;
-        color: rgba(255,255,255,0.22); text-transform: uppercase;
+        color: rgba(255,255,255,0.48); text-transform: uppercase;
       }
       .ai-refresh {
         background: none; border: none; cursor: pointer;
-        color: rgba(255,255,255,0.20); font-size: 13px;
+        color: rgba(255,255,255,0.48); font-size: 13px;
         padding: 0; line-height: 1;
         transition: color .2s;
       }
@@ -15072,11 +15167,11 @@ window.customCards.push({
         white-space: pre-wrap;
       }
       .ai-text.ai-loading {
-        color: rgba(255,255,255,0.22);
+        color: rgba(255,255,255,0.48);
         font-style: italic;
         animation: ai-blink 1.4s ease-in-out infinite;
       }
-      .ai-text.ai-error { color: #FF6B6B; font-size: 11px; }
+      .ai-text.ai-error { color: #E24B4A; font-size: 11px; }
       @keyframes ai-blink {
         0%, 100% { opacity: 1; }
         50%       { opacity: 0.4; }
@@ -15613,7 +15708,7 @@ window.customCards.push({
       :host { display: block; font-family: -apple-system, system-ui, sans-serif; }
       .card {
         background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-        border-radius: 22px;
+        border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.07);
         overflow: hidden;
       }
@@ -15625,7 +15720,7 @@ window.customCards.push({
       }
       .title {
         font-size: 11px; font-weight: 600;
-        color: rgba(255,255,255,0.35);
+        color: rgba(255,255,255,0.48);
         text-transform: uppercase; letter-spacing: .08em;
       }
       .navs { display: flex; gap: 5px; }
@@ -15658,7 +15753,7 @@ window.customCards.push({
       }
       .dh {
         font-size: 7.5px; font-weight: 600;
-        color: rgba(255,255,255,0.20);
+        color: rgba(255,255,255,0.48);
         text-align: center; padding-bottom: 4px;
         letter-spacing: .02em;
       }
@@ -15733,7 +15828,7 @@ window.customCards.push({
         border-top: 1px solid rgba(255,255,255,0.05);
       }
       .li { display: flex; align-items: center; gap: 4px; }
-      .li span { font-size: 9.5px; color: rgba(255,255,255,0.25); }
+      .li span { font-size: 9.5px; color: rgba(255,255,255,0.48); }
       /* Tooltip (light DOM, styled inline) */
       .tr { display: flex; align-items: center; gap: 6px; }
       .td { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
@@ -15955,7 +16050,8 @@ window.customCards.push({
     _render() {
       if (!this._hass) return;
 
-      const BG1 = '#0e1a2e', BG2 = '#091220';
+      // Jedna powierzchnia dla wszystkich kart — AHA.THEME.SURFACE
+      const SURFACE = (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
       const RAIN_COL = '#4da8ff', SNOW_COL = '#aee4f8';
 
       const { slots, wxNow } = this._slots();
@@ -15964,8 +16060,8 @@ window.customCards.push({
       if (slots.length === 0) {
         this.shadowRoot.innerHTML = `
           <style>:host{display:block}</style>
-          <div style="background:linear-gradient(145deg,${BG1},${BG2});border-radius:22px;padding:24px 20px;font-family:-apple-system,system-ui,sans-serif;">
-            <div style="font-size:13px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.7;">
+          <div style="background:${SURFACE};border-radius:20px;padding:24px 20px;font-family:-apple-system,system-ui,sans-serif;">
+            <div style="font-size:13px;color:rgba(255,255,255,0.48);text-align:center;line-height:1.7;">
               Brak prognozy.<br>Sprawdź ${this._config.forecast_entity}<br>w Developer Tools → States.
             </div>
           </div>`;
@@ -16084,11 +16180,11 @@ window.customCards.push({
         <div style="padding:4px 18px 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           ${hasRain ? `<div style="display:flex;align-items:center;gap:4px;">
             <div style="width:10px;height:10px;border-radius:2px;background:#4da8ff;opacity:.60;"></div>
-            <span style="font-size:10px;color:rgba(255,255,255,0.28);">deszcz (mm)</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.48);">deszcz (mm)</span>
           </div>` : ''}
           ${hasSnow ? `<div style="display:flex;align-items:center;gap:4px;">
             <div style="width:10px;height:10px;border-radius:2px;background:#aee4f8;opacity:.65;"></div>
-            <span style="font-size:10px;color:rgba(255,255,255,0.28);">śnieg (mm)</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.48);">śnieg (mm)</span>
           </div>` : ''}
         </div>` : '';
 
@@ -16096,8 +16192,8 @@ window.customCards.push({
         <style>
           :host { display: block; }
           .card {
-            background: linear-gradient(145deg, ${BG1} 0%, ${BG2} 100%);
-            border-radius: 22px;
+            background: ${SURFACE};
+            border-radius: 20px;
             overflow: hidden;
             position: relative;
             font-family: -apple-system, system-ui, sans-serif;
@@ -16129,14 +16225,14 @@ window.customCards.push({
           <div class="glow"></div>
           <div class="header">
             <div>
-              <div style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.28);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em;">Prognoza · 24h</div>
+              <div style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.48);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em;">Prognoza · 24h</div>
               <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.62);">${wxLabel}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:10px;color:rgba(255,255,255,0.26);margin-bottom:3px;">zakres</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-bottom:3px;">zakres</div>
               <div style="font-size:14px;font-weight:700;letter-spacing:-.3px;">
                 <span style="color:${tLoColor}">${tMin.toFixed(0)}°</span>
-                <span style="color:rgba(255,255,255,0.20);font-weight:400;margin:0 3px;">—</span>
+                <span style="color:rgba(255,255,255,0.48);font-weight:400;margin:0 3px;">—</span>
                 <span style="color:${tHiColor}">${tMax.toFixed(0)}°</span>
               </div>
             </div>
@@ -16562,8 +16658,8 @@ class AhaWeatherCard extends HTMLElement {
         const delta = next - temp;
         if (!isNaN(delta)) {
           if (Math.abs(delta)<0.4)  { trendStr='→ stała'; trendCol='rgba(255,255,255,0.25)'; }
-          else if (delta>0) { trendStr=`↑ +${delta.toFixed(1)}° za godz.`; trendCol=delta>3?'#FF9F0A':'#FFD060'; }
-          else              { trendStr=`↓ ${delta.toFixed(1)}° za godz.`; trendCol=delta<-3?'#5AC8FA':'#A0CCFF'; }
+          else if (delta>0) { trendStr=`↑ +${delta.toFixed(1)}° za godz.`; trendCol=delta>3?'#EF9F27':'#FFD060'; }
+          else              { trendStr=`↓ ${delta.toFixed(1)}° za godz.`; trendCol=delta<-3?'#85B7EB':'#A0CCFF'; }
         }
       }
     } catch(e){}
@@ -16730,7 +16826,7 @@ class AhaWeatherCard extends HTMLElement {
     if(type==='aurora')        return mk('✦ Zorza polarna', 'rgba(0,180,100,0.20)','rgba(0,230,140,0.30)','#00E890');
     if(type==='blizzard')      return mk('❄ Zamieć',       'rgba(80,130,220,0.20)','rgba(174,228,248,0.32)','#AEE4F8');
     if(type==='freezing-rain') return mk('🌧 Szadź',        'rgba(50,110,200,0.20)','rgba(100,190,255,0.30)','#78BCFF');
-    if(type==='extreme-heat')  return mk('🔥 Ekstr. upał', 'rgba(255,20,10,0.24)','rgba(255,59,48,0.38)','#FF3B30');
+    if(type==='extreme-heat')  return mk('🔥 Ekstr. upał', 'rgba(226,75,74,0.24)','rgba(226,75,74,0.38)','#E24B4A');
     if(type==='dawn-clear'||type==='astro-dawn') return mk('🌅 Świt','rgba(200,90,30,0.22)','rgba(255,140,60,0.38)','#FFA040');
     if(type==='morning-clear') return mk('🌤 Ranek','rgba(245,166,35,0.15)','rgba(245,200,60,0.25)','#F5C042');
     if(['golden-clear','cloud-golden','rain-golden','storm-golden'].includes(type))
@@ -16740,13 +16836,13 @@ class AhaWeatherCard extends HTMLElement {
     if(['storm','storm-dawn','storm-golden','storm-night'].includes(type))
       return mk('⚡ Burza','rgba(255,200,0,0.16)','rgba(255,208,96,0.28)','#FFD060');
     if(type==='hail') return mk('🌨 Grad','rgba(90,130,200,0.18)','rgba(168,216,240,0.28)','#A8D8F0');
-    if(temp!==null&&temp>=40) return mk('🔥 Ekstr. upał','rgba(255,30,10,0.22)','rgba(255,59,48,0.32)','#FF3B30');
+    if(temp!==null&&temp>=40) return mk('🔥 Ekstr. upał','rgba(226,75,74,0.22)','rgba(226,75,74,0.32)','#E24B4A');
     if(temp!==null&&temp>=35) return mk('🔥 Silny upał','rgba(255,60,20,0.18)','rgba(255,104,32,0.28)','#FF6820');
-    if(temp!==null&&temp>=30) return mk('🌡 Upał','rgba(255,100,20,0.16)','rgba(255,159,10,0.26)','#FF9F0A');
+    if(temp!==null&&temp>=30) return mk('🌡 Upał','rgba(239,159,39,0.16)','rgba(239,159,39,0.26)','#EF9F27');
     if(['rain','rain-dawn','rain-golden','rain-dusk','rain-night'].includes(type)){
-      if(rainClass==='violent') return mk('🌧 Ulewa','rgba(30,90,200,0.22)','rgba(90,200,250,0.30)','#5AC8FA');
-      if(rainClass==='heavy')   return mk('🌧 Silny deszcz','rgba(30,90,200,0.18)','rgba(90,200,250,0.25)','#5AC8FA');
-      if(rainClass==='moderate')return mk('🌧 Deszcz','rgba(30,90,200,0.15)','rgba(90,200,250,0.22)','#5AC8FA');
+      if(rainClass==='violent') return mk('🌧 Ulewa','rgba(133,183,235,0.20)','rgba(133,183,235,0.30)','#85B7EB');
+      if(rainClass==='heavy')   return mk('🌧 Silny deszcz','rgba(133,183,235,0.16)','rgba(133,183,235,0.25)','#85B7EB');
+      if(rainClass==='moderate')return mk('🌧 Deszcz','rgba(133,183,235,0.13)','rgba(133,183,235,0.22)','#85B7EB');
       if(rainClass==='light')   return mk('🌦 Lekki deszcz','rgba(30,90,200,0.12)','rgba(120,170,210,0.22)','#7BAED4');
       return mk('🌦 Mżawka','rgba(30,90,200,0.09)','rgba(120,170,210,0.18)','#7BAED4');
     }
@@ -16756,14 +16852,14 @@ class AhaWeatherCard extends HTMLElement {
       return mk('❄ Mróz / śnieg','rgba(90,150,255,0.13)','rgba(174,228,248,0.22)','#AEE4F8');
     }
     if(['fog','fog-night'].includes(type)) return mk('🌫 Mgła','rgba(130,150,200,0.18)','rgba(136,153,187,0.28)','#8899BB');
-    if(gustNum>=75) return mk('🌪 Huragan','rgba(80,140,220,0.22)','rgba(90,200,250,0.30)','#5AC8FA');
+    if(gustNum>=75) return mk('🌪 Huragan','rgba(133,183,235,0.20)','rgba(133,183,235,0.30)','#85B7EB');
     if(gustNum>=60||['windy','windy-night'].includes(type)) return mk('💨 Wichura','rgba(80,140,220,0.16)','rgba(120,170,210,0.26)','#7BAED4');
     if(gustNum>=40) return mk('💨 Silny wiatr','rgba(80,140,220,0.13)','rgba(120,170,210,0.22)','#7BAED4');
-    if(uvNum>=11) return mk('☀ UV ekstr.','rgba(180,30,30,0.22)','rgba(255,59,48,0.30)','#FF3B30');
+    if(uvNum>=11) return mk('☀ UV ekstr.','rgba(226,75,74,0.22)','rgba(226,75,74,0.30)','#E24B4A');
     if(uvNum>=8)  return mk('☀ UV b. wysokie','rgba(255,60,40,0.16)','rgba(255,104,32,0.26)','#FF6820');
-    if(uvNum>=6)  return mk('☀ UV wysokie','rgba(255,140,20,0.14)','rgba(255,159,10,0.22)','#FF9F0A');
+    if(uvNum>=6)  return mk('☀ UV wysokie','rgba(239,159,39,0.14)','rgba(239,159,39,0.22)','#EF9F27');
     if(isNight) return getMoonPill();
-    if(temp!==null&&temp<=0) return mk('🌨 Poniżej zera','rgba(90,150,255,0.13)','rgba(90,200,250,0.22)','#5AC8FA');
+    if(temp!==null&&temp<=0) return mk('🌨 Poniżej zera','rgba(133,183,235,0.13)','rgba(133,183,235,0.22)','#85B7EB');
     if(temp!==null&&temp<=5) return mk('🌡 Zimno','rgba(90,150,255,0.11)','rgba(120,170,210,0.20)','#7BAED4');
     if(['sun','morning-clear'].includes(type)) return mk('☀ Słonecznie','rgba(245,166,35,0.13)','rgba(245,166,35,0.22)','#F5A623');
     return mk('☁ Pochmurno','rgba(110,130,165,0.15)','rgba(130,150,187,0.22)','#8899BB');
@@ -16861,7 +16957,7 @@ class AhaWeatherCard extends HTMLElement {
 
     // ── stars (night clear / aurora) ──────────────────────────────────────────
     if (['night-clear','astro-dusk-clear','aurora'].includes(type)) {
-      const sHTML=['<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:1;">'];
+      const sHTML=['<div style="position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;z-index:1;">'];
       [[type==='aurora'?15:12,'#A0B8D8',0.5,1,0.18,0.25,5,4],
        [type==='aurora'?18:15,'#C8D8F0',0.8,1.4,0.28,0.35,3.5,3.5],
        [type==='aurora'?10:8,'#E8F0FF',1.2,1.8,0.45,0.45,2.5,3]].forEach(([cnt,col,sMin,sRange,opMin,opRange,spdMin,spdRange])=>{
@@ -16891,7 +16987,7 @@ class AhaWeatherCard extends HTMLElement {
 
     // ── aurora effect ─────────────────────────────────────────────────────────
     if (type==='aurora') {
-      auroraFx = `<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:2;">
+      auroraFx = `<div style="position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;z-index:2;">
         ${[['rgba(0,200,100,0.28)','-20%','18%','130%','22px','5px','5s','0s'],
            ['rgba(0,160,200,0.20)','10%','28%','120%','18px','7px','6.5s','1.2s'],
            ['rgba(120,0,220,0.16)','40%','38%','90%','14px','9px','8s','0.6s'],
@@ -17015,12 +17111,12 @@ class AhaWeatherCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.75);text-transform:uppercase;letter-spacing:.06em;text-decoration:line-through;">${f.name}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.30);margin-top:1px;">Wykonano</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;">Wykonano</div>
           </div>
           <button class="fertil-undo-btn" data-fertil-date="${f.date}"
             style="background:none;border:1px solid rgba(255,255,255,.18);border-radius:8px;
             padding:3px 8px;cursor:pointer;font-size:9px;font-weight:600;
-            color:rgba(255,255,255,.35);font-family:-apple-system,system-ui,sans-serif;
+            color:rgba(255,255,255,0.48);font-family:-apple-system,system-ui,sans-serif;
             flex-shrink:0;white-space:nowrap;">cofnij</button>
         </div>
       </div>`;
@@ -17068,7 +17164,7 @@ class AhaWeatherCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:11px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">🌱 Jutro: ${f.name}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.40);margin-top:1px;">${f.description||''}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse-slow" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
           ${doneBtn}
@@ -17083,7 +17179,7 @@ class AhaWeatherCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">🌱 ${f.name} za ${days} dni</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse-slow" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.14);border:1px solid rgba(${acR},${acG},${acB},.35);">${pillText}</div>
           ${doneBtn}
@@ -17097,7 +17193,7 @@ class AhaWeatherCard extends HTMLElement {
         </div>
         <div class="banner-text">
           <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">🌱 ${f.name}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
         </div>
         <div class="banner-pill" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.25);">${pillText}</div>
         ${doneBtn}
@@ -17144,7 +17240,7 @@ class AhaWeatherCard extends HTMLElement {
     if (type.startsWith('storm')) {
       const lightCol=type==='storm-night'?'rgba(180,200,255,0.95)':'rgba(255,245,200,0.92)';
       const interval=type==='storm-night'?'10s':'12s';
-      lightning=`<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:4;">
+      lightning=`<div style="position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;z-index:4;">
         <div style="position:absolute;top:10%;left:30%;width:180px;height:80px;border-radius:50%;
           background:radial-gradient(circle,${lightCol.replace('0.95','0.20').replace('0.92','0.18')} 0%,transparent 70%);
           filter:blur(20px);animation:wc-charge ${interval} infinite;"></div>
@@ -17169,7 +17265,7 @@ class AhaWeatherCard extends HTMLElement {
         animation:wc-mirage-drift 4.5s ease-in-out infinite;"></div>`;
     }
     if (type==='blizzard') {
-      iceCornerGlow=`<div style="position:absolute;inset:0;pointer-events:none;z-index:1;border-radius:24px;
+      iceCornerGlow=`<div style="position:absolute;inset:0;pointer-events:none;z-index:1;border-radius:20px;
         background:radial-gradient(ellipse at 20% 10%,rgba(120,190,255,0.20) 0%,rgba(90,200,250,0.06) 40%,transparent 62%);
         animation:wc-ice-glow 3.0s ease-in-out infinite;"></div>`;
     }
@@ -17294,39 +17390,39 @@ class AhaWeatherCard extends HTMLElement {
       @keyframes breathe          {0%,100%{opacity:1}50%{opacity:.75}}
       @keyframes breathe-slow     {0%,100%{opacity:1}50%{opacity:.80}}
       @keyframes ring-pulse       {0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.3);opacity:0}}
-      @keyframes wc-fire-border   {0%,100%{box-shadow:0 0 0 0 rgba(255,80,0,0);}50%{box-shadow:0 0 0 6px rgba(255,80,0,0.24),0 0 28px rgba(255,60,0,0.18);}}
-      @keyframes wc-bliz-border   {0%,100%{box-shadow:0 0 0 0 rgba(174,228,248,0);}50%{box-shadow:0 0 0 5px rgba(174,228,248,0.22),0 0 22px rgba(100,180,255,0.14);}}
+      @keyframes wc-fire-border   {0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,0);}50%{box-shadow:0 0 0 6px rgba(226,75,74,0.22);}}
+      @keyframes wc-bliz-border   {0%,100%{box-shadow:0 0 0 0 rgba(174,228,248,0);}50%{box-shadow:0 0 0 5px rgba(174,228,248,0.18);}}
       @keyframes wc-storm-border  {0%,93%{box-shadow:none;}94%{box-shadow:0 0 0 3px rgba(255,215,50,0.28);}95%{box-shadow:none;}96%{box-shadow:0 0 0 3px rgba(255,215,50,0.16);}97%,100%{box-shadow:none;}}
-      @keyframes wc-aurora-border {0%,100%{box-shadow:0 0 0 0 rgba(0,200,100,0);}50%{box-shadow:0 0 0 4px rgba(0,200,100,0.16),0 0 22px rgba(120,0,220,0.12);}}
-      @keyframes wc-frz-border    {0%,100%{box-shadow:0 0 0 0 rgba(100,200,255,0);}50%{box-shadow:0 0 0 4px rgba(100,200,255,0.18);}}
+      @keyframes wc-aurora-border {0%,100%{box-shadow:0 0 0 0 rgba(0,200,100,0);}50%{box-shadow:0 0 0 5px rgba(0,200,100,0.18);}}
+      @keyframes wc-frz-border    {0%,100%{box-shadow:0 0 0 0 rgba(100,200,255,0);}50%{box-shadow:0 0 0 5px rgba(100,200,255,0.18);}}
       @keyframes wc-heat-hue      {0%,100%{filter:hue-rotate(0deg);}50%{filter:hue-rotate(6deg);}}
       @keyframes wc-mirage-drift  {0%,100%{opacity:0;transform:scaleX(0.85);}45%{opacity:1;transform:scaleX(1.08);}90%{opacity:0;transform:scaleX(1.0);}}
       @keyframes wc-ice-glow      {0%,100%{opacity:.07;}50%{opacity:.19;}}
 
       .card {
         background: ${bg};
-        border-radius: 24px;
+        border-radius: 20px;
         padding: 18px 18px 16px;
         position: relative;
         overflow: hidden;
         min-height: 190px;
         display: flex;
         flex-direction: column;
-        ${hasFertilToday ? 'border:1.5px solid rgba(80,200,90,.40);' : ''}
+        ${hasFertilToday ? 'border:1.5px solid rgba(151,196,89,.40);' : ''}
         ${type==='extreme-heat'  ? 'animation:wc-fire-border 2.2s ease-in-out infinite,wc-heat-hue 3.5s ease-in-out infinite;' : ''}
         ${type==='blizzard'      ? 'animation:wc-bliz-border 3.5s ease-in-out infinite;' : ''}
         ${type==='storm-night'   ? 'animation:wc-storm-border 10s ease-out infinite;' : ''}
-        ${type==='aurora'        ? 'animation:wc-aurora-border 5.0s ease-in-out infinite;' : ''}
-        ${type==='freezing-rain' ? 'animation:wc-frz-border 4.0s ease-in-out infinite;' : ''}
+        ${type==='aurora'        ? 'animation:wc-aurora-border 3.5s ease-in-out infinite;' : ''}
+        ${type==='freezing-rain' ? 'animation:wc-frz-border 3.5s ease-in-out infinite;' : ''}
       }
       .content { position:relative; z-index:10; display:flex; flex-direction:column; flex:1; }
       .header  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
-      .station { font-size:11px; font-weight:600; color:rgba(255,255,255,.28); letter-spacing:.02em; }
+      .station { font-size:11px; font-weight:600; color:rgba(255,255,255,0.48); letter-spacing:.02em; }
       .header-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
       .pill { display:inline-flex; align-items:center; padding:3px 9px 3px 8px;
               border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.02em;
               white-space:nowrap; line-height:1.4; }
-      .time-label { font-size:10px; font-weight:500; color:rgba(255,255,255,.20); }
+      .time-label { font-size:10px; font-weight:500; color:rgba(255,255,255,0.48); }
 
       .middle { flex:1; display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:14px; }
       .temp-block { display:flex; flex-direction:column; justify-content:center; gap:0; }
@@ -17334,28 +17430,28 @@ class AhaWeatherCard extends HTMLElement {
         ${type==='extreme-heat'  ? 'text-shadow:0 0 30px rgba(255,120,0,0.80);' : ''}
         ${type==='blizzard'||type==='freezing-rain' ? 'filter:drop-shadow(0 0 12px rgba(150,220,255,0.80));' : ''}
         ${type==='storm-night'   ? 'text-shadow:0 0 18px rgba(160,200,255,0.60);' : ''} }
-      .feels-row  { font-size:12px; font-weight:500; color:rgba(255,255,255,.30); margin-top:6px; letter-spacing:.01em; }
+      .feels-row  { font-size:12px; font-weight:500; color:rgba(255,255,255,0.48); margin-top:6px; letter-spacing:.01em; }
       .trend-row  { font-size:11px; font-weight:600; color:${trendCol}; margin-top:3px; letter-spacing:.01em; }
       .icon-wrap  { width:52px; height:52px; display:flex; align-items:center; justify-content:center; opacity:.88; margin-top:2px; }
 
       .footer { display:flex; align-items:center; justify-content:center;
                 padding-top:8px; border-top:1px solid rgba(255,255,255,0.07); flex-wrap:wrap; gap:2px; }
-      .stat-chip { font-size:11px; font-weight:500; color:rgba(255,255,255,.38); white-space:nowrap; }
-      .stat-sep  { color:rgba(255,255,255,.13); font-size:10px; margin:0 5px; }
+      .stat-chip { font-size:11px; font-weight:500; color:rgba(255,255,255,0.48); white-space:nowrap; }
+      .stat-sep  { color:rgba(255,255,255,0.48); font-size:10px; margin:0 5px; }
 
       .bat-warn { position:absolute; bottom:10px; right:14px; font-size:10px;
-                  font-weight:600; color:#FF9F0A; z-index:10; letter-spacing:.01em; }
+                  font-weight:600; color:#EF9F27; z-index:10; letter-spacing:.01em; }
 
       /* ── banners ────────────────────────────────────────────────────────── */
       .banner {
         margin-left:-18px; margin-right:-18px; margin-bottom:-16px;
-        border-radius:0 0 24px 24px; position:relative; overflow:hidden;
+        border-radius:0 0 20px 20px; position:relative; overflow:hidden;
       }
       .banner.today    { padding:12px 18px 16px; margin-top:10px; }
       .banner.tomorrow { padding:11px 18px 14px; margin-top:10px; }
       .banner.urgent   { padding:10px 18px 13px; margin-top:10px; }
       .banner.normal   { padding:10px 18px 12px; margin-top:11px; border-top:1px solid rgba(255,255,255,.07); }
-      .banner-bg     { position:absolute; inset:0; animation:breathe 1.2s ease-in-out infinite; }
+      .banner-bg     { position:absolute; inset:0; animation:breathe 2.0s ease-in-out infinite; }
       .banner-inner  { position:relative; z-index:1; display:flex; align-items:center; gap:10px; }
       .banner-text   { flex:1; min-width:0; }
       .banner-icon   { width:34px; height:34px; border-radius:50%; flex-shrink:0;
@@ -17364,9 +17460,9 @@ class AhaWeatherCard extends HTMLElement {
       .banner-pill   { font-size:12px; font-weight:600; padding:4px 10px;
                        border-radius:10px; white-space:nowrap; flex-shrink:0; }
       .icon-ring     { position:absolute; inset:-4px; border-radius:50%; border:2px solid;
-                       animation:ring-pulse 1.2s ease-in-out infinite; }
-      .pulse         { animation:breathe 1.2s ease-in-out infinite; }
-      .pulse-slow    { animation:breathe-slow 1.8s ease-in-out infinite; }
+                       animation:ring-pulse 2.0s ease-in-out infinite; }
+      .pulse         { animation:breathe 2.0s ease-in-out infinite; }
+      .pulse-slow    { animation:breathe-slow 2.5s ease-in-out infinite; }
     `;
 
     this.shadowRoot.innerHTML = `
@@ -17473,11 +17569,15 @@ if (!customElements.get('weather-card')) {
  *   name:   "override"  (optional)
  *   icon:   "mdi:xxx"   (optional)
  *
- * Config (wiele kafelków w gridzie 2 kolumny):
+ * Config (wiele kafelków w gridzie, domyślnie 2 kolumny):
+ *   columns: 2          (optional, liczba kolumn siatki)
  *   entities:
  *     - entity: input_boolean.xxx
  *       color: "#34C759"
  *     - entity: input_boolean.yyy
+ *
+ * Stany wizualne: .on (akcent), wyłączony (stonowany, czytelny),
+ * .partial (część status_entities włączona), .unavail (unavailable/unknown).
  */
 
 const IB_STYLES = `
@@ -17486,9 +17586,24 @@ const IB_STYLES = `
 
   .ib-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(var(--ib-cols, 2), 1fr);
     gap: 8px;
   }
+  /* Nieparzysta liczba kafelków (2 kolumny): ostatni na cały rząd, układ poziomy */
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 12px 14px;
+  }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-top { display: contents; }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-icon { order: 0; }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-bottom {
+    order: 1; flex: 1; min-width: 0; margin-top: 0; padding-top: 0;
+  }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-toggle { order: 2; }
 
   .ib-tile {
     background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
@@ -17502,13 +17617,17 @@ const IB_STYLES = `
     font-family: -apple-system, system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    transition: transform 0.15s ease, border-color 0.35s ease, background 0.35s ease;
+    transition: transform 0.15s ease, border-color 0.4s ease, background 0.4s ease, opacity 0.4s ease;
   }
   .ib-tile:active { transform: scale(0.96); }
   .ib-tile.on {
     border-color: var(--c-border);
     background: var(--c-bg);
   }
+  .ib-tile.partial { border-color: var(--c-border-partial); }
+  .ib-tile.unavail { opacity: 0.4; cursor: default; }
+  .ib-tile.unavail:active { transform: none; }
+  .ib-tile.unavail .ib-toggle { pointer-events: none; cursor: default; }
 
   /* ── Górny rząd: ikona + toggle ── */
   .ib-top {
@@ -17532,10 +17651,11 @@ const IB_STYLES = `
 
   ha-icon {
     --mdc-icon-size: 19px;
-    color: rgba(255,255,255,0.28);
-    transition: color 0.35s ease;
+    color: rgba(255,255,255,0.45);
+    transition: color 0.4s ease;
   }
   .ib-tile.on ha-icon { color: var(--c); }
+  .ib-tile.partial ha-icon { color: var(--c-partial); }
 
   /* ── iOS pill toggle ── */
   .ib-toggle {
@@ -17550,7 +17670,7 @@ const IB_STYLES = `
     flex-shrink: 0;
     transition: background 0.25s ease, box-shadow 0.25s ease;
   }
-  .ib-tile.on .ib-toggle {
+  .ib-tile.sw-on .ib-toggle {
     background: #34C759;
     box-shadow: 0 0 10px rgba(52,199,89,0.40);
   }
@@ -17565,7 +17685,7 @@ const IB_STYLES = `
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     transition: transform 0.25s ease, background 0.25s ease;
   }
-  .ib-tile.on .ib-dot {
+  .ib-tile.sw-on .ib-dot {
     transform: translateX(18px);
     background: #fff;
   }
@@ -17576,7 +17696,7 @@ const IB_STYLES = `
   .ib-name {
     font-size: 13px;
     font-weight: 700;
-    color: rgba(255,255,255,0.38);
+    color: rgba(255,255,255,0.78);
     line-height: 1.25;
     word-break: break-word;
     transition: color 0.35s ease;
@@ -17585,11 +17705,19 @@ const IB_STYLES = `
   .ib-status {
     font-size: 11px;
     font-weight: 400;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255,255,255,0.50);
     margin-top: 3px;
-    transition: color 0.3s ease;
+    transition: color 0.4s ease;
   }
   .ib-tile.on .ib-status { color: var(--c-status); }
+  .ib-tile.partial .ib-status {
+    color: var(--c-partial);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ib-tile.partial .ib-status::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--c-partial); flex-shrink: 0;
+  }
 
   /* ── Overlay potwierdzenia (otwarte czujniki) ── */
   @keyframes ib-fade-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
@@ -17671,10 +17799,19 @@ class AhaInputBooleanCard extends HTMLElement {
       const s = hass.states[item.entity];
       return s && s.state !== this._prevStates[item.entity];
     });
-    if (changed || !this.shadowRoot.querySelector('.ib-tile')) {
+    // Zmiana status_entities też odświeża kafelek (stan częściowy)
+    const subChanged = this._items.some(item => (item.status_entities || []).some(id => {
+      const s = hass.states[id];
+      return s && s.state !== this._prevStates[id];
+    }));
+    if (changed || subChanged || !this.shadowRoot.querySelector('.ib-tile')) {
       this._items.forEach(item => {
         const s = hass.states[item.entity];
         if (s) this._prevStates[item.entity] = s.state;
+        (item.status_entities || []).forEach(id => {
+          const ss = hass.states[id];
+          if (ss) this._prevStates[id] = ss.state;
+        });
       });
       this._render();
     }
@@ -17694,30 +17831,43 @@ class AhaInputBooleanCard extends HTMLElement {
     if (!stateObj) return null;
 
     const isOn = stateObj.state === 'on';
+    const isUnavail = stateObj.state === 'unavailable' || stateObj.state === 'unknown';
     const name = item.name || stateObj.attributes.friendly_name || item.entity;
     const icon = item.icon || stateObj.attributes.icon || 'mdi:toggle-switch';
     const color = item.color || this._config.color || '#30B0FF';
     const [r, g, b] = this._hexToRgb(color);
 
+    // status_entities: ile podurządzeń faktycznie jest włączonych
+    let statusText = isOn ? 'Włączony' : 'Wyłączony';
+    let isPartial = false;
+    const subEntities = item.status_entities || [];
+    if (!isUnavail && subEntities.length > 0) {
+      const activeCount = subEntities.filter(id => this._hass.states[id]?.state === 'on').length;
+      if (isOn || activeCount > 0) {
+        statusText = `${activeCount} z ${subEntities.length} włączone`;
+      }
+      isPartial = activeCount > 0 && activeCount < subEntities.length;
+    }
+    if (isUnavail) statusText = 'niedostępny';
+
+    const cls = ['ib-tile'];
+    if (isUnavail) cls.push('unavail');
+    else if (isPartial) cls.push('partial');
+    else if (isOn) cls.push('on');
+    // Pozycja przełącznika zawsze odzwierciedla faktyczny stan encji (także w .partial)
+    if (isOn && !isUnavail) cls.push('sw-on');
+
     const tile = document.createElement('div');
-    tile.className = `ib-tile${isOn ? ' on' : ''}`;
+    tile.className = cls.join(' ');
     tile.style.cssText = `
       --c: rgb(${r},${g},${b});
       --c-border: rgba(${r},${g},${b},0.30);
       --c-bg: rgba(${r},${g},${b},0.07);
       --c-icon-bg: rgba(${r},${g},${b},0.22);
       --c-status: rgba(${r},${g},${b},0.85);
+      --c-partial: rgba(${r},${g},${b},0.75);
+      --c-border-partial: rgba(${r},${g},${b},0.22);
     `;
-
-    // status_entities: count how many sub-devices are actually on
-    let statusText = isOn ? 'Włączony' : 'Wyłączony';
-    const subEntities = item.status_entities || [];
-    if (subEntities.length > 0) {
-      const activeCount = subEntities.filter(id => this._hass.states[id]?.state === 'on').length;
-      if (isOn || activeCount > 0) {
-        statusText = `${activeCount}/${subEntities.length} aktywne`;
-      }
-    }
 
     tile.innerHTML = `
       <div class="ib-top">
@@ -17733,6 +17883,9 @@ class AhaInputBooleanCard extends HTMLElement {
         <div class="ib-status">${statusText}</div>
       </div>
     `;
+
+    // Niedostępny: brak akcji toggle
+    if (isUnavail) return tile;
 
     tile.querySelector('.ib-toggle').addEventListener('click', e => {
       e.stopPropagation();
@@ -17754,7 +17907,9 @@ class AhaInputBooleanCard extends HTMLElement {
       if (tile) this.shadowRoot.appendChild(tile);
     } else {
       const grid = document.createElement('div');
-      grid.className = 'ib-grid';
+      const cols = Math.max(1, parseInt(this._config.columns, 10) || 2);
+      grid.className = `ib-grid cols-${cols}`;
+      grid.style.setProperty('--ib-cols', cols);
       this._items.forEach(item => {
         const tile = this._buildTile(item);
         if (tile) grid.appendChild(tile);
@@ -17834,7 +17989,8 @@ class AhaInputBooleanCard extends HTMLElement {
   }
 
   getCardSize() {
-    const rows = Math.ceil((this._items ? this._items.length : 1) / 2);
+    const cols = Math.max(1, parseInt(this._config.columns, 10) || 2);
+    const rows = Math.ceil((this._items ? this._items.length : 1) / cols);
     return rows * 2;
   }
 
@@ -18078,7 +18234,7 @@ const AC_STYLES = `
   }
   .progress-labels span {
     font-size: 10px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
   }
 
   /* ── Right column ── */
@@ -18099,7 +18255,7 @@ const AC_STYLES = `
   }
   .temp-label {
     font-size: 10px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
   }
 `;
 
@@ -18556,7 +18712,7 @@ class AhaMoonCard extends HTMLElement {
         :host { display: block; }
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 26px;
+          border-radius: 20px;
           padding: 16px 14px 14px;
           position: relative;
           overflow: hidden;
@@ -18578,14 +18734,14 @@ class AhaMoonCard extends HTMLElement {
 
         <div class="row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.45);">Księżyc</span>
-          <span style="font-size:11px;color:rgba(255,255,255,.2);">${illum}% lit</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.48);">${illum}% lit</span>
         </div>
 
         <div class="moon-wrap">${moon}</div>
 
         <div class="row" style="text-align:center;margin-top:6px;">
           <div style="font-size:14px;font-weight:700;color:#DCE8FF;letter-spacing:-.3px;margin-bottom:1px;">${namePL}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.28);margin-bottom:10px;">${nextVal} d ${nextLbl}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-bottom:10px;">${nextVal} d ${nextLbl}</div>
           ${this._progressBar(pct)}
         </div>
       </div>`;
@@ -18604,9 +18760,9 @@ class AhaMoonCard extends HTMLElement {
       [nextVal + ' d', nextLblCap],
     ];
     const statsHTML = stats.map(([v, l]) =>
-      `<div style="flex:1;background:rgba(255,255,255,.06);border-radius:13px;padding:11px 6px;text-align:center;">
+      `<div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:11px 6px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:#B0C8F0;letter-spacing:-.3px;">${v}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">${l}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">${l}</div>
       </div>`).join('');
 
     const STRIP = [
@@ -18630,7 +18786,7 @@ class AhaMoonCard extends HTMLElement {
         :host { display: block; }
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 26px;
+          border-radius: 20px;
           padding: 22px 18px 18px;
           position: relative;
           overflow: hidden;
@@ -18645,18 +18801,18 @@ class AhaMoonCard extends HTMLElement {
         <div class="stars">${stars}</div>
 
         <div class="z1" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-          <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.38);">Faza Księżyca</span>
-          <span style="font-size:12px;color:rgba(255,255,255,.22);">${dateStr}</span>
+          <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.48);">Faza Księżyca</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.48);">${dateStr}</span>
         </div>
 
         <div class="z1" style="display:flex;justify-content:center;align-items:center;margin:6px 0 14px;">${moon}</div>
 
         <div class="z1" style="font-size:22px;font-weight:700;letter-spacing:-.5px;text-align:center;color:#DCE8FF;margin-bottom:2px;">${namePL}</div>
-        <div class="z1" style="font-size:12px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:18px;">${nameEN}</div>
+        <div class="z1" style="font-size:12px;color:rgba(255,255,255,0.48);text-align:center;margin-bottom:18px;">${nameEN}</div>
 
         <div class="z1" style="display:flex;gap:8px;margin-bottom:18px;">${statsHTML}</div>
 
-        <div class="z1" style="font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Cykl księżycowy</div>
+        <div class="z1" style="font-size:10px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Cykl księżycowy</div>
         <div class="z1" style="display:flex;margin-bottom:10px;">${stripHTML}</div>
 
         <div class="z1">${this._progressBar(pct)}</div>
@@ -18812,9 +18968,9 @@ class TelecoLightCard extends HTMLElement {
         color:rgba(255,255,255,.90);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       }
-      .room{font-size:11px;color:#636366;font-weight:400}
+      .room{font-size:11px;color:rgba(255,255,255,0.48);font-weight:400}
       .status{
-        font-size:11px;color:#636366;
+        font-size:11px;color:rgba(255,255,255,0.48);
         margin-top:3px;min-height:14px;
         transition:color .3s;
       }
@@ -18825,7 +18981,7 @@ class TelecoLightCard extends HTMLElement {
         line-height:1;font-variant-numeric:tabular-nums;
         transition:color .3s;
       }
-      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,.28)}
+      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,0.48)}
 
       .track{
         height:3px;background:rgba(255,255,255,.06);
@@ -18842,7 +18998,7 @@ class TelecoLightCard extends HTMLElement {
         min-height:44px;
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
         border-radius:11px;
-        color:rgba(255,255,255,.35);
+        color:rgba(255,255,255,0.48);
         background:rgba(255,255,255,.04);
         cursor:pointer;
         border:.5px solid transparent;
@@ -19153,7 +19309,7 @@ window.customCards.push({
     const f  = ([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
     const body  = [[x1-px,y1-py],[x2-px,y2-py],[x2+px,y2+py],[x1+px,y1+py]].map(f).join(' ');
     const shine = [[x1-px*.3,y1-py*.3],[x2-px*.3,y2-py*.3],[x2+px*.12,y2+py*.12],[x1+px*.12,y1+py*.12]].map(f).join(' ');
-    const c = color || 'rgba(255,159,10,.88)';
+    const c = color || 'rgba(239,159,39,.88)';
     return `<polygon points="${body}" fill="${c}"/>
       <polygon points="${shine}" fill="rgba(255,255,255,.22)"/>
       <circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="2.2" fill="rgba(0,0,0,.55)" stroke="${c}" stroke-width=".9"/>
@@ -19298,7 +19454,7 @@ window.customCards.push({
       *{box-sizing:border-box;margin:0;padding:0}
       :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
-      .glow{ border-radius:18px; transition:box-shadow .5s ease; }
+      .glow{ border-radius:20px; transition:box-shadow .5s ease; }
       .glow.lit{
         box-shadow:
           0 0 0 1px rgba(255,214,90,.20),
@@ -19309,7 +19465,7 @@ window.customCards.push({
       .card{
         background:linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
         border:.5px solid rgba(255,255,255,.08);
-        border-radius:18px;
+        border-radius:20px;
         padding:14px 16px 16px;
         position:relative;
         overflow:hidden;
@@ -19322,8 +19478,8 @@ window.customCards.push({
 
       /* ── animations ── */
       @keyframes louver-pulse {
-        0%,100%{ box-shadow:0 0 0 0px rgba(255,159,10,0) }
-        50%    { box-shadow:0 0 0 5px rgba(255,159,10,.18) }
+        0%,100%{ box-shadow:0 0 0 0px rgba(239,159,39,0) }
+        50%    { box-shadow:0 0 0 5px rgba(239,159,39,.18) }
       }
       @keyframes orbs-pulse {
         0%,100%{ box-shadow:0 0 0 0px rgba(255,179,71,0) }
@@ -19355,11 +19511,11 @@ window.customCards.push({
       /* ── header ── */
       .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
       .hdr .title{font-size:15px;font-weight:700;color:rgba(255,255,255,.92);letter-spacing:-.2px}
-      .hdr .title .room{font-size:11px;font-weight:400;color:#636366}
-      .hdr .badge{font-size:11px;color:#636366;display:flex;align-items:center;gap:6px;transition:color .3s}
+      .hdr .title .room{font-size:11px;font-weight:400;color:rgba(255,255,255,0.48)}
+      .hdr .badge{font-size:11px;color:rgba(255,255,255,0.48);display:flex;align-items:center;gap:6px;transition:color .3s}
       .hdr .badge.active{color:rgba(255,255,255,.55)}
       .hdr .badge .dot{width:7px;height:7px;border-radius:50%;background:rgba(142,142,147,.35);transition:background .3s,box-shadow .3s}
-      .hdr .badge .dot.active{background:#30d158;box-shadow:0 0 8px #30d158}
+      .hdr .badge .dot.active{background:#97C459}
 
       /* ── pergola group (lamele + spot LED, wiersze z subtelną ramką) ── */
       .perg-group{
@@ -19389,7 +19545,7 @@ window.customCards.push({
       }
       .sect-sep span{
         font-size:9px;font-weight:700;letter-spacing:.12em;
-        text-transform:uppercase;color:rgba(255,255,255,.20);
+        text-transform:uppercase;color:rgba(255,255,255,0.48);
         white-space:nowrap;
       }
 
@@ -19409,7 +19565,7 @@ window.customCards.push({
 
       .mid{flex:1;min-width:0}
       .name{font-size:14px;font-weight:600;color:rgba(255,255,255,.90);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .status{font-size:12px;color:#636366;margin-top:2px;transition:color .3s}
+      .status{font-size:12px;color:rgba(255,255,255,0.48);margin-top:2px;transition:color .3s}
 
       .seg{
         display:flex;gap:3px;flex-shrink:0;
@@ -19422,7 +19578,7 @@ window.customCards.push({
         display:flex;align-items:center;justify-content:center;
         border:none;background:none;border-radius:8px;
         font-family:inherit;font-size:11px;font-weight:700;
-        color:rgba(255,255,255,.40);
+        color:rgba(255,255,255,0.48);
         cursor:pointer;touch-action:manipulation;
         -webkit-tap-highlight-color:transparent;user-select:none;
         appearance:none;-webkit-appearance:none;padding:0;
@@ -19430,7 +19586,7 @@ window.customCards.push({
       }
       .seg button.pressed{transform:scale(.9);background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
 
-      .louver .seg button.on      { background:rgba(255,159,10,.18); color:#ff9f0a; box-shadow:0 0 12px rgba(255,159,10,.22) inset; }
+      .louver .seg button.on      { background:rgba(239,159,39,.18); color:#EF9F27; box-shadow:0 0 12px rgba(239,159,39,.22) inset; }
       .louver .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
       .light  .seg button.on      { background:rgba(255,214,90,.18); color:#ffd65a; box-shadow:0 0 12px rgba(255,214,90,.22) inset; }
       .light  .seg button.on.zero { background:rgba(255,255,255,.08); color:rgba(255,255,255,.75); box-shadow:none; }
@@ -19457,7 +19613,7 @@ window.customCards.push({
         display:inline-flex;align-items:center;gap:5px;
         background:none;border:none;
         font-family:inherit;font-size:11px;font-weight:600;
-        color:rgba(255,255,255,.28);
+        color:rgba(255,255,255,0.48);
         cursor:pointer;touch-action:manipulation;
         -webkit-tap-highlight-color:transparent;user-select:none;
         padding:6px 12px;border-radius:8px;
@@ -19691,7 +19847,7 @@ window.customCards.push({
     const dur = 420, t0 = performance.now();
     const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
     const tilt  = this._lastTilt ?? 0;
-    const color = tilt > 0 ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const color = tilt > 0 ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
     const svg   = this.shadowRoot.getElementById('l-icon');
     const step  = now => {
       const t = Math.min((now - t0) / dur, 1);
@@ -19760,7 +19916,7 @@ window.customCards.push({
     this._lastTilt = tilt;
     const r = this.shadowRoot;
     const on = tilt > 0;
-    const slatColor = on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const slatColor = on ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
     const statusEl  = r.getElementById('l-status');
     const iconbox   = r.getElementById('l-iconbox');
 
@@ -19769,13 +19925,13 @@ window.customCards.push({
       statusEl.textContent = elapsed
         ? `${this._louverLabel(tilt, st)} \u00b7 ${elapsed}`
         : this._louverLabel(tilt, st);
-      statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366';
+      statusEl.style.color = on ? 'rgba(239,159,39,.70)' : '#636366';
     }
     if (on) this._startTicker();
     else if (this._ticker) { clearInterval(this._ticker); this._ticker = null; }
     if (iconbox) {
-      iconbox.style.background = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
-      iconbox.style.border = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.style.background = on ? 'rgba(239,159,39,.10)' : 'rgba(142,142,147,.07)';
+      iconbox.style.border = `.5px solid ${on ? 'rgba(239,159,39,.20)' : 'rgba(142,142,147,.15)'}`;
       iconbox.classList.toggle('louver-active', on);
     }
     const tiltSnap = [0,33,66,100].reduce((a,b) => Math.abs(b-tilt) < Math.abs(a-tilt) ? b : a);
@@ -20180,7 +20336,7 @@ class PergolaStripCard extends HTMLElement {
         font-weight: 700;
         letter-spacing: .11em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.18);
+        color: rgba(255,255,255,0.48);
         text-align: center;
         line-height: 1;
         overflow: hidden;
@@ -20227,7 +20383,7 @@ class PergolaStripCard extends HTMLElement {
       .icon-label{
         font-size: 9px;
         font-weight: 500;
-        color: rgba(255,255,255,.28);
+        color: rgba(255,255,255,0.48);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -20438,7 +20594,7 @@ class AhaHomeTempCard extends HTMLElement {
         color: rgba(255,255,255,.90); letter-spacing: -.2px;
       }
       .range {
-        font-size: 11px; color: rgba(255,255,255,.28); font-weight: 500;
+        font-size: 11px; color: rgba(255,255,255,0.48); font-weight: 500;
       }
 
       .grid {
@@ -20483,7 +20639,7 @@ class AhaHomeTempCard extends HTMLElement {
       }
       .tile-hum {
         font-size: 10px; font-weight: 500;
-        color: rgba(255,255,255,.30);
+        color: rgba(255,255,255,0.48);
         display: flex; align-items: center; gap: 3px;
       }
       .tile-hum svg { opacity: .5; }
@@ -20720,7 +20876,7 @@ const RS_STYLES = `
   }
   .rs-badge {
     font-size: 11px;
-    color: #636366;
+    color: rgba(255,255,255,0.48);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -20791,7 +20947,7 @@ const RS_STYLES = `
   }
   .rs-sect-state-txt {
     font-size: 11px;
-    color: #636366;
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
     transition: color 0.25s;
     white-space: nowrap;
@@ -20801,7 +20957,7 @@ const RS_STYLES = `
 
   /* Chevron */
   .rs-sect-chevron {
-    color: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.48);
     flex-shrink: 0;
     display: flex; align-items: center;
     transition: color 0.2s;
@@ -20897,7 +21053,7 @@ const RS_STYLES = `
   }
   .rs-status {
     font-size: 11px;
-    color: #636366;
+    color: rgba(255,255,255,0.48);
     margin-top: 1px;
   }
   .rs-status.open { color: rgba(133,183,235,0.75); }
@@ -20935,7 +21091,7 @@ const RS_STYLES = `
   .rs-group-label {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.48);
   }
   .rs-seg {
     display: flex;
@@ -21465,7 +21621,7 @@ const SAN_CSS = `
   }
   .hdr-lbl {
     font-size: 10px;
-    color: rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
   }
 
@@ -21677,7 +21833,7 @@ class AhaEnergySankeyCard extends HTMLElement {
       const conH    = ROW_H - 10;
       const conMid  = conTop + conH / 2;
       const active  = row.watts > 0;
-      const dotClr  = active ? row.color : 'rgba(255,255,255,0.18)';
+      const dotClr  = active ? row.color : 'rgba(255,255,255,0.48)';
       const namClr  = active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.28)';
       const wClr    = active ? '#fff'  : 'rgba(255,255,255,0.22)';
       const pctStr  = (totalW > 0 && active)
@@ -21809,7 +21965,7 @@ const EHIST_CSS = `
   }
   .hdr-lbl {
     font-size: 10px;
-    color: rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
   }
 
@@ -21841,7 +21997,7 @@ const EHIST_CSS = `
     padding: 28px 0;
     text-align: center;
     font-size: 12px;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.48);
     letter-spacing: 0.03em;
   }
 `;
@@ -22525,7 +22681,7 @@ window.customCards.push({
     _css() {
       const T1 = '#F5F5F7';
       const T2 = 'rgba(255,255,255,0.55)';
-      const T4 = 'rgba(255,255,255,0.28)';
+      const T4 = 'rgba(255,255,255,0.50)';   // wygaszony tekst — min. alfa .50
 
       return `
       :host { display: block; }
@@ -22602,12 +22758,13 @@ window.customCards.push({
         border: 1px solid rgba(255,255,255,0.14);
       }
       .cal-today:hover, .cal-today.cal-hover { background: rgba(255,255,255,0.18); }
-      .cal-past    { opacity: 0.28; }
-      .cal-weekend:not(.cal-today) { opacity: 0.38; }
-      .cal-weekend.cal-past        { opacity: 0.18; }
+      /* Wygaszone dni — min. alfa .50 dla czytelności */
+      .cal-past    { opacity: 0.50; }
+      .cal-weekend:not(.cal-today) { opacity: 0.62; }
+      .cal-weekend.cal-past        { opacity: 0.50; }
 
       .cal-letter {
-        font-size: 9px; font-weight: 500; color: ${T4};
+        font-size: 10px; font-weight: 500; color: ${T4};
         text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
       }
       .cal-today .cal-letter { color: ${T2}; }
@@ -22653,9 +22810,11 @@ window.customCards.push({
       }
       .day-date {
         font-size: 12px; color: ${T2};
-        text-transform: capitalize; flex: 1;
+        flex: 1;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
+      /* Tylko pierwsza litera wielka: „Czwartek, 22 października” */
+      .day-date::first-letter { text-transform: uppercase; }
       .day-date strong { font-weight: 700; color: ${T1}; }
 
       .day-badge {
@@ -22937,7 +23096,7 @@ window.customCards.push({
       :host { display:block; font-family:-apple-system,system-ui,sans-serif; }
       .card {
         background: linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
-        border-radius: 22px;
+        border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.07);
         overflow: hidden;
       }
@@ -22947,7 +23106,7 @@ window.customCards.push({
       }
       .title {
         font-size: 11px; font-weight: 600;
-        color: rgba(255,255,255,0.35);
+        color: rgba(255,255,255,0.48);
         text-transform: uppercase; letter-spacing:.08em;
       }
       .body {
@@ -22971,14 +23130,14 @@ window.customCards.push({
       }
       .year-sep span {
         font-size:9.5px; font-weight:700;
-        color:rgba(255,255,255,0.18);
+        color:rgba(255,255,255,0.48);
         letter-spacing:.14em; text-transform:uppercase;
       }
 
       /* Month label */
       .month-lbl {
         font-size:9px; font-weight:700;
-        color:rgba(255,255,255,0.22);
+        color:rgba(255,255,255,0.48);
         letter-spacing:.10em; text-transform:uppercase;
         padding: 8px 4px 3px;
       }
@@ -23014,7 +23173,7 @@ window.customCards.push({
       }
       .dmon {
         font-size:7.5px; font-weight:700;
-        color:rgba(255,255,255,0.30); letter-spacing:.04em;
+        color:rgba(255,255,255,0.48); letter-spacing:.04em;
         margin-top:2px;
       }
 
@@ -23036,7 +23195,7 @@ window.customCards.push({
       }
       .row.today .name { color:#fff; }
       .desc {
-        font-size:10px; color:rgba(255,255,255,0.34);
+        font-size:10px; color:rgba(255,255,255,0.48);
         margin-top:2px; line-height:1.50; word-break:break-word;
       }
 
@@ -23267,7 +23426,7 @@ window.customCards.push({
 
       const isRaining = rate !== null && rate > 0;
       const pulse     = isRaining
-        ? `<style>@keyframes rain-pulse{0%,100%{box-shadow:0 0 0 0px rgba(48,176,255,0.18)}50%{box-shadow:0 0 0 6px rgba(48,176,255,0.18)}}</style>`
+        ? `<style>@keyframes rain-pulse{0%,100%{box-shadow:0 0 0 0 rgba(48,176,255,0)}50%{box-shadow:0 0 0 5px rgba(48,176,255,0.18)}}</style>`
         : '';
       const cardExtra  = isRaining ? 'raining' : '';
       const dotAnim    = isRaining ? 'blink' : '';
@@ -23277,12 +23436,12 @@ window.customCards.push({
           :host { display:block; font-family:-apple-system,system-ui,sans-serif; }
           @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
           @keyframes rain-pulse {
-            0%,100%{box-shadow:0 0 0 0px rgba(48,176,255,0.18)}
-            50%{box-shadow:0 0 0 6px rgba(48,176,255,0.18)}
+            0%,100%{box-shadow:0 0 0 0 rgba(48,176,255,0)}
+            50%{box-shadow:0 0 0 5px rgba(48,176,255,0.18)}
           }
           .card {
             background: linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
-            border-radius: 22px;
+            border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.07);
             padding: 14px 16px 12px;
             overflow: hidden;
@@ -23307,14 +23466,14 @@ window.customCards.push({
           }
           .title {
             font-size:11px; font-weight:600;
-            color:rgba(255,255,255,0.35);
+            color:rgba(255,255,255,0.48);
             text-transform:uppercase; letter-spacing:.08em;
           }
           .badge {
             display:inline-flex; align-items:center; gap:5px;
             background:rgba(48,176,255,0.12);
             border:1px solid rgba(48,176,255,0.25);
-            border-radius:20px; padding:2px 8px 2px 6px;
+            border-radius:99px; padding:2px 8px 2px 6px;
             font-size:10px; font-weight:700;
             color:#5ac8fa; letter-spacing:.04em;
             text-transform:uppercase;
@@ -23322,7 +23481,7 @@ window.customCards.push({
           .badge-dot {
             width:5px; height:5px; border-radius:50%;
             background:#30B0FF;
-            animation: blink 1.2s ease-in-out infinite;
+            animation: blink 2.0s ease-in-out infinite;
           }
 
           /* Stats row */
@@ -23331,7 +23490,7 @@ window.customCards.push({
             gap:8px; margin-bottom:14px;
           }
           .stat {
-            background:rgba(255,255,255,0.04);
+            background:rgba(255,255,255,0.05);
             border:1px solid rgba(255,255,255,0.06);
             border-radius:12px; padding:10px 10px 9px;
             display:flex; flex-direction:column;
@@ -23345,12 +23504,12 @@ window.customCards.push({
           .stat-val.active { color:#5ac8fa; }
           .stat-unit {
             font-size:10px; font-weight:500;
-            color:rgba(255,255,255,0.30);
+            color:rgba(255,255,255,0.48);
             margin-top:1px; letter-spacing:.02em;
           }
           .stat-lbl {
             font-size:9.5px; font-weight:600;
-            color:rgba(255,255,255,0.22);
+            color:rgba(255,255,255,0.48);
             margin-top:5px; text-transform:uppercase;
             letter-spacing:.06em;
           }
@@ -23361,7 +23520,7 @@ window.customCards.push({
           }
           .chart-lbl {
             font-size:9px; font-weight:500;
-            color:rgba(255,255,255,0.18);
+            color:rgba(255,255,255,0.48);
             text-align:right; margin-bottom:2px;
             letter-spacing:.03em;
           }
@@ -23374,7 +23533,7 @@ window.customCards.push({
             </div>
             ${isRaining
               ? `<div class="badge"><div class="badge-dot"></div>Pada</div>`
-              : `<span style="font-size:10px;color:rgba(255,255,255,0.18);font-weight:500;">Bez opadów</span>`
+              : `<span style="font-size:10px;color:rgba(255,255,255,0.48);font-weight:500;">Bez opadów</span>`
             }
           </div>
 
@@ -23661,7 +23820,7 @@ class AhaLightCard extends HTMLElement {
   .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
   .chips:empty{display:none}
   .chip{font-size:9px;font-weight:500;padding:2px 7px;border-radius:6px;white-space:nowrap;
-    background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);border:0.5px solid rgba(255,255,255,0.08)}
+    background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.48);border:0.5px solid rgba(255,255,255,0.08)}
   .chip.sun{color:#EF9F27;background:rgba(239,159,39,0.10);border-color:rgba(239,159,39,0.25)}
 
   .sl{position:relative;height:22px;margin:6px -2px -6px;touch-action:none;cursor:ew-resize}
@@ -23693,7 +23852,7 @@ class AhaLightCard extends HTMLElement {
   .sw:active{transform:scale(0.92)}
   .sw.sel{border-color:#fff}
   .sw.x{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);box-shadow:none}
-  .plabel{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);text-align:center}
+  .plabel{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.48);text-align:center}
 </style>
 <div class="card" id="card">
   <div class="top">

@@ -226,7 +226,7 @@ const AC_STYLES = `
   }
   .progress-labels span {
     font-size: 10px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
   }
 
   /* ── Right column ── */
@@ -247,7 +247,7 @@ const AC_STYLES = `
   }
   .temp-label {
     font-size: 10px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
   }
 `;
 

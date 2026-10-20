@@ -337,7 +337,7 @@
         if (!isNaN(szVal)) {
           const pct = Math.round((szVal / szCap) * 100);
           if (pct >= szWarn) {
-            const color = pct >= 90 ? '#FF3B30' : '#FF9500';
+            const color = pct >= 90 ? '#E24B4A' : '#EF9F27';
             const left  = (szCap - szVal).toFixed(1);
             items.push({
               days: -1,  // not date-based — sort to front when critical, after urgent dates
@@ -604,7 +604,7 @@
           ? `<img src="${p.img}" alt="${p.name}">`
           : `<span class="person-initial">${p.initial}</span>`;
         const batHtml = p.bat !== null
-          ? `<span class="person-bat" style="color:${p.bat < 20 ? '#FF6B6B' : 'rgba(255,255,255,0.25)'}">${p.bat}%</span>`
+          ? `<span class="person-bat" style="color:${p.bat < 20 ? '#E24B4A' : 'rgba(255,255,255,0.25)'}">${p.bat}%</span>`
           : '';
         return `<div class="person">
           <div class="person-avatar">
@@ -741,7 +741,7 @@
       .card {
         position: relative;
         background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-        border-radius: 24px;
+        border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.08);
         overflow: hidden;
         padding: 18px 18px 16px;
@@ -765,11 +765,11 @@
       }
       .date {
         font-size: 11px; font-weight: 500;
-        color: rgba(255,255,255,0.32); letter-spacing: .02em;
+        color: rgba(255,255,255,0.48); letter-spacing: .02em;
       }
       .time {
         font-size: 26px; font-weight: 200;
-        color: rgba(255,255,255,0.30); letter-spacing: -1px;
+        color: rgba(255,255,255,0.48); letter-spacing: -1px;
         padding-top: 2px;
       }
 
@@ -791,7 +791,7 @@
       .wx-left { display: flex; align-items: center; gap: 10px; }
       .wx-text {}
       .wx-cond {
-        font-size: 11px; color: rgba(255,255,255,0.38);
+        font-size: 11px; color: rgba(255,255,255,0.48);
         margin-bottom: 2px; font-weight: 500;
       }
       .wx-temp {
@@ -822,7 +822,7 @@
         to   { opacity: 1; }
       }
       .summary-wrap {
-        font-size: 11.5px; color: rgba(255,255,255,0.42);
+        font-size: 11.5px; color: rgba(255,255,255,0.48);
         background: rgba(255,255,255,0.045);
         border-radius: 11px; padding: 8px 11px;
         line-height: 1.5; letter-spacing: .01em;
@@ -857,7 +857,7 @@
       /* Section label */
       .sect-label {
         font-size: 9px; font-weight: 700; letter-spacing: .10em;
-        color: rgba(255,255,255,0.20); text-transform: uppercase;
+        color: rgba(255,255,255,0.48); text-transform: uppercase;
         margin-bottom: 7px;
       }
 
@@ -889,8 +889,7 @@
         border: 2px solid #0d1828;
       }
       .dot-home {
-        background: #30D158;
-        box-shadow: 0 0 6px rgba(48,209,88,0.60);
+        background: #97C459;
       }
       .dot-away { background: rgba(255,255,255,0.22); }
       .person-name {
@@ -898,7 +897,7 @@
         text-align: center;
       }
       .person-status {
-        font-size: 10px; color: rgba(255,255,255,0.30);
+        font-size: 10px; color: rgba(255,255,255,0.48);
         text-align: center;
       }
       .person-bat { font-size: 9.5px; font-weight: 600; }
@@ -907,7 +906,6 @@
         width: 10px; height: 10px; border-radius: 50%;
         border: 2px solid #0d1828;
         background: #ffd65a;
-        box-shadow: 0 0 6px rgba(255,214,90,0.70);
       }
 
       /* Reminders */
@@ -930,7 +928,7 @@
         color: rgba(255,255,255,0.72);
       }
       .rem-sub {
-        font-size: 10px; color: rgba(255,255,255,0.32);
+        font-size: 10px; color: rgba(255,255,255,0.48);
       }
       .rem-when {
         font-size: 10.5px; font-weight: 700;
@@ -950,11 +948,11 @@
       }
       .ai-box-label {
         font-size: 9px; font-weight: 700; letter-spacing: .10em;
-        color: rgba(255,255,255,0.22); text-transform: uppercase;
+        color: rgba(255,255,255,0.48); text-transform: uppercase;
       }
       .ai-refresh {
         background: none; border: none; cursor: pointer;
-        color: rgba(255,255,255,0.20); font-size: 13px;
+        color: rgba(255,255,255,0.48); font-size: 13px;
         padding: 0; line-height: 1;
         transition: color .2s;
       }
@@ -966,11 +964,11 @@
         white-space: pre-wrap;
       }
       .ai-text.ai-loading {
-        color: rgba(255,255,255,0.22);
+        color: rgba(255,255,255,0.48);
         font-style: italic;
         animation: ai-blink 1.4s ease-in-out infinite;
       }
-      .ai-text.ai-error { color: #FF6B6B; font-size: 11px; }
+      .ai-text.ai-error { color: #E24B4A; font-size: 11px; }
       @keyframes ai-blink {
         0%, 100% { opacity: 1; }
         50%       { opacity: 0.4; }

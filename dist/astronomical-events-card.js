@@ -341,7 +341,7 @@ class AstronomicalEventsCard extends HTMLElement {
         font-weight: 600;
         letter-spacing: .10em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.28);
+        color: rgba(255,255,255,0.48);
       }
       .header-right {
         display: flex;
@@ -360,7 +360,7 @@ class AstronomicalEventsCard extends HTMLElement {
       }
       .header-count {
         font-size: 10px;
-        color: rgba(255,255,255,.20);
+        color: rgba(255,255,255,0.48);
       }
       .event {
         border-radius: 12px;
@@ -402,7 +402,7 @@ class AstronomicalEventsCard extends HTMLElement {
       }
       .event-date {
         font-size: 11px;
-        color: rgba(255,255,255,.30);
+        color: rgba(255,255,255,0.48);
         margin-top: 2px;
       }
       .badges {
@@ -435,7 +435,7 @@ class AstronomicalEventsCard extends HTMLElement {
         font-size: 9px;
         text-transform: uppercase;
         letter-spacing: .08em;
-        color: rgba(255,255,255,.28);
+        color: rgba(255,255,255,0.48);
         margin-top: 2px;
       }
       .chevron {
@@ -465,7 +465,7 @@ class AstronomicalEventsCard extends HTMLElement {
       .how {
         font-size: 11.5px;
         line-height: 1.55;
-        color: rgba(255,255,255,.35);
+        color: rgba(255,255,255,0.48);
         margin: 0 0 10px;
       }
       .tip-box {
@@ -497,7 +497,7 @@ class AstronomicalEventsCard extends HTMLElement {
         padding-top: 10px;
         border-top: 1px solid rgba(255,255,255,.06);
       }
-      .footer-info { font-size: 10px; color: rgba(255,255,255,.22); }
+      .footer-info { font-size: 10px; color: rgba(255,255,255,0.48); }
       .nav-btn {
         font-size: 11px;
         padding: 5px 14px;
@@ -513,7 +513,7 @@ class AstronomicalEventsCard extends HTMLElement {
       .nav-btn:disabled {
         border-color: rgba(255,255,255,.04);
         background: transparent;
-        color: rgba(255,255,255,.16);
+        color: rgba(255,255,255,0.48);
         cursor: default;
       }
       .urgent-bar {
@@ -526,7 +526,7 @@ class AstronomicalEventsCard extends HTMLElement {
       }
       .no-launches {
         font-size: 10px;
-        color: rgba(255,255,255,0.18);
+        color: rgba(255,255,255,0.48);
         text-align: center;
         padding: 6px 0 2px;
       }
@@ -579,7 +579,7 @@ class AstronomicalEventsCard extends HTMLElement {
 
         detailsContent = `
           ${ev.how ? `<div class="launch-meta">${chips}</div>` : ''}
-          ${ev.desc ? `<p class="desc">${ev.desc}</p>` : '<p class="desc" style="color:rgba(255,255,255,.25);">Brak opisu misji.</p>'}
+          ${ev.desc ? `<p class="desc">${ev.desc}</p>` : '<p class="desc" style="color:rgba(255,255,255,0.48);">Brak opisu misji.</p>'}
           <div class="tip-box" style="background:${c}.10);color:${c}.90);border:1px solid ${c}.22);">⏰ ${ev.tip}</div>`;
       } else {
         detailsContent = `

@@ -162,7 +162,7 @@
       :host { display:block; font-family:-apple-system,system-ui,sans-serif; }
       .card {
         background: linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
-        border-radius: 22px;
+        border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.07);
         overflow: hidden;
       }
@@ -172,7 +172,7 @@
       }
       .title {
         font-size: 11px; font-weight: 600;
-        color: rgba(255,255,255,0.35);
+        color: rgba(255,255,255,0.48);
         text-transform: uppercase; letter-spacing:.08em;
       }
       .body {
@@ -196,14 +196,14 @@
       }
       .year-sep span {
         font-size:9.5px; font-weight:700;
-        color:rgba(255,255,255,0.18);
+        color:rgba(255,255,255,0.48);
         letter-spacing:.14em; text-transform:uppercase;
       }
 
       /* Month label */
       .month-lbl {
         font-size:9px; font-weight:700;
-        color:rgba(255,255,255,0.22);
+        color:rgba(255,255,255,0.48);
         letter-spacing:.10em; text-transform:uppercase;
         padding: 8px 4px 3px;
       }
@@ -239,7 +239,7 @@
       }
       .dmon {
         font-size:7.5px; font-weight:700;
-        color:rgba(255,255,255,0.30); letter-spacing:.04em;
+        color:rgba(255,255,255,0.48); letter-spacing:.04em;
         margin-top:2px;
       }
 
@@ -261,7 +261,7 @@
       }
       .row.today .name { color:#fff; }
       .desc {
-        font-size:10px; color:rgba(255,255,255,0.34);
+        font-size:10px; color:rgba(255,255,255,0.48);
         margin-top:2px; line-height:1.50; word-break:break-word;
       }
 

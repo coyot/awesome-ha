@@ -239,7 +239,7 @@ class PergolaStripCard extends HTMLElement {
         font-weight: 700;
         letter-spacing: .11em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.18);
+        color: rgba(255,255,255,0.48);
         text-align: center;
         line-height: 1;
         overflow: hidden;
@@ -286,7 +286,7 @@ class PergolaStripCard extends HTMLElement {
       .icon-label{
         font-size: 9px;
         font-weight: 500;
-        color: rgba(255,255,255,.28);
+        color: rgba(255,255,255,0.48);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

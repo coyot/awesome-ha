@@ -699,7 +699,7 @@ const CARD_STYLES = `
   .dock-title {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -772,7 +772,7 @@ const CARD_STYLES = `
     padding-top: 8px;
     border-top: 1px solid rgba(255,255,255,0.05);
     font-size: 10px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(255,255,255,0.48);
     text-align: center;
   }
 
@@ -1253,8 +1253,8 @@ class RoboVacuumCard extends HTMLElement {
                             background:${barGrad};transition:width 1s ease;"></div>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barLabel}</span>
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barPct.toFixed(0)}%</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barLabel}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barPct.toFixed(0)}%</span>
               </div>
             </div>
 
@@ -1266,7 +1266,7 @@ class RoboVacuumCard extends HTMLElement {
                         gap:2px;min-width:52px;">
               <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
                            color:${rightCol};">${rightVal}</span>
-              <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.48);white-space:nowrap;">${rightLabel}</span>
             </div>
             <button class="toggle-btn" title="Rozwiń">${svgToggleExpand()}</button>
           </div>
@@ -1813,7 +1813,7 @@ class RoboVacuumCard extends HTMLElement {
          <span style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0;
                       animation:vac-dot 1.8s ease-in-out infinite;"></span>
          <span style="font-size:10px;color:${col};font-weight:500;">${label}</span>
-         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.40);margin-left:2px;">${value}</span>` : ''}
+         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:2px;">${value}</span>` : ''}
        </div>`;
 
     // Row 1: quiet OK dots for all-ok items + problem chips
@@ -2178,7 +2178,7 @@ class RoboVacuumCard extends HTMLElement {
          <span style="width:5px;height:5px;border-radius:50%;background:${col};flex-shrink:0;
                       animation:vac-dot 1.8s ease-in-out infinite;"></span>
          <span style="font-size:10px;color:${col};font-weight:500;">${label}</span>
-         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.35);margin-left:2px;">${value}</span>` : ''}
+         ${value ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:2px;">${value}</span>` : ''}
        </div>`;
     };
 
@@ -2218,7 +2218,7 @@ class RoboVacuumCard extends HTMLElement {
       chips.push(`<div style="display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:7px;
                    background:rgba(239,159,39,0.08);border:1px solid rgba(239,159,39,0.15);">
          <span style="width:5px;height:5px;border-radius:50%;background:#EF9F27;flex-shrink:0;"></span>
-         <span style="font-size:10px;color:rgba(255,255,255,0.40);">Robot</span>
+         <span style="font-size:10px;color:rgba(255,255,255,0.48);">Robot</span>
          <span style="font-size:10px;color:#EF9F27;margin-left:auto;">${lbl}</span>
        </div>`);
     }
@@ -2293,7 +2293,7 @@ class RoboVacuumCard extends HTMLElement {
     if (totalArea  !== null) lifetimeParts.push(fmtArea(parseFloat(totalArea)));
     if (totalTime  !== null) lifetimeParts.push(fmtTime(totalTime));
     const lifetime = lifetimeParts.length
-      ? `<span style="font-size:10px;color:rgba(255,255,255,0.18);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
+      ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
       : '';
 
     return `<div class="consumables">${icons.join('')}${lifetime}</div>`;
@@ -2371,7 +2371,7 @@ class RoboVacuumCard extends HTMLElement {
     if (totalArea  !== null) lifetimeParts.push(fmtArea(parseFloat(totalArea)));
     if (totalTime  !== null) lifetimeParts.push(fmtTime(totalTime));
     const lifetime = lifetimeParts.length
-      ? `<span style="font-size:10px;color:rgba(255,255,255,0.18);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
+      ? `<span style="font-size:10px;color:rgba(255,255,255,0.48);margin-left:auto;">${lifetimeParts.join(' · ')}</span>`
       : '';
 
     return `<div class="consumables">${icons.join('')}${lifetime}</div>`;

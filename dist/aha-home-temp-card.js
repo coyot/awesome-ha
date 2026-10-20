@@ -119,7 +119,7 @@ class AhaHomeTempCard extends HTMLElement {
         color: rgba(255,255,255,.90); letter-spacing: -.2px;
       }
       .range {
-        font-size: 11px; color: rgba(255,255,255,.28); font-weight: 500;
+        font-size: 11px; color: rgba(255,255,255,0.48); font-weight: 500;
       }
 
       .grid {
@@ -164,7 +164,7 @@ class AhaHomeTempCard extends HTMLElement {
       }
       .tile-hum {
         font-size: 10px; font-weight: 500;
-        color: rgba(255,255,255,.30);
+        color: rgba(255,255,255,0.48);
         display: flex; align-items: center; gap: 3px;
       }
       .tile-hum svg { opacity: .5; }

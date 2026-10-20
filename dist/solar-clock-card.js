@@ -488,7 +488,7 @@ class SolarClockCard extends HTMLElement {
       const meteorExtra = ev.hasMeteors
         ? `<div style="margin-top:5px;display:flex;align-items:center;gap:6px;">
             <div style="font-size:10px;font-weight:600;color:rgba(180,130,255,.92);background:rgba(150,90,255,.15);border:1px solid rgba(150,90,255,.35);padding:2px 8px;border-radius:8px;">+ Perseidy tej nocy</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35);">2 zjawiska jednocześnie</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);">2 zjawiska jednocześnie</div>
            </div>` : '';
       return `<div class="banner today" style="border-top:2px solid ${acB2};">
         <div class="banner-bg" style="background:${acL};"></div>
@@ -514,7 +514,7 @@ class SolarClockCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:11px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">Jutro: ${ev.label}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.40);margin-top:1px;">${sublabel}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;">${sublabel}</div>
           </div>
           <div class="banner-pill pulse-slow" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
         </div>
@@ -528,7 +528,7 @@ class SolarClockCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:10px;font-weight:600;color:${acM};text-transform:uppercase;letter-spacing:.06em;">${ev.label} za ${days} dni</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
           </div>
           <div class="banner-pill pulse-slow" style="font-size:11px;color:${acM};background:rgba(${acR},${acG},${acB},.14);border:1px solid rgba(${acR},${acG},${acB},.35);">${pillText}</div>
         </div>
@@ -541,7 +541,7 @@ class SolarClockCard extends HTMLElement {
         </div>
         <div class="banner-text">
           <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">${ev.label}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sublabel}</div>
         </div>
         <div class="banner-pill" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.25);">${pillText}</div>
       </div>
@@ -666,7 +666,7 @@ class SolarClockCard extends HTMLElement {
       .stats { display:flex; justify-content:space-between; align-items:flex-start; margin-top:7px; }
       .stat { display:flex; flex-direction:column; }
       .stat-val   { font-size:14px; font-weight:600; color:rgba(255,255,255,.82); letter-spacing:-.2px; }
-      .stat-label { font-size:9px; font-weight:500; color:rgba(255,255,255,.28); text-transform:uppercase; letter-spacing:.07em; margin-top:1px; }
+      .stat-label { font-size:9px; font-weight:500; color:rgba(255,255,255,0.48); text-transform:uppercase; letter-spacing:.07em; margin-top:1px; }
 
 
       /* ── ticker ─────────────────────────────────────────────────── */
@@ -721,7 +721,7 @@ class SolarClockCard extends HTMLElement {
       }
       .ticker-sub {
         font-size: 9.5px;
-        color: rgba(255,255,255,.35);
+        color: rgba(255,255,255,0.48);
         margin-top: 1px;
         white-space: nowrap;
         overflow: hidden;

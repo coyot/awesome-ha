@@ -344,8 +344,8 @@ class AhaWeatherCard extends HTMLElement {
         const delta = next - temp;
         if (!isNaN(delta)) {
           if (Math.abs(delta)<0.4)  { trendStr='→ stała'; trendCol='rgba(255,255,255,0.25)'; }
-          else if (delta>0) { trendStr=`↑ +${delta.toFixed(1)}° za godz.`; trendCol=delta>3?'#FF9F0A':'#FFD060'; }
-          else              { trendStr=`↓ ${delta.toFixed(1)}° za godz.`; trendCol=delta<-3?'#5AC8FA':'#A0CCFF'; }
+          else if (delta>0) { trendStr=`↑ +${delta.toFixed(1)}° za godz.`; trendCol=delta>3?'#EF9F27':'#FFD060'; }
+          else              { trendStr=`↓ ${delta.toFixed(1)}° za godz.`; trendCol=delta<-3?'#85B7EB':'#A0CCFF'; }
         }
       }
     } catch(e){}
@@ -512,7 +512,7 @@ class AhaWeatherCard extends HTMLElement {
     if(type==='aurora')        return mk('✦ Zorza polarna', 'rgba(0,180,100,0.20)','rgba(0,230,140,0.30)','#00E890');
     if(type==='blizzard')      return mk('❄ Zamieć',       'rgba(80,130,220,0.20)','rgba(174,228,248,0.32)','#AEE4F8');
     if(type==='freezing-rain') return mk('🌧 Szadź',        'rgba(50,110,200,0.20)','rgba(100,190,255,0.30)','#78BCFF');
-    if(type==='extreme-heat')  return mk('🔥 Ekstr. upał', 'rgba(255,20,10,0.24)','rgba(255,59,48,0.38)','#FF3B30');
+    if(type==='extreme-heat')  return mk('🔥 Ekstr. upał', 'rgba(226,75,74,0.24)','rgba(226,75,74,0.38)','#E24B4A');
     if(type==='dawn-clear'||type==='astro-dawn') return mk('🌅 Świt','rgba(200,90,30,0.22)','rgba(255,140,60,0.38)','#FFA040');
     if(type==='morning-clear') return mk('🌤 Ranek','rgba(245,166,35,0.15)','rgba(245,200,60,0.25)','#F5C042');
     if(['golden-clear','cloud-golden','rain-golden','storm-golden'].includes(type))
@@ -522,13 +522,13 @@ class AhaWeatherCard extends HTMLElement {
     if(['storm','storm-dawn','storm-golden','storm-night'].includes(type))
       return mk('⚡ Burza','rgba(255,200,0,0.16)','rgba(255,208,96,0.28)','#FFD060');
     if(type==='hail') return mk('🌨 Grad','rgba(90,130,200,0.18)','rgba(168,216,240,0.28)','#A8D8F0');
-    if(temp!==null&&temp>=40) return mk('🔥 Ekstr. upał','rgba(255,30,10,0.22)','rgba(255,59,48,0.32)','#FF3B30');
+    if(temp!==null&&temp>=40) return mk('🔥 Ekstr. upał','rgba(226,75,74,0.22)','rgba(226,75,74,0.32)','#E24B4A');
     if(temp!==null&&temp>=35) return mk('🔥 Silny upał','rgba(255,60,20,0.18)','rgba(255,104,32,0.28)','#FF6820');
-    if(temp!==null&&temp>=30) return mk('🌡 Upał','rgba(255,100,20,0.16)','rgba(255,159,10,0.26)','#FF9F0A');
+    if(temp!==null&&temp>=30) return mk('🌡 Upał','rgba(239,159,39,0.16)','rgba(239,159,39,0.26)','#EF9F27');
     if(['rain','rain-dawn','rain-golden','rain-dusk','rain-night'].includes(type)){
-      if(rainClass==='violent') return mk('🌧 Ulewa','rgba(30,90,200,0.22)','rgba(90,200,250,0.30)','#5AC8FA');
-      if(rainClass==='heavy')   return mk('🌧 Silny deszcz','rgba(30,90,200,0.18)','rgba(90,200,250,0.25)','#5AC8FA');
-      if(rainClass==='moderate')return mk('🌧 Deszcz','rgba(30,90,200,0.15)','rgba(90,200,250,0.22)','#5AC8FA');
+      if(rainClass==='violent') return mk('🌧 Ulewa','rgba(133,183,235,0.20)','rgba(133,183,235,0.30)','#85B7EB');
+      if(rainClass==='heavy')   return mk('🌧 Silny deszcz','rgba(133,183,235,0.16)','rgba(133,183,235,0.25)','#85B7EB');
+      if(rainClass==='moderate')return mk('🌧 Deszcz','rgba(133,183,235,0.13)','rgba(133,183,235,0.22)','#85B7EB');
       if(rainClass==='light')   return mk('🌦 Lekki deszcz','rgba(30,90,200,0.12)','rgba(120,170,210,0.22)','#7BAED4');
       return mk('🌦 Mżawka','rgba(30,90,200,0.09)','rgba(120,170,210,0.18)','#7BAED4');
     }
@@ -538,14 +538,14 @@ class AhaWeatherCard extends HTMLElement {
       return mk('❄ Mróz / śnieg','rgba(90,150,255,0.13)','rgba(174,228,248,0.22)','#AEE4F8');
     }
     if(['fog','fog-night'].includes(type)) return mk('🌫 Mgła','rgba(130,150,200,0.18)','rgba(136,153,187,0.28)','#8899BB');
-    if(gustNum>=75) return mk('🌪 Huragan','rgba(80,140,220,0.22)','rgba(90,200,250,0.30)','#5AC8FA');
+    if(gustNum>=75) return mk('🌪 Huragan','rgba(133,183,235,0.20)','rgba(133,183,235,0.30)','#85B7EB');
     if(gustNum>=60||['windy','windy-night'].includes(type)) return mk('💨 Wichura','rgba(80,140,220,0.16)','rgba(120,170,210,0.26)','#7BAED4');
     if(gustNum>=40) return mk('💨 Silny wiatr','rgba(80,140,220,0.13)','rgba(120,170,210,0.22)','#7BAED4');
-    if(uvNum>=11) return mk('☀ UV ekstr.','rgba(180,30,30,0.22)','rgba(255,59,48,0.30)','#FF3B30');
+    if(uvNum>=11) return mk('☀ UV ekstr.','rgba(226,75,74,0.22)','rgba(226,75,74,0.30)','#E24B4A');
     if(uvNum>=8)  return mk('☀ UV b. wysokie','rgba(255,60,40,0.16)','rgba(255,104,32,0.26)','#FF6820');
-    if(uvNum>=6)  return mk('☀ UV wysokie','rgba(255,140,20,0.14)','rgba(255,159,10,0.22)','#FF9F0A');
+    if(uvNum>=6)  return mk('☀ UV wysokie','rgba(239,159,39,0.14)','rgba(239,159,39,0.22)','#EF9F27');
     if(isNight) return getMoonPill();
-    if(temp!==null&&temp<=0) return mk('🌨 Poniżej zera','rgba(90,150,255,0.13)','rgba(90,200,250,0.22)','#5AC8FA');
+    if(temp!==null&&temp<=0) return mk('🌨 Poniżej zera','rgba(133,183,235,0.13)','rgba(133,183,235,0.22)','#85B7EB');
     if(temp!==null&&temp<=5) return mk('🌡 Zimno','rgba(90,150,255,0.11)','rgba(120,170,210,0.20)','#7BAED4');
     if(['sun','morning-clear'].includes(type)) return mk('☀ Słonecznie','rgba(245,166,35,0.13)','rgba(245,166,35,0.22)','#F5A623');
     return mk('☁ Pochmurno','rgba(110,130,165,0.15)','rgba(130,150,187,0.22)','#8899BB');
@@ -643,7 +643,7 @@ class AhaWeatherCard extends HTMLElement {
 
     // ── stars (night clear / aurora) ──────────────────────────────────────────
     if (['night-clear','astro-dusk-clear','aurora'].includes(type)) {
-      const sHTML=['<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:1;">'];
+      const sHTML=['<div style="position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;z-index:1;">'];
       [[type==='aurora'?15:12,'#A0B8D8',0.5,1,0.18,0.25,5,4],
        [type==='aurora'?18:15,'#C8D8F0',0.8,1.4,0.28,0.35,3.5,3.5],
        [type==='aurora'?10:8,'#E8F0FF',1.2,1.8,0.45,0.45,2.5,3]].forEach(([cnt,col,sMin,sRange,opMin,opRange,spdMin,spdRange])=>{
@@ -673,7 +673,7 @@ class AhaWeatherCard extends HTMLElement {
 
     // ── aurora effect ─────────────────────────────────────────────────────────
     if (type==='aurora') {
-      auroraFx = `<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:2;">
+      auroraFx = `<div style="position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;z-index:2;">
         ${[['rgba(0,200,100,0.28)','-20%','18%','130%','22px','5px','5s','0s'],
            ['rgba(0,160,200,0.20)','10%','28%','120%','18px','7px','6.5s','1.2s'],
            ['rgba(120,0,220,0.16)','40%','38%','90%','14px','9px','8s','0.6s'],
@@ -797,12 +797,12 @@ class AhaWeatherCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.75);text-transform:uppercase;letter-spacing:.06em;text-decoration:line-through;">${f.name}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.30);margin-top:1px;">Wykonano</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;">Wykonano</div>
           </div>
           <button class="fertil-undo-btn" data-fertil-date="${f.date}"
             style="background:none;border:1px solid rgba(255,255,255,.18);border-radius:8px;
             padding:3px 8px;cursor:pointer;font-size:9px;font-weight:600;
-            color:rgba(255,255,255,.35);font-family:-apple-system,system-ui,sans-serif;
+            color:rgba(255,255,255,0.48);font-family:-apple-system,system-ui,sans-serif;
             flex-shrink:0;white-space:nowrap;">cofnij</button>
         </div>
       </div>`;
@@ -850,7 +850,7 @@ class AhaWeatherCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:11px;font-weight:600;color:${ac};text-transform:uppercase;letter-spacing:.05em;">🌱 Jutro: ${f.name}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.40);margin-top:1px;">${f.description||''}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse-slow" style="color:${ac};background:rgba(${acR},${acG},${acB},.18);border:1.5px solid ${acB2};">${pillText}</div>
           ${doneBtn}
@@ -865,7 +865,7 @@ class AhaWeatherCard extends HTMLElement {
           </div>
           <div class="banner-text">
             <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">🌱 ${f.name} za ${days} dni</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
           </div>
           <div class="banner-pill pulse-slow" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.14);border:1px solid rgba(${acR},${acG},${acB},.35);">${pillText}</div>
           ${doneBtn}
@@ -879,7 +879,7 @@ class AhaWeatherCard extends HTMLElement {
         </div>
         <div class="banner-text">
           <div style="font-size:10px;font-weight:600;color:rgba(${acR},${acG},${acB},.85);text-transform:uppercase;letter-spacing:.06em;">🌱 ${f.name}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.description||''}</div>
         </div>
         <div class="banner-pill" style="font-size:11px;color:rgba(${acR},${acG},${acB},.85);background:rgba(${acR},${acG},${acB},.12);border:1px solid rgba(${acR},${acG},${acB},.25);">${pillText}</div>
         ${doneBtn}
@@ -926,7 +926,7 @@ class AhaWeatherCard extends HTMLElement {
     if (type.startsWith('storm')) {
       const lightCol=type==='storm-night'?'rgba(180,200,255,0.95)':'rgba(255,245,200,0.92)';
       const interval=type==='storm-night'?'10s':'12s';
-      lightning=`<div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;pointer-events:none;z-index:4;">
+      lightning=`<div style="position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;z-index:4;">
         <div style="position:absolute;top:10%;left:30%;width:180px;height:80px;border-radius:50%;
           background:radial-gradient(circle,${lightCol.replace('0.95','0.20').replace('0.92','0.18')} 0%,transparent 70%);
           filter:blur(20px);animation:wc-charge ${interval} infinite;"></div>
@@ -951,7 +951,7 @@ class AhaWeatherCard extends HTMLElement {
         animation:wc-mirage-drift 4.5s ease-in-out infinite;"></div>`;
     }
     if (type==='blizzard') {
-      iceCornerGlow=`<div style="position:absolute;inset:0;pointer-events:none;z-index:1;border-radius:24px;
+      iceCornerGlow=`<div style="position:absolute;inset:0;pointer-events:none;z-index:1;border-radius:20px;
         background:radial-gradient(ellipse at 20% 10%,rgba(120,190,255,0.20) 0%,rgba(90,200,250,0.06) 40%,transparent 62%);
         animation:wc-ice-glow 3.0s ease-in-out infinite;"></div>`;
     }
@@ -1076,39 +1076,39 @@ class AhaWeatherCard extends HTMLElement {
       @keyframes breathe          {0%,100%{opacity:1}50%{opacity:.75}}
       @keyframes breathe-slow     {0%,100%{opacity:1}50%{opacity:.80}}
       @keyframes ring-pulse       {0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.3);opacity:0}}
-      @keyframes wc-fire-border   {0%,100%{box-shadow:0 0 0 0 rgba(255,80,0,0);}50%{box-shadow:0 0 0 6px rgba(255,80,0,0.24),0 0 28px rgba(255,60,0,0.18);}}
-      @keyframes wc-bliz-border   {0%,100%{box-shadow:0 0 0 0 rgba(174,228,248,0);}50%{box-shadow:0 0 0 5px rgba(174,228,248,0.22),0 0 22px rgba(100,180,255,0.14);}}
+      @keyframes wc-fire-border   {0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,0);}50%{box-shadow:0 0 0 6px rgba(226,75,74,0.22);}}
+      @keyframes wc-bliz-border   {0%,100%{box-shadow:0 0 0 0 rgba(174,228,248,0);}50%{box-shadow:0 0 0 5px rgba(174,228,248,0.18);}}
       @keyframes wc-storm-border  {0%,93%{box-shadow:none;}94%{box-shadow:0 0 0 3px rgba(255,215,50,0.28);}95%{box-shadow:none;}96%{box-shadow:0 0 0 3px rgba(255,215,50,0.16);}97%,100%{box-shadow:none;}}
-      @keyframes wc-aurora-border {0%,100%{box-shadow:0 0 0 0 rgba(0,200,100,0);}50%{box-shadow:0 0 0 4px rgba(0,200,100,0.16),0 0 22px rgba(120,0,220,0.12);}}
-      @keyframes wc-frz-border    {0%,100%{box-shadow:0 0 0 0 rgba(100,200,255,0);}50%{box-shadow:0 0 0 4px rgba(100,200,255,0.18);}}
+      @keyframes wc-aurora-border {0%,100%{box-shadow:0 0 0 0 rgba(0,200,100,0);}50%{box-shadow:0 0 0 5px rgba(0,200,100,0.18);}}
+      @keyframes wc-frz-border    {0%,100%{box-shadow:0 0 0 0 rgba(100,200,255,0);}50%{box-shadow:0 0 0 5px rgba(100,200,255,0.18);}}
       @keyframes wc-heat-hue      {0%,100%{filter:hue-rotate(0deg);}50%{filter:hue-rotate(6deg);}}
       @keyframes wc-mirage-drift  {0%,100%{opacity:0;transform:scaleX(0.85);}45%{opacity:1;transform:scaleX(1.08);}90%{opacity:0;transform:scaleX(1.0);}}
       @keyframes wc-ice-glow      {0%,100%{opacity:.07;}50%{opacity:.19;}}
 
       .card {
         background: ${bg};
-        border-radius: 24px;
+        border-radius: 20px;
         padding: 18px 18px 16px;
         position: relative;
         overflow: hidden;
         min-height: 190px;
         display: flex;
         flex-direction: column;
-        ${hasFertilToday ? 'border:1.5px solid rgba(80,200,90,.40);' : ''}
+        ${hasFertilToday ? 'border:1.5px solid rgba(151,196,89,.40);' : ''}
         ${type==='extreme-heat'  ? 'animation:wc-fire-border 2.2s ease-in-out infinite,wc-heat-hue 3.5s ease-in-out infinite;' : ''}
         ${type==='blizzard'      ? 'animation:wc-bliz-border 3.5s ease-in-out infinite;' : ''}
         ${type==='storm-night'   ? 'animation:wc-storm-border 10s ease-out infinite;' : ''}
-        ${type==='aurora'        ? 'animation:wc-aurora-border 5.0s ease-in-out infinite;' : ''}
-        ${type==='freezing-rain' ? 'animation:wc-frz-border 4.0s ease-in-out infinite;' : ''}
+        ${type==='aurora'        ? 'animation:wc-aurora-border 3.5s ease-in-out infinite;' : ''}
+        ${type==='freezing-rain' ? 'animation:wc-frz-border 3.5s ease-in-out infinite;' : ''}
       }
       .content { position:relative; z-index:10; display:flex; flex-direction:column; flex:1; }
       .header  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
-      .station { font-size:11px; font-weight:600; color:rgba(255,255,255,.28); letter-spacing:.02em; }
+      .station { font-size:11px; font-weight:600; color:rgba(255,255,255,0.48); letter-spacing:.02em; }
       .header-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
       .pill { display:inline-flex; align-items:center; padding:3px 9px 3px 8px;
               border-radius:20px; font-size:10px; font-weight:600; letter-spacing:.02em;
               white-space:nowrap; line-height:1.4; }
-      .time-label { font-size:10px; font-weight:500; color:rgba(255,255,255,.20); }
+      .time-label { font-size:10px; font-weight:500; color:rgba(255,255,255,0.48); }
 
       .middle { flex:1; display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:14px; }
       .temp-block { display:flex; flex-direction:column; justify-content:center; gap:0; }
@@ -1116,28 +1116,28 @@ class AhaWeatherCard extends HTMLElement {
         ${type==='extreme-heat'  ? 'text-shadow:0 0 30px rgba(255,120,0,0.80);' : ''}
         ${type==='blizzard'||type==='freezing-rain' ? 'filter:drop-shadow(0 0 12px rgba(150,220,255,0.80));' : ''}
         ${type==='storm-night'   ? 'text-shadow:0 0 18px rgba(160,200,255,0.60);' : ''} }
-      .feels-row  { font-size:12px; font-weight:500; color:rgba(255,255,255,.30); margin-top:6px; letter-spacing:.01em; }
+      .feels-row  { font-size:12px; font-weight:500; color:rgba(255,255,255,0.48); margin-top:6px; letter-spacing:.01em; }
       .trend-row  { font-size:11px; font-weight:600; color:${trendCol}; margin-top:3px; letter-spacing:.01em; }
       .icon-wrap  { width:52px; height:52px; display:flex; align-items:center; justify-content:center; opacity:.88; margin-top:2px; }
 
       .footer { display:flex; align-items:center; justify-content:center;
                 padding-top:8px; border-top:1px solid rgba(255,255,255,0.07); flex-wrap:wrap; gap:2px; }
-      .stat-chip { font-size:11px; font-weight:500; color:rgba(255,255,255,.38); white-space:nowrap; }
-      .stat-sep  { color:rgba(255,255,255,.13); font-size:10px; margin:0 5px; }
+      .stat-chip { font-size:11px; font-weight:500; color:rgba(255,255,255,0.48); white-space:nowrap; }
+      .stat-sep  { color:rgba(255,255,255,0.48); font-size:10px; margin:0 5px; }
 
       .bat-warn { position:absolute; bottom:10px; right:14px; font-size:10px;
-                  font-weight:600; color:#FF9F0A; z-index:10; letter-spacing:.01em; }
+                  font-weight:600; color:#EF9F27; z-index:10; letter-spacing:.01em; }
 
       /* ── banners ────────────────────────────────────────────────────────── */
       .banner {
         margin-left:-18px; margin-right:-18px; margin-bottom:-16px;
-        border-radius:0 0 24px 24px; position:relative; overflow:hidden;
+        border-radius:0 0 20px 20px; position:relative; overflow:hidden;
       }
       .banner.today    { padding:12px 18px 16px; margin-top:10px; }
       .banner.tomorrow { padding:11px 18px 14px; margin-top:10px; }
       .banner.urgent   { padding:10px 18px 13px; margin-top:10px; }
       .banner.normal   { padding:10px 18px 12px; margin-top:11px; border-top:1px solid rgba(255,255,255,.07); }
-      .banner-bg     { position:absolute; inset:0; animation:breathe 1.2s ease-in-out infinite; }
+      .banner-bg     { position:absolute; inset:0; animation:breathe 2.0s ease-in-out infinite; }
       .banner-inner  { position:relative; z-index:1; display:flex; align-items:center; gap:10px; }
       .banner-text   { flex:1; min-width:0; }
       .banner-icon   { width:34px; height:34px; border-radius:50%; flex-shrink:0;
@@ -1146,9 +1146,9 @@ class AhaWeatherCard extends HTMLElement {
       .banner-pill   { font-size:12px; font-weight:600; padding:4px 10px;
                        border-radius:10px; white-space:nowrap; flex-shrink:0; }
       .icon-ring     { position:absolute; inset:-4px; border-radius:50%; border:2px solid;
-                       animation:ring-pulse 1.2s ease-in-out infinite; }
-      .pulse         { animation:breathe 1.2s ease-in-out infinite; }
-      .pulse-slow    { animation:breathe-slow 1.8s ease-in-out infinite; }
+                       animation:ring-pulse 2.0s ease-in-out infinite; }
+      .pulse         { animation:breathe 2.0s ease-in-out infinite; }
+      .pulse-slow    { animation:breathe-slow 2.5s ease-in-out infinite; }
     `;
 
     this.shadowRoot.innerHTML = `

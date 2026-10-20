@@ -77,10 +77,11 @@ class SzamboFinanceCard extends HTMLElement {
         :host { display: block; }
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 18px;
+          border-radius: 20px;
           padding: 16px 18px;
           box-sizing: border-box;
-          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
+          border: 1px solid rgba(255,255,255,0.08);
           -webkit-font-smoothing: antialiased;
         }
         .header {
@@ -89,12 +90,12 @@ class SzamboFinanceCard extends HTMLElement {
         }
         .header-ic {
           width: 30px; height: 30px; border-radius: 9px;
-          background: rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.05);
           display: flex; align-items: center; justify-content: center;
-          color: #8E8E93;
+          color: rgba(255,255,255,0.62);
         }
-        .header-title { font-size: 13px; font-weight: 500; color: #AEAEB2; flex: 1; }
-        .header-cost  { font-size: 11px; color: #636366; }
+        .header-title { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.62); flex: 1; }
+        .header-cost  { font-size: 11px; color: rgba(255,255,255,0.48); }
 
         .body { display: flex; align-items: center; gap: 18px; }
 
@@ -122,25 +123,25 @@ class SzamboFinanceCard extends HTMLElement {
           /* prawa połowa = Dom2 */
         }
 
-        .arc { transition: opacity .2s; }
+        .arc { transition: opacity .15s; }
         .arc.faded   { opacity: .2; }
         .arc.hovered { opacity: 1; filter: brightness(1.15); }
 
         .legend { display: flex; gap: 12px; }
         .legend-item { display: flex; align-items: center; gap: 4px; }
         .legend-dot  { width: 7px; height: 7px; border-radius: 50%; }
-        .legend-lbl  { font-size: 10px; color: #636366; }
+        .legend-lbl  { font-size: 10px; color: rgba(255,255,255,0.48); }
 
         .receipt {
           flex: 1;
-          border-left: .5px solid #3A3A3C;
+          border-left: .5px solid rgba(255,255,255,0.08);
           padding-left: 16px;
         }
         .receipt-row {
           display: flex; align-items: center; justify-content: space-between;
           padding: 8px 0;
-          border-bottom: .5px dashed #3A3A3C;
-          transition: opacity .2s;
+          border-bottom: .5px dashed rgba(255,255,255,0.10);
+          transition: opacity .15s;
           cursor: default;
         }
         .receipt-row.faded   { opacity: .3; }
@@ -148,7 +149,7 @@ class SzamboFinanceCard extends HTMLElement {
 
         .receipt-left { display: flex; flex-direction: column; gap: 2px; }
         .receipt-name { font-size: 13px; color: #fff; font-weight: 500; }
-        .receipt-sub  { font-size: 10px; color: #636366; }
+        .receipt-sub  { font-size: 10px; color: rgba(255,255,255,0.48); }
         .receipt-val  { font-size: 16px; font-weight: 600; }
 
         .receipt-total {
@@ -156,7 +157,7 @@ class SzamboFinanceCard extends HTMLElement {
           padding: 10px 0 0;
         }
         .receipt-total-lbl {
-          font-size: 11px; color: #636366;
+          font-size: 11px; color: rgba(255,255,255,0.48);
           text-transform: uppercase; letter-spacing: .4px; font-weight: 500;
         }
         .receipt-total-val {
@@ -181,7 +182,7 @@ class SzamboFinanceCard extends HTMLElement {
           <div class="chart-col">
             <div class="chart-wrap">
               <svg viewBox="0 0 100 100" width="96" height="96">
-                <circle cx="50" cy="50" r="${R}" fill="none" stroke="#3A3A3C" stroke-width="16"/>
+                <circle cx="50" cy="50" r="${R}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="16"/>
                 <circle id="arc1" class="arc" cx="50" cy="50" r="${R}" fill="none"
                   stroke="${CLR_D1}" stroke-width="16"
                   stroke-dasharray="${d1arc.toFixed(1)} ${d2arc.toFixed(1)}"
@@ -196,7 +197,7 @@ class SzamboFinanceCard extends HTMLElement {
                   font-size="14" font-weight="600" fill="#fff"
                   font-family="-apple-system,sans-serif">${cost}</text>
                 <text x="50" y="58" text-anchor="middle"
-                  font-size="8" fill="#636366"
+                  font-size="8" fill="rgba(255,255,255,0.48)"
                   font-family="-apple-system,sans-serif">z\u0142</text>
               </svg>
 

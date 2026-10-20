@@ -151,11 +151,11 @@ class EntriesAppleCard extends HTMLElement {
   }
 
   _avatarImg(entry, size, border, shadow = false) {
-    const shadowStyle = shadow ? 'box-shadow:0 4px 12px rgba(0,0,0,0.3), 0 0 20px rgba(255,149,0,0.2);' : 'box-shadow:0 2px 6px rgba(0,0,0,0.15);';
+    const shadowStyle = '';
     const s = `width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${border};${shadowStyle}transition:transform 0.2s cubic-bezier(0.4,0,0.2,1);`;
     return entry.picture
       ? `<img style="${s}" src="${entry.picture}" alt="${entry.name}">`
-      : `<div style="${s}background:linear-gradient(135deg,#3A3A3C 0%,#2C2C2E 100%);display:flex;align-items:center;justify-content:center;color:#8E8E93;">${_ICON_PERSON}</div>`;
+      : `<div style="${s}background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;color:#8E8E93;">${_ICON_PERSON}</div>`;
   }
 
   _render() {
@@ -196,12 +196,12 @@ class EntriesAppleCard extends HTMLElement {
       const time     = group[0].timeLabel;
 
       // Dynamiczne kolory akcent ów — recent = żywy, old = wygaszony
-      const accentColor = isFirst ? '#FF9500' : age === 1 ? '#8E8E93' : '#636366';
+      const accentColor = isFirst ? '#EF9F27' : age === 1 ? '#8E8E93' : '#636366';
       const dotSize     = isFirst ? 13 : 10;
-      const dotGlow     = isFirst ? 'box-shadow:0 0 12px rgba(255,149,0,0.6), 0 0 24px rgba(255,149,0,0.3);' : '';
+      const dotGlow     = '';
 
       const avSize   = isFirst ? 48 : 38;
-      const avBorder = isFirst ? '#FF9500' : '#48484A';
+      const avBorder = isFirst ? '#EF9F27' : '#48484A';
       const avShadow = isFirst;
       const rowH     = isFirst ? ROW_H_FIRST : ROW_H_OTHER;
 
@@ -246,29 +246,15 @@ class EntriesAppleCard extends HTMLElement {
         }
 
         .card {
-          background: linear-gradient(145deg, rgba(28,28,30,0.95) 0%, rgba(18,18,20,0.98) 100%);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
+          background: ${(window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)'};
           border-radius: 20px;
           padding: 18px;
           box-sizing: border-box;
-          font-family: -apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
           border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
           position: relative;
           overflow: hidden;
-        }
-
-        .card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
-          pointer-events: none;
         }
 
         .header {
@@ -282,27 +268,20 @@ class EntriesAppleCard extends HTMLElement {
           width: 32px;
           height: 32px;
           border-radius: 10px;
-          background: linear-gradient(135deg, rgba(255,149,0,0.15) 0%, rgba(255,149,0,0.08) 100%);
-          border: 1px solid rgba(255,149,0,0.2);
+          background: linear-gradient(135deg, rgba(239,159,39,0.15) 0%, rgba(239,159,39,0.08) 100%);
+          border: 1px solid rgba(239,159,39,0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #FF9500;
-          box-shadow: 0 2px 8px rgba(255,149,0,0.15);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .header-ic:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(255,149,0,0.25);
+          color: #EF9F27;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .header-title {
           font-size: 15px;
           font-weight: 600;
           letter-spacing: -0.2px;
-          color: rgba(255,255,255,0.95);
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+          color: rgba(255,255,255,0.94);
         }
 
         .tl {
@@ -317,7 +296,7 @@ class EntriesAppleCard extends HTMLElement {
           bottom: 20px;
           width: 2px;
           background: linear-gradient(180deg,
-            rgba(255,149,0,0.4) 0%,
+            rgba(239,159,39,0.4) 0%,
             rgba(142,142,147,0.3) 30%,
             rgba(99,99,102,0.2) 70%,
             transparent 100%);
@@ -342,7 +321,7 @@ class EntriesAppleCard extends HTMLElement {
           position: absolute;
           left: -24px;
           border-radius: 50%;
-          border: 2.5px solid rgba(28,28,30,0.95);
+          border: 2.5px solid #0c1424;
           flex-shrink: 0;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -361,17 +340,16 @@ class EntriesAppleCard extends HTMLElement {
           display: flex;
           align-items: center;
           flex-shrink: 0;
-          border-radius: 50px;
+          border-radius: 99px;
           padding: 3px 8px 3px 3px;
-          background: rgba(255,149,0,0.08);
-          border: 1.5px solid rgba(255,149,0,0.3);
+          background: rgba(239,159,39,0.08);
+          border: 1.5px solid rgba(239,159,39,0.3);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .av-group.recent {
-          background: rgba(255,149,0,0.12);
-          border-color: rgba(255,149,0,0.5);
-          box-shadow: 0 4px 12px rgba(255,149,0,0.2);
+          background: rgba(239,159,39,0.12);
+          border-color: rgba(239,159,39,0.5);
         }
 
         .tl-info {
@@ -410,7 +388,7 @@ class EntriesAppleCard extends HTMLElement {
         .tl-sub {
           font-size: 11px;
           font-weight: 500;
-          color: rgba(255,149,0,0.7);
+          color: rgba(239,159,39,0.7);
           margin-top: 2px;
           letter-spacing: 0.1px;
         }
@@ -428,8 +406,7 @@ class EntriesAppleCard extends HTMLElement {
         .tl-time.latest {
           font-size: 13px;
           font-weight: 500;
-          color: #FF9500;
-          text-shadow: 0 0 8px rgba(255,149,0,0.3);
+          color: #EF9F27;
         }
 
         .toggle-btn {
@@ -438,11 +415,9 @@ class EntriesAppleCard extends HTMLElement {
           justify-content: center;
           gap: 6px;
           margin: 12px auto 0;
-          background: linear-gradient(135deg, rgba(44,44,46,0.8) 0%, rgba(58,58,60,0.6) 100%);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 24px;
+          border-radius: 99px;
           color: rgba(174,174,178,0.95);
           font-size: 13px;
           font-weight: 500;
@@ -450,21 +425,17 @@ class EntriesAppleCard extends HTMLElement {
           padding: 8px 16px;
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .toggle-btn:hover {
-          background: linear-gradient(135deg, rgba(58,58,60,0.9) 0%, rgba(72,72,74,0.7) 100%);
+          background: rgba(255,255,255,0.08);
           border-color: rgba(255,255,255,0.15);
           color: rgba(255,255,255,0.95);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .toggle-btn:active {
-          transform: translateY(0);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          transform: scale(0.98);
         }
       </style>
       <div class="card">

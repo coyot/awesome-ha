@@ -17,7 +17,7 @@ const SW_STYLES = `
 
   @keyframes sw-pulse {
     0%,100% { box-shadow: 0 0 0 0   rgba(255,214,10,0); }
-    50%     { box-shadow: 0 0 0 6px rgba(255,214,10,0.12); }
+    50%     { box-shadow: 0 0 0 5px rgba(255,214,10,0.18); }
   }
   .card {
     width: 100%; aspect-ratio: 1 / 1;
@@ -48,18 +48,20 @@ const SW_STYLES = `
   }
 
   .glow {
-    position: absolute; inset: 0;
+    position: absolute; inset: 0; border-radius: 19px;
     pointer-events: none; transition: background .4s ease;
   }
 
-  /* ── State text — under icon ── */
+  /* ── Etykieta stanu — jak w kontaktronie: absolutna u góry, nie przesuwa ikony ── */
   .state-text {
-    text-align: center; font-size: 10px; font-weight: 600;
-    padding-bottom: 2px; position: relative; z-index: 2; flex-shrink: 0;
-    transition: color .4s ease;
+    position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
+    text-align: center; pointer-events: none;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    transition: color .4s ease, opacity .4s ease;
   }
-  .off .state-text { color: rgba(255,255,255,0.28); }
-  .on  .state-text { color: #FFD60A; }
+  .off .state-text { opacity: 0; }
+  .on  .state-text { opacity: 1; color: rgba(255,214,10,0.90); }
 
   /* ── Icon area — jak kontaktron ── */
   .icon-area {
@@ -67,7 +69,7 @@ const SW_STYLES = `
     position: relative; z-index: 2;
   }
   .icon-bg {
-    width: 42px; height: 42px; border-radius: 13px;
+    width: 42px; height: 42px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
     transition: background .4s ease;
   }
@@ -148,12 +150,12 @@ class AhaSwitchSocketCard extends HTMLElement {
     this._card.className = 'card off';
     this._card.innerHTML = `
       <div class="glow"></div>
+      <div class="state-text">wyłączone</div>
       <div class="icon-area">
         <div class="icon-bg">
           <div class="icon-inner"></div>
         </div>
       </div>
-      <div class="state-text">wyłączone</div>
       <div class="name">—</div>
     `;
 

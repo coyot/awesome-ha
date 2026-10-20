@@ -165,7 +165,7 @@ const RS_STYLES = `
   }
   .rs-badge {
     font-size: 11px;
-    color: #636366;
+    color: rgba(255,255,255,0.48);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -236,7 +236,7 @@ const RS_STYLES = `
   }
   .rs-sect-state-txt {
     font-size: 11px;
-    color: #636366;
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
     transition: color 0.25s;
     white-space: nowrap;
@@ -246,7 +246,7 @@ const RS_STYLES = `
 
   /* Chevron */
   .rs-sect-chevron {
-    color: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.48);
     flex-shrink: 0;
     display: flex; align-items: center;
     transition: color 0.2s;
@@ -342,7 +342,7 @@ const RS_STYLES = `
   }
   .rs-status {
     font-size: 11px;
-    color: #636366;
+    color: rgba(255,255,255,0.48);
     margin-top: 1px;
   }
   .rs-status.open { color: rgba(133,183,235,0.75); }
@@ -380,7 +380,7 @@ const RS_STYLES = `
   .rs-group-label {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.48);
   }
   .rs-seg {
     display: flex;

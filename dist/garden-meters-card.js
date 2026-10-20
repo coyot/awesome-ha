@@ -170,7 +170,7 @@ class GardenMetersCard extends HTMLElement {
           border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .header-title {
-          font-size: 11px; font-weight: 700; color: #636366;
+          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.48);
           letter-spacing: .08em; text-transform: uppercase;
         }
 

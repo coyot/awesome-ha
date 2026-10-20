@@ -1,15 +1,196 @@
 kiosk_mode:
   non_admin_settings:
     hide_sidebar: true
+button_card_templates:
+  aha_nav_tile:
+    show_name: false
+    show_icon: false
+    show_state: false
+    tap_action:
+      action: navigate
+      navigation_path: "[[[ return variables.path ]]]"
+    styles:
+      card:
+        - background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%)
+        - border-radius: 16px
+        - padding: 10px 6px 9px
+        - box-shadow: none
+        - font-family: -apple-system, system-ui, sans-serif
+        - transition: transform 0.15s ease, border-color 0.4s ease
+        - border: >
+            [[[ const l=variables.level; return l==='alert'?'1px solid rgba(226,75,74,0.55)':l==='warn'?'1px solid rgba(239,159,39,0.45)':l==='work'?'1px solid rgba(151,196,89,0.45)':'0.5px solid rgba(255,255,255,0.08)'; ]]]
+        - animation: >
+            [[[ const l=variables.level; return l==='alert'?'aha-nav-pulse-err 2.4s ease-in-out infinite':l==='work'?'aha-nav-pulse-work 3s ease-in-out infinite':'none'; ]]]
+      grid:
+        - grid-template-areas: '"i" "n" "s"'
+        - grid-template-rows: auto auto auto
+        - justify-items: center
+        - row-gap: 3px
+    extra_styles: |
+      ha-card:active { transform: scale(0.97); }
+      @keyframes aha-nav-pulse-err { 0%,100% { box-shadow: 0 0 0 0 rgba(226,75,74,0); } 50% { box-shadow: 0 0 0 5px rgba(226,75,74,0.18); } }
+      @keyframes aha-nav-pulse-work { 0%,100% { box-shadow: 0 0 0 0 rgba(151,196,89,0); } 50% { box-shadow: 0 0 0 5px rgba(151,196,89,0.18); } }
+    custom_fields:
+      i: |
+        [[[ return `<ha-icon icon="${variables.icon}" style="--mdc-icon-size:22px;color:rgba(255,255,255,0.85)"></ha-icon>`; ]]]
+      n: |
+        [[[ return `<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.75)">${variables.title}</div>`; ]]]
+      s: |
+        [[[ const l=variables.level; const c=l==='alert'?'#E24B4A':l==='warn'?'#EF9F27':l==='work'?'#97C459':'rgba(255,255,255,0.5)';
+            return `<div style="font-size:10px;font-weight:${l==='ok'?500:600};color:${c};font-variant-numeric:tabular-nums;white-space:nowrap">${variables.status}</div>`; ]]]
 views:
   - type: sections
     sections:
       - type: grid
         cards:
+          - type: custom:aha-briefing-card
+            weather_entity: weather.forecast_home
+            temp_entity: sensor.stacja_pogodowa_outdoor_temperature
+            feels_entity: sensor.stacja_pogodowa_feels_like_temperature
+            wind_entity: sensor.stacja_pogodowa_wind_speed
+            forecast_entity: sensor.forecast_hourly_json
+            rain_entity: sensor.stacja_pogodowa_daily_rain_piezo
+            people:
+              - name: Tomek
+                entity: device_tracker.iphone_tk
+                battery_entity: sensor.iphone_tk_battery_level
+                working_entity: input_boolean.tk_is_working
+              - name: Monika
+                entity: device_tracker.iphone_monika
+                battery_entity: sensor.iphone_monika_battery_level
+            fertilizations:
+              - date: "2026-04-16"
+                name: YaraMila Complex
+                description: >
+                  Trawnik — YaraMila Complex, ok. 25-30 g/m². Nawóz
+                  wieloskładnikowy NPK na start sezonu.
+              - date: "2026-05-13"
+                name: Saletra amonowa + superfosfat
+                description: >
+                  Trawnik — saletra amonowa ok. 15-20 g/m² + superfosfat
+                  wzbogacony ok. 20-30 g/m². Mocne nawożenie azotowo-fosforowe
+                  po wiosennym starcie.
+              - date: "2026-05-26"
+                name: Oprysk regeneracyjny
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l wody + siarczan magnezu
+                  100-150 g / 10 l + siarczan żelaza 20-30 g / 10 l. Oprysk
+                  wieczorem, bez upału.
+              - date: "2026-06-15"
+                name: Nawóz letni azotowo-potasowy
+                description: >
+                  Trawnik — nawóz NPK ok. 18-6-12 lub 20-5-10, dawka 25-30 g/m².
+                  Cel: zagęszczenie, intensywna zieleń, regeneracja po
+                  użytkowaniu.
+              - date: "2026-06-22"
+                name: Optysil + magnez
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu
+                  100-150 g / 10 l. Poprawa odporności na suszę i deptanie.
+              - date: "2026-07-10"
+                name: Potas + lekki azot
+                description: >
+                  Trawnik — siarczan potasu 10-15 g/m² + lekki nawóz azotowy ok.
+                  5-10 g N/m². Wzmocnienie odporności mechanicznej i odporności
+                  na suszę.
+              - date: "2026-07-18"
+                name: Żelazo + Optysil
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan żelaza 20-30
+                  g / 10 l. Efekt ciemnozielonego trawnika i poprawa kondycji.
+              - date: "2026-08-05"
+                name: Nawóz długo działający
+                description: >
+                  Trawnik — nawóz długo działający NPK ok. 15-5-15 lub 16-5-12 +
+                  Fe + Mg, dawka 25 g/m². Kluczowe nawożenie pod gęstość i
+                  regenerację.
+              - date: "2026-08-16"
+                name: Optysil sierpniowy
+                description: >
+                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu 100 g
+                  / 10 l. Przygotowanie trawnika do końcówki lata.
+              - date: "2026-09-01"
+                name: Nawóz jesienny
+                description: >
+                  Trawnik — nawóz jesienny z wysokim potasem, NPK ok. 6-10-20
+                  lub 0-8-20, dawka 25-30 g/m². Bez mocnego azotu.
+              - date: "2026-09-15"
+                name: Żelazo jesienne
+                description: >
+                  Lekki oprysk: siarczan żelaza 20 g / 10 l + siarczan magnezu
+                  100 g / 10 l. Poprawa koloru i ograniczenie mchu.
+              - date: "2026-10-05"
+                name: Ostatnie nawożenie jesienne
+                description: >
+                  Trawnik — nawóz jesienny potasowy, dawka 15-20 g/m². Ostatnie
+                  nawożenie przed zimą.
+            waste:
+              - entity: sensor.harmonogram_bio
+                name: Bio
+                color: "#4CAF50"
+              - entity: sensor.harmonogram_segregowane
+                name: Segregowane
+                color: "#FF9800"
+              - entity: sensor.harmonogram_zmieszane
+                name: Zmieszane
+                color: "#78909C"
+              - entity: sensor.harmonogram_gabaryty
+                name: Gabaryty
+                color: "#9C27B0"
+            days_fertilization: 14
+            days_waste: 3
+            szambo:
+              entity: sensor.szambo_zuzycie
+              capacity: 10
+              warn_pct: 75
+          - type: grid
+            columns: 4
+            square: false
+            cards:
+              - type: custom:button-card
+                template: aha_nav_tile
+                variables:
+                  title: Parter
+                  icon: mdi:home-outline
+                  path: /dashboard-dom/parter
+                  status: |
+                    [[[ const f=v=>isNaN(v)?'—':v.toFixed(1).replace('.',',')+'°';const o=c=>c.filter(e=>states[e]&&states[e].state==='open').length;const c=['cover.rollershutter_0001','cover.rollershutter_0002','cover.rollershutter_0003','cover.rollershutter_0004','cover.rollershutter_0005'];return f(parseFloat(states['sensor.termometr_salon_temperature']?.state))+' · '+o(c)+'/'+c.length; ]]]
+                  level: |
+                    [[[ return 'ok'; ]]]
+              - type: custom:button-card
+                template: aha_nav_tile
+                variables:
+                  title: Piętro
+                  icon: mdi:home-floor-1
+                  path: /dashboard-dom/pietro
+                  status: |
+                    [[[ const f=v=>isNaN(v)?'—':v.toFixed(1).replace('.',',')+'°';const o=c=>c.filter(e=>states[e]&&states[e].state==='open').length;const t=['sensor.nenek_temperature','sensor.lazienka_gora_temperature','sensor.sypialnia_temperature','sensor.biuro_temperature','sensor.termometr_strychowy_temperature','sensor.nowy_temperature'].map(e=>parseFloat(states[e]?.state)).filter(v=>!isNaN(v));const c=['cover.rollershutter_0008','cover.rollershutter_0009','cover.rollershutter_000a','cover.rollershutter_000b','cover.rollershutter_000c','cover.rollershutter_000d'];return f(t.reduce((a,b)=>a+b,0)/t.length)+' · '+o(c)+'/'+c.length; ]]]
+                  level: |
+                    [[[ return 'ok'; ]]]
+              - type: custom:button-card
+                template: aha_nav_tile
+                variables:
+                  title: Ogród
+                  icon: mdi:flower-outline
+                  path: /dashboard-dom/ogrod
+                  status: |
+                    [[[ const s=states['lawn_mower.kosiarka']?.state;const m={mowing:'kosi',docked:'w bazie',returning:'wraca',paused:'pauza',error:'błąd'};const b=states['sensor.kosiarka_battery']?.state;return (m[s]||s||'—')+(b&&!isNaN(b)?' · '+Math.round(b)+'%':''); ]]]
+                  level: |
+                    [[[ const s=states['lawn_mower.kosiarka']?.state;return s==='error'?'alert':(s==='mowing'||s==='returning')?'work':'ok'; ]]]
+              - type: custom:button-card
+                template: aha_nav_tile
+                variables:
+                  title: Szambo
+                  icon: mdi:delete-outline
+                  path: /dashboard-dom/szambo
+                  status: |
+                    [[[ const v=parseFloat(states['sensor.szambo_zuzycie']?.state);return isNaN(v)?'—':Math.round(v/10*100)+'%'; ]]]
+                  level: |
+                    [[[ const v=parseFloat(states['sensor.szambo_zuzycie']?.state);return v>=9?'alert':v>=7?'warn':'ok'; ]]]
           - type: heading
-            heading: Automatyka
+            heading: Szybkie akcje
             heading_style: subtitle
-            icon: mdi:robot
+            icon: mdi:gesture-tap
           - type: custom:aha-action-apple-card
             entity: script.otworz_wjazd
             name: Otwórz bramę wjazdową
@@ -19,7 +200,8 @@ views:
               - entity: input_boolean.pergola_auto
                 color: "#30B0FF"
               - entity: input_boolean.tk_is_working
-                color: "#FF453A"
+                name: Tomek w pracy
+                color: "#5DCAA5"
               - entity: input_boolean.tryb_noc
                 color: "#A86AC2"
                 confirm_sensor_class:
@@ -43,45 +225,13 @@ views:
             orbs_entity: switch.ogrod_lampy0
             spot_entity: switch.ogrod_lampy1
             entry_lamp_entity: switch.living_room_lampa_wejscie
-          - type: custom:button-card
-            show_name: false
-            show_icon: false
-            show_state: false
-            variables:
-              title: Pogoda
-              icon: 🌤️
-              path: /dashboard-dom/pogoda
+          - type: heading
+            heading: Pogoda
+            heading_style: title
+            icon: mdi:weather-partly-cloudy
             tap_action:
               action: navigate
-              navigation_path: "[[[ return variables.path ]]]"
-            styles:
-              card:
-                - background: transparent
-                - border: none
-                - padding: 4px 0
-                - box-shadow: none
-              grid:
-                - grid-template-areas: "\"icon title pill\""
-                - grid-template-columns: auto 1fr auto
-                - align-items: center
-                - gap: 8px
-            custom_fields:
-              icon: |
-                [[[
-                  return `<div style="font-size:18px">${variables.icon}</div>`
-                ]]]
-              title: |
-                [[[
-                  return `<div style="font-size:15px;font-weight:500;color:#888780;text-align:left">${variables.title}</div>`
-                ]]]
-              pill: |
-                [[[
-                  return `
-                    <div style="display:flex;align-items:center;gap:6px;background:#2C2C2A;border:0.5px solid #444441;border-radius:99px;padding:6px 14px">
-                      <span style="font-size:12px;font-weight:500;color:#888780;white-space:nowrap">przejdź do panelu</span>
-                      <span style="font-size:12px;color:#888780">→</span>
-                    </div>`
-                ]]]
+              navigation_path: /dashboard-dom/pogoda
           - square: true
             type: grid
             columns: 2
@@ -1339,145 +1489,13 @@ views:
                 color: "#636366"
       - type: grid
         cards:
-          - type: custom:aha-briefing-card
-            weather_entity: weather.forecast_home
-            temp_entity: sensor.stacja_pogodowa_outdoor_temperature
-            feels_entity: sensor.stacja_pogodowa_feels_like_temperature
-            wind_entity: sensor.stacja_pogodowa_wind_speed
-            forecast_entity: sensor.forecast_hourly_json
-            rain_entity: sensor.stacja_pogodowa_daily_rain_piezo
-            people:
-              - name: Tomek
-                entity: device_tracker.iphone_tk
-                battery_entity: sensor.iphone_tk_battery_level
-                working_entity: input_boolean.tk_is_working
-              - name: Monika
-                entity: device_tracker.iphone_monika
-                battery_entity: sensor.iphone_monika_battery_level
-            fertilizations:
-              - date: "2026-04-16"
-                name: YaraMila Complex
-                description: >
-                  Trawnik — YaraMila Complex, ok. 25-30 g/m². Nawóz
-                  wieloskładnikowy NPK na start sezonu.
-              - date: "2026-05-13"
-                name: Saletra amonowa + superfosfat
-                description: >
-                  Trawnik — saletra amonowa ok. 15-20 g/m² + superfosfat
-                  wzbogacony ok. 20-30 g/m². Mocne nawożenie azotowo-fosforowe
-                  po wiosennym starcie.
-              - date: "2026-05-26"
-                name: Oprysk regeneracyjny
-                description: >
-                  Oprysk dolistny: Optysil 50 ml / 10 l wody + siarczan magnezu
-                  100-150 g / 10 l + siarczan żelaza 20-30 g / 10 l. Oprysk
-                  wieczorem, bez upału.
-              - date: "2026-06-15"
-                name: Nawóz letni azotowo-potasowy
-                description: >
-                  Trawnik — nawóz NPK ok. 18-6-12 lub 20-5-10, dawka 25-30 g/m².
-                  Cel: zagęszczenie, intensywna zieleń, regeneracja po
-                  użytkowaniu.
-              - date: "2026-06-22"
-                name: Optysil + magnez
-                description: >
-                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu
-                  100-150 g / 10 l. Poprawa odporności na suszę i deptanie.
-              - date: "2026-07-10"
-                name: Potas + lekki azot
-                description: >
-                  Trawnik — siarczan potasu 10-15 g/m² + lekki nawóz azotowy ok.
-                  5-10 g N/m². Wzmocnienie odporności mechanicznej i odporności
-                  na suszę.
-              - date: "2026-07-18"
-                name: Żelazo + Optysil
-                description: >
-                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan żelaza 20-30
-                  g / 10 l. Efekt ciemnozielonego trawnika i poprawa kondycji.
-              - date: "2026-08-05"
-                name: Nawóz długo działający
-                description: >
-                  Trawnik — nawóz długo działający NPK ok. 15-5-15 lub 16-5-12 +
-                  Fe + Mg, dawka 25 g/m². Kluczowe nawożenie pod gęstość i
-                  regenerację.
-              - date: "2026-08-16"
-                name: Optysil sierpniowy
-                description: >
-                  Oprysk dolistny: Optysil 50 ml / 10 l + siarczan magnezu 100 g
-                  / 10 l. Przygotowanie trawnika do końcówki lata.
-              - date: "2026-09-01"
-                name: Nawóz jesienny
-                description: >
-                  Trawnik — nawóz jesienny z wysokim potasem, NPK ok. 6-10-20
-                  lub 0-8-20, dawka 25-30 g/m². Bez mocnego azotu.
-              - date: "2026-09-15"
-                name: Żelazo jesienne
-                description: >
-                  Lekki oprysk: siarczan żelaza 20 g / 10 l + siarczan magnezu
-                  100 g / 10 l. Poprawa koloru i ograniczenie mchu.
-              - date: "2026-10-05"
-                name: Ostatnie nawożenie jesienne
-                description: >
-                  Trawnik — nawóz jesienny potasowy, dawka 15-20 g/m². Ostatnie
-                  nawożenie przed zimą.
-            waste:
-              - entity: sensor.harmonogram_bio
-                name: Bio
-                color: "#4CAF50"
-              - entity: sensor.harmonogram_segregowane
-                name: Segregowane
-                color: "#FF9800"
-              - entity: sensor.harmonogram_zmieszane
-                name: Zmieszane
-                color: "#78909C"
-              - entity: sensor.harmonogram_gabaryty
-                name: Gabaryty
-                color: "#9C27B0"
-            days_fertilization: 14
-            days_waste: 3
-            szambo:
-              entity: sensor.szambo_zuzycie
-              capacity: 10
-              warn_pct: 75
-          - type: custom:button-card
-            show_name: false
-            show_icon: false
-            show_state: false
-            variables:
-              title: Salon
-              icon: 🛋️
-              path: /dashboard-dom/1
+          - type: heading
+            heading: Salon
+            heading_style: title
+            icon: mdi:sofa-outline
             tap_action:
               action: navigate
-              navigation_path: "[[[ return variables.path ]]]"
-            styles:
-              card:
-                - background: transparent
-                - border: none
-                - padding: 4px 0
-                - box-shadow: none
-              grid:
-                - grid-template-areas: "\"icon title pill\""
-                - grid-template-columns: auto 1fr auto
-                - align-items: center
-                - gap: 8px
-            custom_fields:
-              icon: |
-                [[[
-                  return `<div style="font-size:18px">${variables.icon}</div>`
-                ]]]
-              title: |
-                [[[
-                  return `<div style="font-size:15px;font-weight:500;color:#888780;text-align:left">${variables.title}</div>`
-                ]]]
-              pill: |
-                [[[
-                  return `
-                    <div style="display:flex;align-items:center;gap:6px;background:#2C2C2A;border:0.5px solid #444441;border-radius:99px;padding:6px 14px">
-                      <span style="font-size:12px;font-weight:500;color:#888780;white-space:nowrap">przejdź do panelu</span>
-                      <span style="font-size:12px;color:#888780">→</span>
-                    </div>`
-                ]]]
+              navigation_path: /dashboard-dom/parter
           - square: false
             type: grid
             columns: 1
@@ -1505,48 +1523,17 @@ views:
               total_area: sensor.wariat_total_cleaning_area
               total_time: sensor.wariat_total_cleaning_time
               total_count: sensor.wariat_total_cleaning_count
-          - type: custom:button-card
-            show_name: false
-            show_icon: false
-            show_state: false
-            variables:
-              title: Szambo
-              icon: 🪣
-              path: /dashboard-dom/3
+          - type: heading
+            heading: Szambo
+            heading_style: title
+            icon: mdi:water-outline
             tap_action:
               action: navigate
-              navigation_path: "[[[ return variables.path ]]]"
-            styles:
-              card:
-                - background: transparent
-                - border: none
-                - padding: 4px 0
-                - box-shadow: none
-              grid:
-                - grid-template-areas: "\"icon title pill\""
-                - grid-template-columns: auto 1fr auto
-                - align-items: center
-                - gap: 8px
-            custom_fields:
-              icon: |
-                [[[
-                  return `<div style="font-size:18px">${variables.icon}</div>`
-                ]]]
-              title: |
-                [[[
-                  return `<div style="font-size:15px;font-weight:500;color:#888780;text-align:left">${variables.title}</div>`
-                ]]]
-              pill: |
-                [[[
-                  return `
-                    <div style="display:flex;align-items:center;gap:6px;background:#2C2C2A;border:0.5px solid #444441;border-radius:99px;padding:6px 14px">
-                      <span style="font-size:12px;font-weight:500;color:#888780;white-space:nowrap">przejdź do panelu</span>
-                      <span style="font-size:12px;color:#888780">→</span>
-                    </div>`
-                ]]]
+              navigation_path: /dashboard-dom/szambo
           - type: vertical-stack
             cards:
               - type: custom:aha-szambo-predict-card
+                suppress_when_plan: true
                 slim: true
                 entity_current: sensor.szambo_zuzycie
                 entity_rate: sensor.szambo_przyrost_dzienny
@@ -1568,7 +1555,6 @@ views:
                 entity_stale: binary_sensor.ogrod_dane_nieaktualne
       - type: grid
         cards:
-          - type: custom:aha-solar-clock-card
           - type: custom:aha-log-history-card
     max_columns: 4
     icon: mdi:home
@@ -4604,7 +4590,7 @@ views:
     header: {}
   - type: sections
     max_columns: 4
-    title: parter
+    title: Parter
     path: parter
     icon: mdi:home-floor-0
     sections:
@@ -5534,16 +5520,14 @@ views:
                 humidity_entity: sensor.termometr_salon_humidity
                 battery_entity: sensor.termometr_salon_battery
                 room_type: salon
-                min_temp: 16
-                max_temp: 32
+                profile: indoor
               - type: custom:aha-temp-gauge-card
                 name: Salon/Kuchnia
                 temp_entity: sensor.salon_big_temperature
                 humidity_entity: sensor.salon_big_humidity
                 battery_entity: sensor.salon_big_battery
                 room_type: kitchen
-                min_temp: 16
-                max_temp: 32
+                profile: indoor
               - type: custom:aha-switch-socket-card
                 entity: switch.porecz_klatka_schodowa_socket_1
               - type: custom:aha-switch-socket-card
@@ -5687,16 +5671,14 @@ views:
                 humidity_entity: sensor.garaz_humidity
                 battery_entity: sensor.garaz_battery
                 room_type: garaz
-                min_temp: 5
-                max_temp: 35
+                profile: outdoor
               - type: custom:aha-temp-gauge-card
                 name: Pergola
                 temp_entity: sensor.pergola_new_temperature
                 humidity_entity: sensor.pergola_new_humidity
                 battery_entity: sensor.pergola_new_battery
                 room_type: pergola
-                min_temp: -1
-                max_temp: 35
+                profile: outdoor
               - type: custom:aha-kontaktron-card
                 entity: binary_sensor.garaz
                 name: Garaż
@@ -5717,8 +5699,7 @@ views:
                 humidity_entity: sensor.domek_ogrodowy_humidity
                 battery_entity: sensor.domek_ogrodowy_battery
                 room_type: home
-                min_temp: -10
-                max_temp: 40
+                profile: outdoor
               - type: custom:aha-kontaktron-card
                 entity: binary_sensor.domek_ogrodowy
                 name: Domek ogrodowy
@@ -5751,7 +5732,7 @@ views:
             room: Taras
   - type: sections
     max_columns: 4
-    title: pietro
+    title: Piętro
     path: pietro
     icon: mdi:home-floor-1
     sections:
@@ -5825,56 +5806,49 @@ views:
                 humidity_entity: sensor.nenek_humidity
                 battery_entity: sensor.nenek_battery
                 room_type: pokoj_dzieciecy
-                min_temp: 15
-                max_temp: 30
+                profile: indoor
               - type: custom:aha-temp-gauge-card
                 name: Łazienka
                 temp_entity: sensor.lazienka_gora_temperature
                 humidity_entity: sensor.lazienka_gora_humidity
                 battery_entity: sensor.lazienka_gora_battery
                 room_type: lazienka
-                min_temp: 14
-                max_temp: 32
+                profile: indoor
               - type: custom:aha-temp-gauge-card
                 name: Sypialnia
                 temp_entity: sensor.sypialnia_temperature
                 humidity_entity: sensor.sypialnia_humidity
                 battery_entity: sensor.sypialnia_battery
                 room_type: sypialnia
-                min_temp: 14
-                max_temp: 32
+                profile: indoor
               - type: custom:aha-temp-gauge-card
                 name: Biuro
                 temp_entity: sensor.biuro_temperature
                 humidity_entity: sensor.biuro_humidity
                 battery_entity: sensor.biuro_battery
                 room_type: biuro
-                min_temp: 14
-                max_temp: 32
+                profile: indoor
               - type: custom:aha-temp-gauge-card
                 name: Strychowy
                 temp_entity: sensor.termometr_strychowy_temperature
                 humidity_entity: sensor.termometr_strychowy_humidity
                 battery_entity: sensor.termometr_strychowy_battery
                 room_type: room
-                min_temp: 15
-                max_temp: 30
+                profile: indoor
               - type: custom:aha-temp-gauge-card
                 name: Strych
                 temp_entity: sensor.strych_temperature
                 humidity_entity: sensor.strych_humidity
                 battery_entity: sensor.strych_battery
                 room_type: lazienka
-                min_temp: 15
-                max_temp: 38
+                profile: outdoor
               - type: custom:aha-temp-gauge-card
                 name: Nowy
                 temp_entity: sensor.nowy_temperature
                 humidity_entity: sensor.nowy_humidity
                 battery_entity: sensor.nowy_battery
                 room_type: room
-                min_temp: 20
-                max_temp: 30
+                profile: indoor
               - type: custom:aha-switch-socket-card
                 entity: switch.biuro
               - type: custom:aha-switch-socket-card
@@ -5896,8 +5870,9 @@ views:
             columns: 4
   - type: sections
     max_columns: 4
+    title: Szambo
     icon: mdi:emoticon-poop
-    path: ""
+    path: szambo
     sections:
       - type: grid
         cards:
@@ -6251,7 +6226,7 @@ views:
                     label:
                       text: 9m³ pilne
                   - "y": 10
-                    borderColor: "#000000"
+                    borderColor: "#E24B4A"
                     label:
                       text: 10m³ pełne
             series:
@@ -6262,9 +6237,10 @@ views:
               - entity: sensor.szambo_prognoza
                 name: Prognoza 📈
                 stroke_width: 3
-                color: "#000000"
-                opacity: 0.6
+                color: "rgba(255,255,255,0.55)"
+                opacity: 1
                 curve: smooth
+                stroke_dash: 4
               - entity: sensor.szambo_dom_1_zuzycie
                 name: Dom 49/1 🏠
                 stroke_width: 2

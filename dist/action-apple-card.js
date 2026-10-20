@@ -305,11 +305,12 @@ class ActionAppleCard extends HTMLElement {
     const gp = this._getGatePhase();   // null | {phase, progress, remaining}
     const gateActive = gp && gp.phase !== 'closed';
 
-    /* kolory fazy bramy */
+    /* kolory fazy bramy — paleta ACCENT (HEAT = ruch bramy, WORK = otwarta) */
+    const A = (window.AHA && window.AHA.ACCENT) || { WORK: '#97C459', INFO: '#85B7EB', HEAT: '#EF9F27', ERROR: '#E24B4A' };
     const GATE_COLORS = {
-      opening: { icon: '#F5A623', icBg: 'linear-gradient(135deg,rgba(245,166,35,0.20) 0%,rgba(200,140,20,0.25) 100%)', icBorder: 'rgba(245,166,35,0.30)', label: 'rgba(245,166,35,0.95)', barGrad: '#F5A623,#FFC060', pulse: 'gate-pulse-amber' },
-      open:    { icon: '#30D158', icBg: 'linear-gradient(135deg,rgba(48,209,88,0.20) 0%,rgba(35,160,65,0.25) 100%)',  icBorder: 'rgba(48,209,88,0.30)',   label: 'rgba(48,209,88,0.95)',   barGrad: '#30D158,#5AE080', pulse: '' },
-      closing: { icon: '#FF9F0A', icBg: 'linear-gradient(135deg,rgba(255,159,10,0.20) 0%,rgba(200,120,0,0.25) 100%)', icBorder: 'rgba(255,159,10,0.30)', label: 'rgba(255,159,10,0.95)', barGrad: '#FF9F0A,#FFB830', pulse: 'gate-pulse-orange' },
+      opening: { icon: A.HEAT, icBg: 'rgba(239,159,39,0.16)', icBorder: 'rgba(239,159,39,0.30)', label: 'rgba(239,159,39,0.95)', barGrad: `${A.HEAT},#F5B95A`, pulse: 'gate-pulse-heat' },
+      open:    { icon: A.WORK, icBg: 'rgba(151,196,89,0.16)', icBorder: 'rgba(151,196,89,0.30)', label: 'rgba(151,196,89,0.95)', barGrad: `${A.WORK},#B3D884`, pulse: '' },
+      closing: { icon: A.HEAT, icBg: 'rgba(239,159,39,0.16)', icBorder: 'rgba(239,159,39,0.30)', label: 'rgba(239,159,39,0.95)', barGrad: `${A.HEAT},#F5B95A`, pulse: 'gate-pulse-heat' },
     };
     const gc = gateActive ? GATE_COLORS[gp.phase] : null;
 
@@ -341,14 +342,12 @@ class ActionAppleCard extends HTMLElement {
     const subLabel = isNav ? (cfg.subtitle ?? 'otwórz panel') : null;
 
     /* kolory zależne od warunku / stanu bramy */
-    const idleColor      = gc ? gc.icon  : isDanger ? '#FF453A'              : '#8E8E93';
-    const hoverColor     = gc ? gc.icon  : isDanger ? '#FF3B30'              : '#F5A623';
-    const hoverGlow      = gc ? `${gc.icon}b3` : isDanger ? 'rgba(255,59,48,0.7)'  : 'rgba(245,166,35,0.7)';
-    const hoverShadow    = gc ? `${gc.icon}40` : isDanger ? 'rgba(255,59,48,0.25)' : 'rgba(245,166,35,0.25)';
-    const icBg           = isDanger ? '#3A1212'                       : '#242424';
-    const icBorderTop    = isDanger ? '#5A2020'                       : '#404040';
+    const idleColor      = gc ? gc.icon  : isDanger ? A.ERROR : '#8E8E93';
+    const hoverColor     = gc ? gc.icon  : isDanger ? A.ERROR : A.HEAT;
+    const SURFACE = (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const TILE    = (window.AHA && window.AHA.THEME && window.AHA.THEME.TILE) || 'rgba(255,255,255,0.05)';
 
-    const navIconHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5AC8FA" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+    const navIconHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${A.INFO}" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
     const checkHTML   = `
       <svg width="${isCompact ? 11 : 14}" height="${isCompact ? 11 : 14}" viewBox="0 0 24 24" fill="none">
         <polyline class="check-path" points="4,12 10,18 20,6"
@@ -372,28 +371,14 @@ class ActionAppleCard extends HTMLElement {
           0%   { transform: scale(0); opacity: 0.22; }
           100% { transform: scale(3.5); opacity: 0; }
         }
+        /* alarm: 6px / 0.22, ruch bramy: 5px / 0.18 — bez rozmytego glow */
         @keyframes action-danger-pulse {
-          0%, 100% {
-            box-shadow: 0 0 0 0 rgba(255,59,48,0),
-                        0 4px 16px rgba(0,0,0,0.2);
-          }
-          50% {
-            box-shadow: 0 0 0 4px rgba(255,59,48,0.3),
-                        0 0 20px rgba(255,59,48,0.4),
-                        0 4px 16px rgba(0,0,0,0.3);
-          }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(226,75,74,0); }
+          50%      { box-shadow: 0 0 0 6px rgba(226,75,74,0.22); }
         }
-        @keyframes action-glow {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-        @keyframes gate-pulse-amber {
-          0%,100% { box-shadow: 0 0 0 0 rgba(245,166,35,0), 0 4px 16px rgba(0,0,0,0.2); }
-          50%     { box-shadow: 0 0 0 4px rgba(245,166,35,0.22), 0 0 20px rgba(245,166,35,0.30), 0 4px 16px rgba(0,0,0,0.3); }
-        }
-        @keyframes gate-pulse-orange {
-          0%,100% { box-shadow: 0 0 0 0 rgba(255,159,10,0), 0 4px 16px rgba(0,0,0,0.2); }
-          50%     { box-shadow: 0 0 0 4px rgba(255,159,10,0.22), 0 0 20px rgba(255,159,10,0.30), 0 4px 16px rgba(0,0,0,0.3); }
+        @keyframes gate-pulse-heat {
+          0%,100% { box-shadow: 0 0 0 0 rgba(239,159,39,0); }
+          50%     { box-shadow: 0 0 0 5px rgba(239,159,39,0.18); }
         }
 
         :host { display: block; }
@@ -430,18 +415,14 @@ class ActionAppleCard extends HTMLElement {
         }
 
         .outer {
-          border-radius: ${isCompact ? '52px' : cfg.pill ? '102px' : '20px'};
+          border-radius: ${isCompact || cfg.pill ? '99px' : '20px'};
           padding: 0;
           background: transparent;
         }
 
         .card {
-          background: linear-gradient(145deg,
-            rgba(56,56,58,0.95) 0%,
-            rgba(44,44,46,0.98) 100%);
-          backdrop-filter: blur(30px);
-          -webkit-backdrop-filter: blur(30px);
-          border-radius: ${isCompact ? '50px' : cfg.pill ? '100px' : '18px'};
+          background: ${SURFACE};
+          border-radius: ${isCompact || cfg.pill ? '99px' : '20px'};
           padding: ${isNav ? '18px 20px' : isCompact ? '10px 14px' : '15px 18px'};
           display: flex;
           align-items: center;
@@ -454,39 +435,15 @@ class ActionAppleCard extends HTMLElement {
           -webkit-tap-highlight-color: transparent;
           box-sizing: border-box;
           border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.2),
-                      0 2px 4px rgba(0,0,0,0.1),
-                      inset 0 1px 0 rgba(255,255,255,0.1);
           ${gc?.pulse ? `animation: ${gc.pulse} 2.0s ease-in-out infinite;` : isDanger ? 'animation: action-danger-pulse 2.5s ease-in-out infinite;' : ''}
         }
 
-        .card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255,255,255,0.15) 50%,
-            transparent 100%);
-          pointer-events: none;
-        }
-
         .card:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(0,0,0,0.3),
-                      0 2px 8px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.12);
           border-color: rgba(255,255,255,0.12);
         }
 
         .card:active {
-          transform: translateY(0) scale(0.98);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2),
-                      0 1px 2px rgba(0,0,0,0.1),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
+          transform: scale(0.98);
         }
 
         .card.fired {
@@ -512,21 +469,20 @@ class ActionAppleCard extends HTMLElement {
           animation: action-ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* kafelek ikony — TILE, radius 12 */
         .ic {
           width: ${isNav ? '52px' : isCompact ? '36px' : '48px'};
           height: ${isNav ? '52px' : isCompact ? '36px' : '48px'};
-          border-radius: ${isNav ? '16px' : isCompact ? '11px' : '14px'};
+          border-radius: ${isCompact ? '10px' : '12px'};
           background: ${gc ? gc.icBg : isDanger
-            ? 'linear-gradient(135deg, rgba(58,18,18,0.8) 0%, rgba(44,14,14,0.9) 100%)'
+            ? 'rgba(226,75,74,0.14)'
             : isNav
-              ? 'linear-gradient(135deg, rgba(28,42,58,0.6) 0%, rgba(18,32,48,0.8) 100%)'
-              : 'linear-gradient(135deg, rgba(58,58,60,0.6) 0%, rgba(44,44,46,0.8) 100%)'};
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+              ? 'rgba(133,183,235,0.10)'
+              : TILE};
           border: 1px solid ${gc ? gc.icBorder : isDanger
-            ? 'rgba(255,59,48,0.2)'
+            ? 'rgba(226,75,74,0.25)'
             : isNav
-              ? 'rgba(90,200,250,0.15)'
+              ? 'rgba(133,183,235,0.15)'
               : 'rgba(255,255,255,0.08)'};
           display: flex;
           align-items: center;
@@ -534,53 +490,27 @@ class ActionAppleCard extends HTMLElement {
           color: ${idleColor};
           flex-shrink: 0;
           position: relative;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-
-        .ic::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: radial-gradient(circle at 30% 30%,
-            ${isDanger
-              ? 'rgba(255,69,58,0.15)'
-              : isNav
-                ? 'rgba(90,200,250,0.1)'
-                : 'rgba(255,255,255,0.05)'} 0%,
-            transparent 70%);
-          pointer-events: none;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .card:hover .ic {
           color: ${hoverColor};
           background: ${isDanger
-            ? 'linear-gradient(135deg, rgba(255,59,48,0.25) 0%, rgba(200,40,35,0.3) 100%)'
+            ? 'rgba(226,75,74,0.22)'
             : isNav
-              ? 'linear-gradient(135deg, rgba(90,200,250,0.2) 0%, rgba(60,170,230,0.25) 100%)'
-              : 'linear-gradient(135deg, rgba(245,166,35,0.2) 0%, rgba(220,150,30,0.25) 100%)'};
+              ? 'rgba(133,183,235,0.18)'
+              : 'rgba(239,159,39,0.16)'};
           border-color: ${isDanger
-            ? 'rgba(255,59,48,0.4)'
+            ? 'rgba(226,75,74,0.40)'
             : isNav
-              ? 'rgba(90,200,250,0.3)'
-              : 'rgba(245,166,35,0.3)'};
-          box-shadow: 0 0 20px ${hoverShadow},
-                      0 0 40px ${hoverShadow},
-                      0 4px 12px rgba(0,0,0,0.2),
-                      inset 0 1px 0 rgba(255,255,255,0.15);
-          transform: scale(1.05);
+              ? 'rgba(133,183,235,0.30)'
+              : 'rgba(239,159,39,0.30)'};
         }
 
         .card.fired .ic {
-          background: ${isNav
-            ? 'linear-gradient(135deg, rgba(90,200,250,0.35) 0%, rgba(60,170,230,0.4) 100%)'
-            : 'linear-gradient(135deg, rgba(255,224,158,0.9) 0%, rgba(255,200,100,0.95) 100%)'};
-          color: ${isNav ? '#5AC8FA' : '#8B5A00'};
-          border-color: ${isNav ? 'rgba(90,200,250,0.5)' : 'rgba(255,200,100,0.6)'};
-          box-shadow: 0 0 24px ${isNav ? 'rgba(90,200,250,0.4)' : 'rgba(245,166,35,0.5)'},
-                      0 4px 12px rgba(0,0,0,0.2);
+          background: ${isNav ? 'rgba(133,183,235,0.28)' : 'rgba(239,159,39,0.85)'};
+          color: ${isNav ? A.INFO : '#3A2400'};
+          border-color: ${isNav ? 'rgba(133,183,235,0.5)' : 'rgba(239,159,39,0.6)'};
           transform: scale(1);
         }
 
@@ -593,14 +523,13 @@ class ActionAppleCard extends HTMLElement {
           font-size: ${isNav ? '17px' : isCompact ? '14px' : '15px'};
           font-weight: ${isNav ? '600' : '500'};
           letter-spacing: ${isNav ? '-0.4px' : '-0.3px'};
-          color: rgba(255,255,255,0.98);
-          font-family: -apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          color: rgba(255,255,255,0.94);
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          transition: color 0.2s ease;
+          transition: color 0.15s ease;
         }
 
         .card:hover .title {
@@ -611,69 +540,42 @@ class ActionAppleCard extends HTMLElement {
           font-size: 12px;
           font-weight: 500;
           letter-spacing: -0.1px;
-          color: #5AC8FA;
+          color: ${A.INFO};
           margin-top: 3px;
           display: flex;
           align-items: center;
           gap: 5px;
-          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
-          text-shadow: 0 0 8px rgba(90,200,250,0.3);
         }
 
         .badge {
           width: ${isNav ? '34px' : isCompact ? '24px' : '30px'};
           height: ${isNav ? '34px' : isCompact ? '24px' : '30px'};
           border-radius: 50%;
-          background: ${isNav
-            ? 'linear-gradient(135deg, rgba(28,42,58,0.8) 0%, rgba(18,32,48,0.95) 100%)'
-            : 'linear-gradient(135deg, rgba(58,58,60,0.6) 0%, rgba(44,44,46,0.8) 100%)'};
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1px solid ${isNav ? 'rgba(90,200,250,0.15)' : 'rgba(255,255,255,0.08)'};
+          background: ${isNav ? 'rgba(133,183,235,0.10)' : TILE};
+          border: 1px solid ${isNav ? 'rgba(133,183,235,0.15)' : 'rgba(255,255,255,0.08)'};
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15),
-                      inset 0 1px 0 rgba(255,255,255,0.08);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
         }
 
-        .badge::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: radial-gradient(circle at 40% 30%,
-            ${isNav ? 'rgba(90,200,250,0.15)' : 'rgba(255,255,255,0.08)'} 0%,
-            transparent 70%);
-          pointer-events: none;
-        }
-
         .card:hover .badge {
-          transform: scale(1.08);
-          box-shadow: 0 0 12px ${isNav ? 'rgba(90,200,250,0.25)' : 'rgba(245,166,35,0.2)'},
-                      0 2px 8px rgba(0,0,0,0.2),
-                      inset 0 1px 0 rgba(255,255,255,0.12);
-          border-color: ${isNav ? 'rgba(90,200,250,0.3)' : 'rgba(245,166,35,0.2)'};
+          border-color: ${isNav ? 'rgba(133,183,235,0.3)' : 'rgba(239,159,39,0.25)'};
         }
 
         .card.fired .badge {
-          background: ${isNav
-            ? 'linear-gradient(135deg, rgba(90,200,250,0.35) 0%, rgba(60,170,230,0.4) 100%)'
-            : 'linear-gradient(135deg, rgba(52,199,89,0.9) 0%, rgba(40,180,70,0.95) 100%)'};
-          border-color: ${isNav ? 'rgba(90,200,250,0.5)' : 'rgba(52,199,89,0.6)'};
-          box-shadow: 0 0 20px ${isNav ? 'rgba(90,200,250,0.5)' : 'rgba(52,199,89,0.6)'},
-                      0 2px 8px rgba(0,0,0,0.2);
+          background: ${isNav ? 'rgba(133,183,235,0.30)' : 'rgba(151,196,89,0.85)'};
+          border-color: ${isNav ? 'rgba(133,183,235,0.5)' : 'rgba(151,196,89,0.6)'};
           transform: scale(1);
         }
 
         .check-path {
           stroke-dasharray: 30;
           stroke-dashoffset: 30;
-          filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
         }
 
         .card.fired .check-path {
@@ -688,7 +590,7 @@ class ActionAppleCard extends HTMLElement {
           <div class="texts">
             <div class="title">${name}</div>
             ${isNav ? `<div class="sub">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="#5AC8FA">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="${A.INFO}">
                 <path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
               </svg>
               ${subLabel}
@@ -698,7 +600,7 @@ class ActionAppleCard extends HTMLElement {
               <div class="gate-bar"><div class="gate-bar-fill" style="width:${gateBarPct.toFixed(1)}%;background:linear-gradient(90deg,${gc.barGrad});"></div></div>
             ` : ''}
           </div>
-          <div class="badge" style="${gateActive ? `background:${gc.icBg};border-color:${gc.icBorder};box-shadow:0 0 14px ${gc.icon}50,0 2px 8px rgba(0,0,0,0.2);` : ''}">
+          <div class="badge" style="${gateActive ? `background:${gc.icBg};border-color:${gc.icBorder};` : ''}">
             ${gateActive
               ? `<span class="gate-count" style="color:${gc.icon};">${gateCountSec}</span>`
               : (isNav ? navIconHTML : checkHTML)
@@ -759,41 +661,30 @@ class ActionAppleCard extends HTMLElement {
         }
       </style>
       <div class="action-modal" style="
-        background:linear-gradient(145deg, rgba(44,44,46,0.95) 0%, rgba(28,28,30,0.98) 100%);
-        backdrop-filter:blur(40px);
-        -webkit-backdrop-filter:blur(40px);
-        border-radius:24px;
+        background:${(window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)'};
+        border-radius:20px;
         padding:28px 24px 20px;
         width:300px;
         box-sizing:border-box;
         border:1px solid rgba(255,255,255,0.1);
-        box-shadow:0 20px 60px rgba(0,0,0,0.5),
-                   0 8px 24px rgba(0,0,0,0.3),
-                   inset 0 1px 0 rgba(255,255,255,0.1);
         text-align:center;
       ">
         <div style="
           width:56px;height:56px;border-radius:50%;
-          background:linear-gradient(135deg, rgba(255,149,0,0.2) 0%, rgba(200,110,0,0.25) 100%);
-          backdrop-filter:blur(10px);
-          -webkit-backdrop-filter:blur(10px);
-          border:1px solid rgba(255,149,0,0.3);
+          background:rgba(239,159,39,0.16);
+          border:1px solid rgba(239,159,39,0.3);
           display:flex;align-items:center;justify-content:center;
           margin:0 auto 18px;
-          box-shadow:0 0 20px rgba(255,149,0,0.3),
-                     0 4px 12px rgba(0,0,0,0.2),
-                     inset 0 1px 0 rgba(255,255,255,0.15);
         ">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF9F27" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/>
-            <circle cx="12" cy="17" r="0.5" fill="#FF9500"/>
+            <circle cx="12" cy="17" r="0.5" fill="#EF9F27"/>
           </svg>
         </div>
         <div style="
           font-size:17px;font-weight:600;letter-spacing:-0.4px;
           color:rgba(255,255,255,0.98);margin-bottom:8px;
-          text-shadow:0 1px 2px rgba(0,0,0,0.3);
         ">${msg}</div>
         <div style="
           font-size:13px;font-weight:400;letter-spacing:-0.1px;
@@ -802,28 +693,20 @@ class ActionAppleCard extends HTMLElement {
         ">Tej akcji nie można cofnąć.</div>
         <div style="display:flex;gap:10px;">
           <button id="conf-cancel" class="action-btn" style="
-            flex:1;padding:14px;border-radius:14px;border:none;cursor:pointer;
-            background:linear-gradient(135deg, rgba(58,58,60,0.8) 0%, rgba(44,44,46,0.9) 100%);
-            backdrop-filter:blur(10px);
-            -webkit-backdrop-filter:blur(10px);
+            flex:1;padding:14px;border-radius:12px;border:none;cursor:pointer;
+            background:rgba(255,255,255,0.05);
             color:rgba(174,174,178,0.95);
             font-size:15px;font-weight:500;letter-spacing:-0.2px;
             font-family:inherit;
             border:1px solid rgba(255,255,255,0.08);
-            box-shadow:0 2px 8px rgba(0,0,0,0.2),
-                       inset 0 1px 0 rgba(255,255,255,0.08);
           ">${cancel}</button>
           <button id="conf-ok" class="action-btn" style="
-            flex:1;padding:14px;border-radius:14px;border:none;cursor:pointer;
-            background:linear-gradient(135deg, #FF9500 0%, #E68600 100%);
+            flex:1;padding:14px;border-radius:12px;border:none;cursor:pointer;
+            background:#EF9F27;
             color:#fff;
             font-size:15px;font-weight:600;letter-spacing:-0.2px;
             font-family:inherit;
-            border:1px solid rgba(255,170,50,0.4);
-            box-shadow:0 0 20px rgba(255,149,0,0.3),
-                       0 4px 12px rgba(0,0,0,0.3),
-                       inset 0 1px 0 rgba(255,255,255,0.2);
-            text-shadow:0 1px 2px rgba(0,0,0,0.2);
+            border:1px solid rgba(239,159,39,0.4);
           ">${confirm}</button>
         </div>
       </div>

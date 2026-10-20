@@ -49,7 +49,7 @@ class TelecoCard extends HTMLElement {
     const f  = ([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
     const body  = [[x1-px,y1-py],[x2-px,y2-py],[x2+px,y2+py],[x1+px,y1+py]].map(f).join(' ');
     const shine = [[x1-px*.3,y1-py*.3],[x2-px*.3,y2-py*.3],[x2+px*.12,y2+py*.12],[x1+px*.12,y1+py*.12]].map(f).join(' ');
-    const c = color || 'rgba(255,159,10,.88)';
+    const c = color || 'rgba(239,159,39,.88)';
     return `<polygon points="${body}" fill="${c}"/>
       <polygon points="${shine}" fill="rgba(255,255,255,.22)"/>
       <circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="2.2" fill="rgba(0,0,0,.55)" stroke="${c}" stroke-width=".9"/>
@@ -86,18 +86,18 @@ class TelecoCard extends HTMLElement {
       :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
       /* ── glow wrapper ── */
-      .glow{ border-radius:18px; transition:box-shadow .5s ease; }
+      .glow{ border-radius:20px; transition:box-shadow .5s ease; }
       .glow.on{
         box-shadow:
-          0 0 0 1px rgba(255,159,10,.22),
-          0 0 18px 2px rgba(255,159,10,.14),
-          0 0 40px 6px rgba(255,159,10,.07);
+          0 0 0 1px rgba(239,159,39,.22),
+          0 0 18px 2px rgba(239,159,39,.14),
+          0 0 40px 6px rgba(239,159,39,.07);
       }
 
       /* ── card ── */
       .card{
         background:linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
-        border-radius:18px;
+        border-radius:20px;
         padding:14px 16px 16px;
         position:relative;
         overflow:hidden;
@@ -125,9 +125,9 @@ class TelecoCard extends HTMLElement {
         color:rgba(255,255,255,.90);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       }
-      .room{font-size:11px;color:#636366;font-weight:400}
+      .room{font-size:11px;color:rgba(255,255,255,0.48);font-weight:400}
       .status{
-        font-size:11px;color:#636366;
+        font-size:11px;color:rgba(255,255,255,0.48);
         margin-top:3px;min-height:14px;
         transition:color .3s;
       }
@@ -138,7 +138,7 @@ class TelecoCard extends HTMLElement {
         line-height:1;font-variant-numeric:tabular-nums;
         transition:color .3s;
       }
-      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,.28)}
+      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,0.48)}
 
       /* ── progress bar ── */
       .track{
@@ -158,7 +158,7 @@ class TelecoCard extends HTMLElement {
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
         border-radius:11px;
         font-size:10px;font-weight:600;
-        color:rgba(255,255,255,.35);
+        color:rgba(255,255,255,0.48);
         background:rgba(255,255,255,.04);
         cursor:pointer;
         border:.5px solid transparent;
@@ -174,9 +174,9 @@ class TelecoCard extends HTMLElement {
       .pill-pct{font-size:11px;font-weight:700;line-height:1}
       .pill-lbl{font-size:9px;font-weight:500;opacity:.7;line-height:1}
       .pill.on{
-        background:rgba(255,159,10,.16);
-        color:#ff9f0a;
-        border-color:rgba(255,159,10,.32);
+        background:rgba(239,159,39,.16);
+        color:#EF9F27;
+        border-color:rgba(239,159,39,.32);
       }
       .pill.pressed{
         background:rgba(255,255,255,.12);
@@ -184,8 +184,8 @@ class TelecoCard extends HTMLElement {
         transform:scale(.94);
       }
       .pill.on.pressed{
-        background:rgba(255,159,10,.28);
-        color:#ff9f0a;
+        background:rgba(239,159,39,.28);
+        color:#EF9F27;
       }
 
       /* ── action buttons ── */
@@ -306,7 +306,7 @@ class TelecoCard extends HTMLElement {
     const dur = 420, t0 = performance.now();
     const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
     const tilt  = this._lastTilt ?? 0;
-    const color = tilt > 0 ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const color = tilt > 0 ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
     const svg   = this.shadowRoot.getElementById('icon');
     const step  = now => {
       const t = Math.min((now - t0) / dur, 1);
@@ -322,8 +322,8 @@ class TelecoCard extends HTMLElement {
     this._lastTilt = tilt;
     const r   = this.shadowRoot;
     const on  = tilt > 0;
-    const acc = on ? '#ff9f0a' : 'rgba(142,142,147,.8)';
-    const slatColor = on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const acc = on ? '#EF9F27' : 'rgba(142,142,147,.8)';
+    const slatColor = on ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
 
     const pctEl    = r.getElementById('pct');
     const statusEl = r.getElementById('status');
@@ -332,12 +332,12 @@ class TelecoCard extends HTMLElement {
     const iconbox  = r.getElementById('iconbox');
 
     if (pctEl)    { pctEl.textContent = tilt; pctEl.style.color = acc; }
-    if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); statusEl.style.color = on ? 'rgba(255,159,10,.70)' : '#636366'; }
-    if (fillEl)   { fillEl.style.width = tilt + '%'; fillEl.style.background = on ? '#ff9f0a' : 'rgba(142,142,147,.4)'; }
+    if (statusEl) { statusEl.textContent = this._label(tilt, pos, st); statusEl.style.color = on ? 'rgba(239,159,39,.70)' : '#636366'; }
+    if (fillEl)   { fillEl.style.width = tilt + '%'; fillEl.style.background = on ? '#EF9F27' : 'rgba(142,142,147,.4)'; }
     if (glowEl)   glowEl.classList.toggle('on', on);
     if (iconbox) {
-      iconbox.style.background = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
-      iconbox.style.border     = `.5px solid ${on ? 'rgba(255,159,10,.20)' : 'rgba(142,142,147,.15)'}`;
+      iconbox.style.background = on ? 'rgba(239,159,39,.10)' : 'rgba(142,142,147,.07)';
+      iconbox.style.border     = `.5px solid ${on ? 'rgba(239,159,39,.20)' : 'rgba(142,142,147,.15)'}`;
     }
 
     r.querySelectorAll('.pill').forEach(b => {

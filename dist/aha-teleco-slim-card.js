@@ -71,16 +71,16 @@ class TelecoSlimCard extends HTMLElement {
   *{box-sizing:border-box;margin:0;padding:0}
   :host{display:block;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}
 
-  .glow{border-radius:14px;transition:box-shadow .5s ease}
+  .glow{border-radius:16px;transition:box-shadow .5s ease}
   .glow.on{
     box-shadow:
-      0 0 0 1px rgba(255,159,10,.18),
-      0 0 14px 2px rgba(255,159,10,.10),
-      0 0 32px 4px rgba(255,159,10,.05);
+      0 0 0 1px rgba(239,159,39,.18),
+      0 0 14px 2px rgba(239,159,39,.10),
+      0 0 32px 4px rgba(239,159,39,.05);
   }
 
   .card{
-    background:linear-gradient(150deg, #0b1120 0%, #0d1828 100%);border-radius:14px;
+    background:linear-gradient(150deg, #0b1120 0%, #0d1828 100%);border-radius:16px;
     padding:11px 12px 9px;
     position:relative;overflow:hidden;
   }
@@ -104,20 +104,20 @@ class TelecoSlimCard extends HTMLElement {
     font-size:13px;font-weight:600;color:rgba(255,255,255,.90);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .status{font-size:10px;color:#636366;margin-top:1px;transition:color .3s}
+  .status{font-size:10px;color:rgba(255,255,255,0.48);margin-top:1px;transition:color .3s}
 
   .pct{
     font-size:19px;font-weight:700;letter-spacing:-.5px;
     font-variant-numeric:tabular-nums;flex-shrink:0;transition:color .3s;
   }
-  .pu{font-size:10px;font-weight:400;color:rgba(255,255,255,.28);margin-left:1px}
+  .pu{font-size:10px;font-weight:400;color:rgba(255,255,255,0.48);margin-left:1px}
 
   .acts{display:flex;gap:4px;flex-shrink:0}
   .act{
     width:28px;height:28px;border-radius:8px;
     display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.08);
-    cursor:pointer;color:rgba(255,255,255,.40);
+    cursor:pointer;color:rgba(255,255,255,0.48);
     transition:color .15s,background .15s,transform .1s;
     -webkit-tap-highlight-color:transparent;user-select:none;
   }
@@ -169,7 +169,7 @@ class TelecoSlimCard extends HTMLElement {
     const start = this._curDeg, diff = target - start;
     const dur = 380, t0 = performance.now();
     const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
-    const color = (this._lastTilt ?? 0) > 0 ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)';
+    const color = (this._lastTilt ?? 0) > 0 ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)';
     const svg   = this.shadowRoot.getElementById('icon');
     const step  = now => {
       const t = Math.min((now - t0) / dur, 1);
@@ -185,28 +185,28 @@ class TelecoSlimCard extends HTMLElement {
     this._lastTilt = tilt;
     const r   = this.shadowRoot;
     const on  = tilt > 0;
-    const acc = on ? '#ff9f0a' : 'rgba(142,142,147,.75)';
+    const acc = on ? '#EF9F27' : 'rgba(142,142,147,.75)';
 
     r.getElementById('pct').textContent    = tilt;
     r.getElementById('pct').style.color    = acc;
     r.getElementById('status').textContent = this._label(tilt, st);
-    r.getElementById('status').style.color = on ? 'rgba(255,159,10,.65)' : '#636366';
+    r.getElementById('status').style.color = on ? 'rgba(239,159,39,.65)' : '#636366';
 
     const fill = r.getElementById('fill');
     fill.style.width      = tilt + '%';
-    fill.style.background = on ? '#ff9f0a' : 'rgba(142,142,147,.35)';
+    fill.style.background = on ? '#EF9F27' : 'rgba(142,142,147,.35)';
 
     r.getElementById('glow').classList.toggle('on', on);
     const ib = r.getElementById('iconbox');
-    ib.style.background  = on ? 'rgba(255,159,10,.10)' : 'rgba(142,142,147,.07)';
-    ib.style.borderColor = on ? 'rgba(255,159,10,.20)'  : 'rgba(142,142,147,.14)';
+    ib.style.background  = on ? 'rgba(239,159,39,.10)' : 'rgba(142,142,147,.07)';
+    ib.style.borderColor = on ? 'rgba(239,159,39,.20)'  : 'rgba(142,142,147,.14)';
 
     const targetDeg = this._deg(tilt);
     if (Math.abs(targetDeg - this._curDeg) > 0.5) {
       this._animateTo(targetDeg);
     } else {
       const svg = r.getElementById('icon');
-      if (svg) svg.innerHTML = this._drawSlat(this._curDeg, on ? 'rgba(255,159,10,.88)' : 'rgba(142,142,147,.65)');
+      if (svg) svg.innerHTML = this._drawSlat(this._curDeg, on ? 'rgba(239,159,39,.88)' : 'rgba(142,142,147,.65)');
     }
   }
 

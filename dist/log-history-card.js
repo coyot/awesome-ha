@@ -44,7 +44,7 @@ const LH_STYLES = `
     background: rgba(255,255,255,0.04);
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.48);
     transition: background .2s ease, color .2s ease, border-color .2s ease;
   }
   .range-btn.active {
@@ -74,7 +74,7 @@ const LH_STYLES = `
     font-weight: 600;
     letter-spacing: .05em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.48);
     padding: 10px 0 8px;
     margin-left: -36px;
   }
@@ -115,7 +115,7 @@ const LH_STYLES = `
   }
   .entry-detail {
     font-size: 11px;
-    color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
     line-height: 1.3;
     white-space: normal;
@@ -129,7 +129,7 @@ const LH_STYLES = `
   }
   .entry-time {
     font-size: 10px;
-    color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.48);
     font-weight: 500;
     white-space: nowrap;
   }
@@ -155,7 +155,7 @@ const LH_STYLES = `
     text-align: center;
     padding: 28px 0;
     font-size: 12px;
-    color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.48);
   }
 
   /* ── Load more ── */
@@ -169,7 +169,7 @@ const LH_STYLES = `
     background: rgba(255,255,255,0.04);
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255,255,255,0.30);
+    color: rgba(255,255,255,0.48);
     text-align: center;
     transition: background .15s ease;
   }

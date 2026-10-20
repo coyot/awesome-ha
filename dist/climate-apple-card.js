@@ -118,7 +118,7 @@ class ClimateAppleCard extends HTMLElement {
     const state    = this._hass.states[entityId];
 
     if (!state) {
-      this.shadowRoot.innerHTML = `<p style="padding:10px;color:#FF3B30;font-family:system-ui;font-size:12px;">Nie znaleziono: ${entityId}</p>`;
+      this.shadowRoot.innerHTML = `<p style="padding:10px;color:#E24B4A;font-family:system-ui;font-size:12px;">Nie znaleziono: ${entityId}</p>`;
       return;
     }
 
@@ -146,7 +146,9 @@ class ClimateAppleCard extends HTMLElement {
 
     const targetTemp = attr.temperature ?? 20;
     const name       = this._config.name ?? attr.friendly_name ?? entityId;
-    const accentClr  = isCooling ? '#32ADE6' : '#FF9500';
+    const A          = (window.AHA && window.AHA.ACCENT) || { INFO: '#85B7EB', HEAT: '#EF9F27', ERROR: '#E24B4A' };
+    const SURFACE    = (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
+    const accentClr  = isCooling ? A.INFO : A.HEAT;
 
     const areaName   = this._getAreaName(entityId);
     const iconPath   = getIconPath(areaName ?? name);
@@ -171,8 +173,9 @@ class ClimateAppleCard extends HTMLElement {
 
         :host { display:block; }
 
+        /* Jedna powierzchnia: navy (AHA.THEME.SURFACE) — wcześniej jasny #E5E5EA w trybie domyślnym */
         .card {
-          border-radius: 18px;
+          border-radius: 20px;
           padding: 12px 14px;
           position: relative;
           overflow: hidden;
@@ -180,24 +183,19 @@ class ClimateAppleCard extends HTMLElement {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          background: #E5E5EA;
-          transition: background-color .5s cubic-bezier(.4,0,.2,1);
-          font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          background: ${SURFACE};
+          border: 1px solid rgba(255,255,255,0.08);
+          transition: border-color .4s cubic-bezier(.4,0,.2,1);
+          font-family: -apple-system, system-ui, sans-serif;
           -webkit-font-smoothing: antialiased;
         }
-        .card.on      { background: #FFE8B8; }
-        .card.cooling { background: #C8E4FF; }
-
-        @media (prefers-color-scheme: dark) {
-          .card         { background: #2C2C2E; }
-          .card.on      { background: #2D1E06; }
-          .card.cooling { background: #0A1A2E; }
-        }
+        .card.heating { border-color: rgba(239,159,39,0.28); }
+        .card.cooling { border-color: rgba(133,183,235,0.28); }
 
         .particles { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
         .pt { position:absolute; border-radius:50%; opacity:0; }
-        .card.heating .pt { background:#FF9500; animation:rise 2.4s ease-out infinite; }
-        .card.cooling .pt { background:#5AC8FA; animation:rise 2.8s ease-out infinite; }
+        .card.heating .pt { background:${A.HEAT}; animation:rise 2.4s ease-out infinite; }
+        .card.cooling .pt { background:${A.INFO}; animation:rise 2.8s ease-out infinite; }
         .pt:nth-child(1) { width:7px;  height:7px;  bottom:14px; left:12%; animation-delay:0s;   }
         .pt:nth-child(2) { width:4px;  height:4px;  bottom:8px;  left:35%; animation-delay:.65s; }
         .pt:nth-child(3) { width:6px;  height:6px;  bottom:18px; left:58%; animation-delay:1.2s; }
@@ -210,56 +208,42 @@ class ClimateAppleCard extends HTMLElement {
           position: relative;
         }
 
+        /* kafelek ikony — TILE, radius 12 */
         .ibadge {
-          width: 34px; height: 34px; border-radius: 10px;
-          background: #1C1C1E;
+          width: 34px; height: 34px; border-radius: 12px;
+          background: rgba(255,255,255,0.05);
           display: flex; align-items: center; justify-content: center;
-          color: #AEAEB2;
+          color: rgba(255,255,255,0.48);
           transition: background-color .4s, color .4s;
           flex-shrink: 0;
         }
-        .card.on .ibadge      { background: #3D2C0A; color: #FFD080; }
-        .card.cooling .ibadge { background: #0C233A; color: #5AC8FA; }
-
-        @media (prefers-color-scheme: dark) {
-          .ibadge               { background: #000; color: #636366; }
-          .card.on .ibadge      { background: #3D2C0A; color: #FFD080; }
-          .card.cooling .ibadge { background: #061628; color: #5AC8FA; }
-        }
+        .card.on .ibadge      { background: rgba(239,159,39,0.14); color: ${A.HEAT}; }
+        .card.cooling .ibadge { background: rgba(133,183,235,0.14); color: ${A.INFO}; }
 
         .sw {
-          width: 38px; height: 22px; border-radius: 11px;
-          background: #C7C7CC;
+          width: 38px; height: 22px; border-radius: 99px;
+          background: rgba(255,255,255,0.16);
           position: relative; cursor: pointer;
-          transition: background-color .22s;
+          transition: background-color .15s;
           flex-shrink: 0;
         }
-        .sw.on { background: #FF9500; }
-        .card.cooling .sw.on { background: #32ADE6; }
+        .sw.on { background: ${A.HEAT}; }
+        .card.cooling .sw.on { background: ${A.INFO}; }
         .sw-t {
           width: 18px; height: 18px; background: #fff; border-radius: 50%;
           position: absolute; top: 2px; left: 2px;
-          transition: transform .22s cubic-bezier(.4,0,.2,1);
-          box-shadow: 0 2px 4px rgba(0,0,0,.28);
+          transition: transform .15s cubic-bezier(.4,0,.2,1);
         }
         .sw.on .sw-t { transform: translateX(16px); }
 
-        @media (prefers-color-scheme: dark) {
-          .sw { background: #48484A; }
-        }
-
         .temp-cur {
           font-size: 36px; font-weight: 600; line-height: 1;
-          color: #1C1C1E; letter-spacing: -1.5px;
+          color: rgba(255,255,255,0.94); letter-spacing: -1.5px;
           position: relative;
         }
-        .temp-unit { font-size: 20px; font-weight: 400; color: #8E8E93; letter-spacing: 0; }
+        .temp-unit { font-size: 20px; font-weight: 400; color: rgba(255,255,255,0.50); letter-spacing: 0; }
 
-        @media (prefers-color-scheme: dark) {
-          .temp-cur { color: #FFFFFF; }
-        }
-
-        .sub { font-size: 12px; color: #8E8E93; margin-top: 1px; }
+        .sub { font-size: 12px; color: rgba(255,255,255,0.50); margin-top: 1px; }
 
         .bottom-row {
           display: flex;
@@ -267,7 +251,7 @@ class ClimateAppleCard extends HTMLElement {
           position: relative;
         }
 
-        .status-txt  { font-size: 11px; color: #8E8E93; }
+        .status-txt  { font-size: 11px; color: rgba(255,255,255,0.50); }
 
         .dots { display: flex; gap: 3px; align-items: center; margin-right: 4px; }
         .dot  {

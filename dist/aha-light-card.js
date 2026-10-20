@@ -240,7 +240,7 @@ class AhaLightCard extends HTMLElement {
   .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
   .chips:empty{display:none}
   .chip{font-size:9px;font-weight:500;padding:2px 7px;border-radius:6px;white-space:nowrap;
-    background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);border:0.5px solid rgba(255,255,255,0.08)}
+    background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.48);border:0.5px solid rgba(255,255,255,0.08)}
   .chip.sun{color:#EF9F27;background:rgba(239,159,39,0.10);border-color:rgba(239,159,39,0.25)}
 
   .sl{position:relative;height:22px;margin:6px -2px -6px;touch-action:none;cursor:ew-resize}
@@ -272,7 +272,7 @@ class AhaLightCard extends HTMLElement {
   .sw:active{transform:scale(0.92)}
   .sw.sel{border-color:#fff}
   .sw.x{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);box-shadow:none}
-  .plabel{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);text-align:center}
+  .plabel{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.48);text-align:center}
 </style>
 <div class="card" id="card">
   <div class="top">

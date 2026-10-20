@@ -89,7 +89,7 @@ const POW_STYLES = `
     letter-spacing: -0.1px;
   }
   .active-label {
-    font-size: 11px; color: rgba(255,255,255,0.30);
+    font-size: 11px; color: rgba(255,255,255,0.48);
   }
 
   .total-watts {
@@ -99,7 +99,7 @@ const POW_STYLES = `
   }
   .total-unit { font-size: 14px; font-weight: 400; opacity: 0.65; }
 
-  .s-low  .total-watts { color: rgba(255,255,255,0.28); }
+  .s-low  .total-watts { color: rgba(255,255,255,0.48); }
   .s-mid  .total-watts { color: #FFD60A; }
   .s-high .total-watts { color: #FF9F0A; }
   .s-crit .total-watts { color: #FF453A; }
@@ -134,7 +134,7 @@ const POW_STYLES = `
     transition: color .3s ease;
   }
   .row.on  .row-name { color: rgba(255,255,255,0.88); }
-  .row.off .row-name { color: rgba(255,255,255,0.28); }
+  .row.off .row-name { color: rgba(255,255,255,0.48); }
 
   .row-bar-wrap {
     height: 3px; border-radius: 99px;
@@ -154,11 +154,11 @@ const POW_STYLES = `
     white-space: nowrap;
   }
   .row.on  .row-watts { color: rgba(255,255,255,0.75); }
-  .row.off .row-watts { color: rgba(255,255,255,0.20); }
+  .row.off .row-watts { color: rgba(255,255,255,0.48); }
 
   /* ── Unavailable ── */
-  .row.unavail .row-name  { color: rgba(255,255,255,0.18); font-style: italic; }
-  .row.unavail .row-watts { color: rgba(255,255,255,0.15); }
+  .row.unavail .row-name  { color: rgba(255,255,255,0.48); font-style: italic; }
+  .row.unavail .row-watts { color: rgba(255,255,255,0.48); }
 `;
 
 /* ── Helpers ── */

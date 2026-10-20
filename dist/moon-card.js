@@ -228,7 +228,7 @@ class AhaMoonCard extends HTMLElement {
         :host { display: block; }
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 26px;
+          border-radius: 20px;
           padding: 16px 14px 14px;
           position: relative;
           overflow: hidden;
@@ -250,14 +250,14 @@ class AhaMoonCard extends HTMLElement {
 
         <div class="row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.45);">Księżyc</span>
-          <span style="font-size:11px;color:rgba(255,255,255,.2);">${illum}% lit</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.48);">${illum}% lit</span>
         </div>
 
         <div class="moon-wrap">${moon}</div>
 
         <div class="row" style="text-align:center;margin-top:6px;">
           <div style="font-size:14px;font-weight:700;color:#DCE8FF;letter-spacing:-.3px;margin-bottom:1px;">${namePL}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.28);margin-bottom:10px;">${nextVal} d ${nextLbl}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-bottom:10px;">${nextVal} d ${nextLbl}</div>
           ${this._progressBar(pct)}
         </div>
       </div>`;
@@ -276,9 +276,9 @@ class AhaMoonCard extends HTMLElement {
       [nextVal + ' d', nextLblCap],
     ];
     const statsHTML = stats.map(([v, l]) =>
-      `<div style="flex:1;background:rgba(255,255,255,.06);border-radius:13px;padding:11px 6px;text-align:center;">
+      `<div style="flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:11px 6px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:#B0C8F0;letter-spacing:-.3px;">${v}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">${l}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">${l}</div>
       </div>`).join('');
 
     const STRIP = [
@@ -302,7 +302,7 @@ class AhaMoonCard extends HTMLElement {
         :host { display: block; }
         .card {
           background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-          border-radius: 26px;
+          border-radius: 20px;
           padding: 22px 18px 18px;
           position: relative;
           overflow: hidden;
@@ -317,18 +317,18 @@ class AhaMoonCard extends HTMLElement {
         <div class="stars">${stars}</div>
 
         <div class="z1" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-          <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.38);">Faza Księżyca</span>
-          <span style="font-size:12px;color:rgba(255,255,255,.22);">${dateStr}</span>
+          <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.48);">Faza Księżyca</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.48);">${dateStr}</span>
         </div>
 
         <div class="z1" style="display:flex;justify-content:center;align-items:center;margin:6px 0 14px;">${moon}</div>
 
         <div class="z1" style="font-size:22px;font-weight:700;letter-spacing:-.5px;text-align:center;color:#DCE8FF;margin-bottom:2px;">${namePL}</div>
-        <div class="z1" style="font-size:12px;color:rgba(255,255,255,.28);text-align:center;margin-bottom:18px;">${nameEN}</div>
+        <div class="z1" style="font-size:12px;color:rgba(255,255,255,0.48);text-align:center;margin-bottom:18px;">${nameEN}</div>
 
         <div class="z1" style="display:flex;gap:8px;margin-bottom:18px;">${statsHTML}</div>
 
-        <div class="z1" style="font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Cykl księżycowy</div>
+        <div class="z1" style="font-size:10px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Cykl księżycowy</div>
         <div class="z1" style="display:flex;margin-bottom:10px;">${stripHTML}</div>
 
         <div class="z1">${this._progressBar(pct)}</div>

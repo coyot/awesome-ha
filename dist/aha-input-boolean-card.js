@@ -10,11 +10,15 @@
  *   name:   "override"  (optional)
  *   icon:   "mdi:xxx"   (optional)
  *
- * Config (wiele kafelków w gridzie 2 kolumny):
+ * Config (wiele kafelków w gridzie, domyślnie 2 kolumny):
+ *   columns: 2          (optional, liczba kolumn siatki)
  *   entities:
  *     - entity: input_boolean.xxx
  *       color: "#34C759"
  *     - entity: input_boolean.yyy
+ *
+ * Stany wizualne: .on (akcent), wyłączony (stonowany, czytelny),
+ * .partial (część status_entities włączona), .unavail (unavailable/unknown).
  */
 
 const IB_STYLES = `
@@ -23,9 +27,24 @@ const IB_STYLES = `
 
   .ib-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(var(--ib-cols, 2), 1fr);
     gap: 8px;
   }
+  /* Nieparzysta liczba kafelków (2 kolumny): ostatni na cały rząd, układ poziomy */
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 12px 14px;
+  }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-top { display: contents; }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-icon { order: 0; }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-bottom {
+    order: 1; flex: 1; min-width: 0; margin-top: 0; padding-top: 0;
+  }
+  .ib-grid.cols-2 > .ib-tile:last-child:nth-child(odd) .ib-toggle { order: 2; }
 
   .ib-tile {
     background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
@@ -39,13 +58,17 @@ const IB_STYLES = `
     font-family: -apple-system, system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    transition: transform 0.15s ease, border-color 0.35s ease, background 0.35s ease;
+    transition: transform 0.15s ease, border-color 0.4s ease, background 0.4s ease, opacity 0.4s ease;
   }
   .ib-tile:active { transform: scale(0.96); }
   .ib-tile.on {
     border-color: var(--c-border);
     background: var(--c-bg);
   }
+  .ib-tile.partial { border-color: var(--c-border-partial); }
+  .ib-tile.unavail { opacity: 0.4; cursor: default; }
+  .ib-tile.unavail:active { transform: none; }
+  .ib-tile.unavail .ib-toggle { pointer-events: none; cursor: default; }
 
   /* ── Górny rząd: ikona + toggle ── */
   .ib-top {
@@ -69,10 +92,11 @@ const IB_STYLES = `
 
   ha-icon {
     --mdc-icon-size: 19px;
-    color: rgba(255,255,255,0.28);
-    transition: color 0.35s ease;
+    color: rgba(255,255,255,0.45);
+    transition: color 0.4s ease;
   }
   .ib-tile.on ha-icon { color: var(--c); }
+  .ib-tile.partial ha-icon { color: var(--c-partial); }
 
   /* ── iOS pill toggle ── */
   .ib-toggle {
@@ -87,7 +111,7 @@ const IB_STYLES = `
     flex-shrink: 0;
     transition: background 0.25s ease, box-shadow 0.25s ease;
   }
-  .ib-tile.on .ib-toggle {
+  .ib-tile.sw-on .ib-toggle {
     background: #34C759;
     box-shadow: 0 0 10px rgba(52,199,89,0.40);
   }
@@ -102,7 +126,7 @@ const IB_STYLES = `
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     transition: transform 0.25s ease, background 0.25s ease;
   }
-  .ib-tile.on .ib-dot {
+  .ib-tile.sw-on .ib-dot {
     transform: translateX(18px);
     background: #fff;
   }
@@ -113,7 +137,7 @@ const IB_STYLES = `
   .ib-name {
     font-size: 13px;
     font-weight: 700;
-    color: rgba(255,255,255,0.38);
+    color: rgba(255,255,255,0.78);
     line-height: 1.25;
     word-break: break-word;
     transition: color 0.35s ease;
@@ -122,11 +146,19 @@ const IB_STYLES = `
   .ib-status {
     font-size: 11px;
     font-weight: 400;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255,255,255,0.50);
     margin-top: 3px;
-    transition: color 0.3s ease;
+    transition: color 0.4s ease;
   }
   .ib-tile.on .ib-status { color: var(--c-status); }
+  .ib-tile.partial .ib-status {
+    color: var(--c-partial);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ib-tile.partial .ib-status::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--c-partial); flex-shrink: 0;
+  }
 
   /* ── Overlay potwierdzenia (otwarte czujniki) ── */
   @keyframes ib-fade-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
@@ -208,10 +240,19 @@ class AhaInputBooleanCard extends HTMLElement {
       const s = hass.states[item.entity];
       return s && s.state !== this._prevStates[item.entity];
     });
-    if (changed || !this.shadowRoot.querySelector('.ib-tile')) {
+    // Zmiana status_entities też odświeża kafelek (stan częściowy)
+    const subChanged = this._items.some(item => (item.status_entities || []).some(id => {
+      const s = hass.states[id];
+      return s && s.state !== this._prevStates[id];
+    }));
+    if (changed || subChanged || !this.shadowRoot.querySelector('.ib-tile')) {
       this._items.forEach(item => {
         const s = hass.states[item.entity];
         if (s) this._prevStates[item.entity] = s.state;
+        (item.status_entities || []).forEach(id => {
+          const ss = hass.states[id];
+          if (ss) this._prevStates[id] = ss.state;
+        });
       });
       this._render();
     }
@@ -231,30 +272,43 @@ class AhaInputBooleanCard extends HTMLElement {
     if (!stateObj) return null;
 
     const isOn = stateObj.state === 'on';
+    const isUnavail = stateObj.state === 'unavailable' || stateObj.state === 'unknown';
     const name = item.name || stateObj.attributes.friendly_name || item.entity;
     const icon = item.icon || stateObj.attributes.icon || 'mdi:toggle-switch';
     const color = item.color || this._config.color || '#30B0FF';
     const [r, g, b] = this._hexToRgb(color);
 
+    // status_entities: ile podurządzeń faktycznie jest włączonych
+    let statusText = isOn ? 'Włączony' : 'Wyłączony';
+    let isPartial = false;
+    const subEntities = item.status_entities || [];
+    if (!isUnavail && subEntities.length > 0) {
+      const activeCount = subEntities.filter(id => this._hass.states[id]?.state === 'on').length;
+      if (isOn || activeCount > 0) {
+        statusText = `${activeCount} z ${subEntities.length} włączone`;
+      }
+      isPartial = activeCount > 0 && activeCount < subEntities.length;
+    }
+    if (isUnavail) statusText = 'niedostępny';
+
+    const cls = ['ib-tile'];
+    if (isUnavail) cls.push('unavail');
+    else if (isPartial) cls.push('partial');
+    else if (isOn) cls.push('on');
+    // Pozycja przełącznika zawsze odzwierciedla faktyczny stan encji (także w .partial)
+    if (isOn && !isUnavail) cls.push('sw-on');
+
     const tile = document.createElement('div');
-    tile.className = `ib-tile${isOn ? ' on' : ''}`;
+    tile.className = cls.join(' ');
     tile.style.cssText = `
       --c: rgb(${r},${g},${b});
       --c-border: rgba(${r},${g},${b},0.30);
       --c-bg: rgba(${r},${g},${b},0.07);
       --c-icon-bg: rgba(${r},${g},${b},0.22);
       --c-status: rgba(${r},${g},${b},0.85);
+      --c-partial: rgba(${r},${g},${b},0.75);
+      --c-border-partial: rgba(${r},${g},${b},0.22);
     `;
-
-    // status_entities: count how many sub-devices are actually on
-    let statusText = isOn ? 'Włączony' : 'Wyłączony';
-    const subEntities = item.status_entities || [];
-    if (subEntities.length > 0) {
-      const activeCount = subEntities.filter(id => this._hass.states[id]?.state === 'on').length;
-      if (isOn || activeCount > 0) {
-        statusText = `${activeCount}/${subEntities.length} aktywne`;
-      }
-    }
 
     tile.innerHTML = `
       <div class="ib-top">
@@ -270,6 +324,9 @@ class AhaInputBooleanCard extends HTMLElement {
         <div class="ib-status">${statusText}</div>
       </div>
     `;
+
+    // Niedostępny: brak akcji toggle
+    if (isUnavail) return tile;
 
     tile.querySelector('.ib-toggle').addEventListener('click', e => {
       e.stopPropagation();
@@ -291,7 +348,9 @@ class AhaInputBooleanCard extends HTMLElement {
       if (tile) this.shadowRoot.appendChild(tile);
     } else {
       const grid = document.createElement('div');
-      grid.className = 'ib-grid';
+      const cols = Math.max(1, parseInt(this._config.columns, 10) || 2);
+      grid.className = `ib-grid cols-${cols}`;
+      grid.style.setProperty('--ib-cols', cols);
       this._items.forEach(item => {
         const tile = this._buildTile(item);
         if (tile) grid.appendChild(tile);
@@ -371,7 +430,8 @@ class AhaInputBooleanCard extends HTMLElement {
   }
 
   getCardSize() {
-    const rows = Math.ceil((this._items ? this._items.length : 1) / 2);
+    const cols = Math.max(1, parseInt(this._config.columns, 10) || 2);
+    const rows = Math.ceil((this._items ? this._items.length : 1) / cols);
     return rows * 2;
   }
 

@@ -188,7 +188,8 @@
     _render() {
       if (!this._hass) return;
 
-      const BG1 = '#0e1a2e', BG2 = '#091220';
+      // Jedna powierzchnia dla wszystkich kart — AHA.THEME.SURFACE
+      const SURFACE = (window.AHA && window.AHA.THEME && window.AHA.THEME.SURFACE) || 'linear-gradient(150deg, #0b1120 0%, #0d1828 100%)';
       const RAIN_COL = '#4da8ff', SNOW_COL = '#aee4f8';
 
       const { slots, wxNow } = this._slots();
@@ -197,8 +198,8 @@
       if (slots.length === 0) {
         this.shadowRoot.innerHTML = `
           <style>:host{display:block}</style>
-          <div style="background:linear-gradient(145deg,${BG1},${BG2});border-radius:22px;padding:24px 20px;font-family:-apple-system,system-ui,sans-serif;">
-            <div style="font-size:13px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.7;">
+          <div style="background:${SURFACE};border-radius:20px;padding:24px 20px;font-family:-apple-system,system-ui,sans-serif;">
+            <div style="font-size:13px;color:rgba(255,255,255,0.48);text-align:center;line-height:1.7;">
               Brak prognozy.<br>Sprawdź ${this._config.forecast_entity}<br>w Developer Tools → States.
             </div>
           </div>`;
@@ -317,11 +318,11 @@
         <div style="padding:4px 18px 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           ${hasRain ? `<div style="display:flex;align-items:center;gap:4px;">
             <div style="width:10px;height:10px;border-radius:2px;background:#4da8ff;opacity:.60;"></div>
-            <span style="font-size:10px;color:rgba(255,255,255,0.28);">deszcz (mm)</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.48);">deszcz (mm)</span>
           </div>` : ''}
           ${hasSnow ? `<div style="display:flex;align-items:center;gap:4px;">
             <div style="width:10px;height:10px;border-radius:2px;background:#aee4f8;opacity:.65;"></div>
-            <span style="font-size:10px;color:rgba(255,255,255,0.28);">śnieg (mm)</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.48);">śnieg (mm)</span>
           </div>` : ''}
         </div>` : '';
 
@@ -329,8 +330,8 @@
         <style>
           :host { display: block; }
           .card {
-            background: linear-gradient(145deg, ${BG1} 0%, ${BG2} 100%);
-            border-radius: 22px;
+            background: ${SURFACE};
+            border-radius: 20px;
             overflow: hidden;
             position: relative;
             font-family: -apple-system, system-ui, sans-serif;
@@ -362,14 +363,14 @@
           <div class="glow"></div>
           <div class="header">
             <div>
-              <div style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.28);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em;">Prognoza · 24h</div>
+              <div style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.48);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em;">Prognoza · 24h</div>
               <div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.62);">${wxLabel}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:10px;color:rgba(255,255,255,0.26);margin-bottom:3px;">zakres</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.48);margin-bottom:3px;">zakres</div>
               <div style="font-size:14px;font-weight:700;letter-spacing:-.3px;">
                 <span style="color:${tLoColor}">${tMin.toFixed(0)}°</span>
-                <span style="color:rgba(255,255,255,0.20);font-weight:400;margin:0 3px;">—</span>
+                <span style="color:rgba(255,255,255,0.48);font-weight:400;margin:0 3px;">—</span>
                 <span style="color:${tHiColor}">${tMax.toFixed(0)}°</span>
               </div>
             </div>

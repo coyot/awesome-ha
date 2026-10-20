@@ -123,9 +123,9 @@ class TelecoLightCard extends HTMLElement {
         color:rgba(255,255,255,.90);
         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       }
-      .room{font-size:11px;color:#636366;font-weight:400}
+      .room{font-size:11px;color:rgba(255,255,255,0.48);font-weight:400}
       .status{
-        font-size:11px;color:#636366;
+        font-size:11px;color:rgba(255,255,255,0.48);
         margin-top:3px;min-height:14px;
         transition:color .3s;
       }
@@ -136,7 +136,7 @@ class TelecoLightCard extends HTMLElement {
         line-height:1;font-variant-numeric:tabular-nums;
         transition:color .3s;
       }
-      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,.28)}
+      .pu{font-size:12px;font-weight:400;color:rgba(255,255,255,0.48)}
 
       .track{
         height:3px;background:rgba(255,255,255,.06);
@@ -153,7 +153,7 @@ class TelecoLightCard extends HTMLElement {
         min-height:44px;
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
         border-radius:11px;
-        color:rgba(255,255,255,.35);
+        color:rgba(255,255,255,0.48);
         background:rgba(255,255,255,.04);
         cursor:pointer;
         border:.5px solid transparent;

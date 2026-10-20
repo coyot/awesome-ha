@@ -351,7 +351,7 @@
     _css() {
       const T1 = '#F5F5F7';
       const T2 = 'rgba(255,255,255,0.55)';
-      const T4 = 'rgba(255,255,255,0.28)';
+      const T4 = 'rgba(255,255,255,0.50)';   // wygaszony tekst — min. alfa .50
 
       return `
       :host { display: block; }
@@ -428,12 +428,13 @@
         border: 1px solid rgba(255,255,255,0.14);
       }
       .cal-today:hover, .cal-today.cal-hover { background: rgba(255,255,255,0.18); }
-      .cal-past    { opacity: 0.28; }
-      .cal-weekend:not(.cal-today) { opacity: 0.38; }
-      .cal-weekend.cal-past        { opacity: 0.18; }
+      /* Wygaszone dni — min. alfa .50 dla czytelności */
+      .cal-past    { opacity: 0.50; }
+      .cal-weekend:not(.cal-today) { opacity: 0.62; }
+      .cal-weekend.cal-past        { opacity: 0.50; }
 
       .cal-letter {
-        font-size: 9px; font-weight: 500; color: ${T4};
+        font-size: 10px; font-weight: 500; color: ${T4};
         text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
       }
       .cal-today .cal-letter { color: ${T2}; }
@@ -479,9 +480,11 @@
       }
       .day-date {
         font-size: 12px; color: ${T2};
-        text-transform: capitalize; flex: 1;
+        flex: 1;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
+      /* Tylko pierwsza litera wielka: „Czwartek, 22 października” */
+      .day-date::first-letter { text-transform: uppercase; }
       .day-date strong { font-weight: 700; color: ${T1}; }
 
       .day-badge {

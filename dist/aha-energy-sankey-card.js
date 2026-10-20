@@ -91,7 +91,7 @@ const SAN_CSS = `
   }
   .hdr-lbl {
     font-size: 10px;
-    color: rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
   }
 
@@ -303,7 +303,7 @@ class AhaEnergySankeyCard extends HTMLElement {
       const conH    = ROW_H - 10;
       const conMid  = conTop + conH / 2;
       const active  = row.watts > 0;
-      const dotClr  = active ? row.color : 'rgba(255,255,255,0.18)';
+      const dotClr  = active ? row.color : 'rgba(255,255,255,0.48)';
       const namClr  = active ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.28)';
       const wClr    = active ? '#fff'  : 'rgba(255,255,255,0.22)';
       const pctStr  = (totalW > 0 && active)

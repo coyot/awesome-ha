@@ -191,7 +191,7 @@
 
       const isRaining = rate !== null && rate > 0;
       const pulse     = isRaining
-        ? `<style>@keyframes rain-pulse{0%,100%{box-shadow:0 0 0 0px rgba(48,176,255,0.18)}50%{box-shadow:0 0 0 6px rgba(48,176,255,0.18)}}</style>`
+        ? `<style>@keyframes rain-pulse{0%,100%{box-shadow:0 0 0 0 rgba(48,176,255,0)}50%{box-shadow:0 0 0 5px rgba(48,176,255,0.18)}}</style>`
         : '';
       const cardExtra  = isRaining ? 'raining' : '';
       const dotAnim    = isRaining ? 'blink' : '';
@@ -201,12 +201,12 @@
           :host { display:block; font-family:-apple-system,system-ui,sans-serif; }
           @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
           @keyframes rain-pulse {
-            0%,100%{box-shadow:0 0 0 0px rgba(48,176,255,0.18)}
-            50%{box-shadow:0 0 0 6px rgba(48,176,255,0.18)}
+            0%,100%{box-shadow:0 0 0 0 rgba(48,176,255,0)}
+            50%{box-shadow:0 0 0 5px rgba(48,176,255,0.18)}
           }
           .card {
             background: linear-gradient(150deg,#0b1120 0%,#0d1828 100%);
-            border-radius: 22px;
+            border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.07);
             padding: 14px 16px 12px;
             overflow: hidden;
@@ -231,14 +231,14 @@
           }
           .title {
             font-size:11px; font-weight:600;
-            color:rgba(255,255,255,0.35);
+            color:rgba(255,255,255,0.48);
             text-transform:uppercase; letter-spacing:.08em;
           }
           .badge {
             display:inline-flex; align-items:center; gap:5px;
             background:rgba(48,176,255,0.12);
             border:1px solid rgba(48,176,255,0.25);
-            border-radius:20px; padding:2px 8px 2px 6px;
+            border-radius:99px; padding:2px 8px 2px 6px;
             font-size:10px; font-weight:700;
             color:#5ac8fa; letter-spacing:.04em;
             text-transform:uppercase;
@@ -246,7 +246,7 @@
           .badge-dot {
             width:5px; height:5px; border-radius:50%;
             background:#30B0FF;
-            animation: blink 1.2s ease-in-out infinite;
+            animation: blink 2.0s ease-in-out infinite;
           }
 
           /* Stats row */
@@ -255,7 +255,7 @@
             gap:8px; margin-bottom:14px;
           }
           .stat {
-            background:rgba(255,255,255,0.04);
+            background:rgba(255,255,255,0.05);
             border:1px solid rgba(255,255,255,0.06);
             border-radius:12px; padding:10px 10px 9px;
             display:flex; flex-direction:column;
@@ -269,12 +269,12 @@
           .stat-val.active { color:#5ac8fa; }
           .stat-unit {
             font-size:10px; font-weight:500;
-            color:rgba(255,255,255,0.30);
+            color:rgba(255,255,255,0.48);
             margin-top:1px; letter-spacing:.02em;
           }
           .stat-lbl {
             font-size:9.5px; font-weight:600;
-            color:rgba(255,255,255,0.22);
+            color:rgba(255,255,255,0.48);
             margin-top:5px; text-transform:uppercase;
             letter-spacing:.06em;
           }
@@ -285,7 +285,7 @@
           }
           .chart-lbl {
             font-size:9px; font-weight:500;
-            color:rgba(255,255,255,0.18);
+            color:rgba(255,255,255,0.48);
             text-align:right; margin-bottom:2px;
             letter-spacing:.03em;
           }
@@ -298,7 +298,7 @@
             </div>
             ${isRaining
               ? `<div class="badge"><div class="badge-dot"></div>Pada</div>`
-              : `<span style="font-size:10px;color:rgba(255,255,255,0.18);font-weight:500;">Bez opadów</span>`
+              : `<span style="font-size:10px;color:rgba(255,255,255,0.48);font-weight:500;">Bez opadów</span>`
             }
           </div>
 

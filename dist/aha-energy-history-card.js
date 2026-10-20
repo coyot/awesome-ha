@@ -67,7 +67,7 @@ const EHIST_CSS = `
   }
   .hdr-lbl {
     font-size: 10px;
-    color: rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.48);
     margin-top: 2px;
   }
 
@@ -99,7 +99,7 @@ const EHIST_CSS = `
     padding: 28px 0;
     text-align: center;
     font-size: 12px;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.48);
     letter-spacing: 0.03em;
   }
 `;

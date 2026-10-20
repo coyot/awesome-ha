@@ -38,14 +38,11 @@ const STYLES = `
   @keyframes alarm-pulse {
     0%, 100% {
       background: #2c1410;
-      box-shadow: 0 0 0 0 rgba(255,69,58,0),
-                  0 2px 8px rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 0 rgba(226,75,74,0);
     }
     50% {
       background: #3a1610;
-      box-shadow: 0 0 0 5px rgba(255,69,58,0.28),
-                  0 0 22px rgba(255,69,58,0.5),
-                  0 2px 8px rgba(0,0,0,0.35);
+      box-shadow: 0 0 0 6px rgba(226,75,74,0.22);
     }
   }
 
@@ -105,11 +102,11 @@ const STYLES = `
 
   /* ── STATE: alarm ── */
   .card.alarm {
-    border-color: rgba(255,69,58,0.3);
-    animation: alarm-pulse 1.5s ease-in-out infinite;
+    border-color: rgba(226,75,74,0.3);
+    animation: alarm-pulse 2.0s ease-in-out infinite;
   }
   .card.alarm .glow {
-    background: radial-gradient(ellipse at 30% 30%, rgba(255,69,58,0.18) 0%, transparent 68%);
+    background: radial-gradient(ellipse at 30% 30%, rgba(226,75,74,0.18) 0%, transparent 68%);
   }
 
   /* Glow overlay */
@@ -170,21 +167,21 @@ const STYLES = `
   }
   .closed  .icon-bg { background: rgba(142,142,147,0.12); }
   .open    .icon-bg { background: rgba(255,214,10,0.18); }
-  .alarm   .icon-bg { background: rgba(255,69,58,0.22); }
+  .alarm   .icon-bg { background: rgba(226,75,74,0.22); }
 
   .ring {
     position: absolute;
     width: 54px;
     height: 54px;
     border-radius: 16px;
-    border: 2px solid rgba(255,69,58,0.75);
+    border: 2px solid rgba(226,75,74,0.75);
     z-index: 1;
     pointer-events: none;
     display: none;
   }
   .alarm .ring {
     display: block;
-    animation: ring-pulse 1.5s ease-out infinite;
+    animation: ring-pulse 2.0s ease-out infinite;
   }
 
   ha-icon {
@@ -194,7 +191,7 @@ const STYLES = `
   .closed  ha-icon { color: #8e8e93; }
   .open    ha-icon { color: #ffd60a; }
   .alarm   ha-icon {
-    color: #ff453a;
+    color: #E24B4A;
     animation: icon-shake 0.8s ease-in-out infinite;
     transform-origin: top center;
   }
@@ -236,11 +233,11 @@ const STYLES = `
   .bat-tip {
     font-size: 10px; font-weight: 600;
     color: rgba(255,255,255,.80);
-    background: rgba(28,28,30,.92);
+    background: rgba(12,20,36,.95);
     border: .5px solid rgba(255,255,255,.15);
     border-radius: 6px; padding: 2px 6px;
     white-space: nowrap; opacity: 0; pointer-events: none;
-    transition: opacity .15s; backdrop-filter: blur(8px);
+    transition: opacity .15s;
   }
   .bat-wrap:hover .bat-tip { opacity: 1; }
   @media (max-width: 400px) { .bat-wrap { display: none; } }
@@ -388,8 +385,8 @@ class KontaktronCard extends HTMLElement {
     const pct     = parseFloat(s.state);
     if (pct >= 25) { this._batWrap.style.display = 'none'; return; }
     const low     = pct < 20;
-    const col     = low ? '#FF453A' : 'rgba(255,255,255,0.42)';
-    const fillCol = low ? '#FF453A' : 'rgba(255,255,255,0.50)';
+    const col     = low ? '#E24B4A' : 'rgba(255,255,255,0.42)';
+    const fillCol = low ? '#E24B4A' : 'rgba(255,255,255,0.50)';
     const fillW   = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
     this._batTip.textContent = Math.round(pct) + '%';
     this._batSvg.innerHTML = `

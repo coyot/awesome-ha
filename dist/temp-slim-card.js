@@ -27,7 +27,7 @@ class TempSlimCard extends HTMLElement {
 
   _getTempState(t) {
     if (t === null) return {
-      label: 'OFFLINE', color: 'rgba(255,255,255,0.2)',
+      label: 'OFFLINE', color: 'rgba(255,255,255,0.48)',
       border: 'rgba(255,255,255,0.08)', bg: '#1C1C1E',
       fillPct: 0, bulbColor: 'rgba(255,255,255,0.15)',
       glowColor: 'rgba(255,255,255,0)', glowWidth: 5,

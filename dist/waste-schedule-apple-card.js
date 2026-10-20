@@ -23,7 +23,7 @@
 const _C = {
   textPrimary:   '#F5F5F7',
   textSecondary: window.AHA.THEME.TEXT2,
-  textTertiary:  window.AHA.THEME.TEXT4,
+  textTertiary:  window.AHA.THEME.TEXT3,   // #8E8E93 — wygaszony tekst, min. ~.50 alfa
   urgent:        window.AHA.THEME.ERROR,
   soon:          '#FF9F0A',
   later:         '#64D2FF',   // jasny błękit zamiast żółtego — wyraźny kontrast vs pomarańcz
@@ -145,7 +145,7 @@ class WasteScheduleAppleCard extends HTMLElement {
     if (n <= 3 && d < nextMonday)    return { color: _C.soon,     level: 'soon'     };
     if (d < weekAfterNext)           return { color: _C.later,    level: 'later'    };
     if (n <= 14)                     return { color: _C.upcoming, level: 'upcoming' };
-    return                                  { color: '#636366',   level: 'distant'  };
+    return                                  { color: 'rgba(255,255,255,0.48)',   level: 'distant'  };
   }
 
   /* ── Data ── */
@@ -432,18 +432,19 @@ class WasteScheduleAppleCard extends HTMLElement {
         .cal-today:hover, .cal-today.cal-hover {
           background: rgba(255,255,255,0.18);
         }
+        /* Wygaszone dni — min. alfa .50 dla czytelności */
         .cal-past {
-          opacity: 0.28;
+          opacity: 0.50;
         }
         .cal-weekend:not(.cal-today) {
-          opacity: 0.38;
+          opacity: 0.62;
         }
         .cal-weekend.cal-past {
-          opacity: 0.18;
+          opacity: 0.50;
         }
 
         .cal-letter {
-          font-size: 9px; font-weight: 500; color: ${_C.textTertiary};
+          font-size: 10px; font-weight: 500; color: ${_C.textTertiary};
           text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
         }
         .cal-today .cal-letter { color: ${_C.textSecondary}; }
@@ -493,7 +494,7 @@ class WasteScheduleAppleCard extends HTMLElement {
 
         /* Wygaszone — dziś po 7:30 */
         .list-done {
-          opacity: 0.42;
+          opacity: 0.50;
         }
         .list-done .list-chips .chip {
           filter: saturate(0.3);
@@ -516,9 +517,11 @@ class WasteScheduleAppleCard extends HTMLElement {
         }
         .list-date {
           font-size: 12px; font-weight: 400; color: ${_C.textSecondary};
-          text-transform: capitalize; flex: 1; min-width: 0;
+          flex: 1; min-width: 0;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+        /* Tylko pierwsza litera wielka: „Czwartek, 22 października” */
+        .list-date::first-letter { text-transform: uppercase; }
         .list-date strong {
           font-weight: 700;
           color: ${_C.textPrimary};
@@ -534,7 +537,7 @@ class WasteScheduleAppleCard extends HTMLElement {
         /* Ikona ✓ dla done */
         .done-check {
           font-size: 13px;
-          color: #4a4a4f;
+          color: rgba(255,255,255,0.50);
           margin-left: 4px;
           flex-shrink: 0;
         }

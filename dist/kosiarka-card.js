@@ -303,13 +303,13 @@ const KOS_STYLES = `
     display: flex; flex-direction: column; gap: 3px;
     padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 10px;
   }
-  .stat-label { font-size: 10px; color: rgba(255,255,255,0.35); }
+  .stat-label { font-size: 10px; color: rgba(255,255,255,0.48); }
   .stat-value { font-size: 14px; font-weight: 600; color: #F1EFE8; line-height: 1; }
 
   .bar-row   { display: flex; flex-direction: column; gap: 8px; }
   .bar-item  { display: flex; flex-direction: column; gap: 5px; }
   .bar-header{ display: flex; justify-content: space-between; align-items: center; }
-  .bar-label { font-size: 10px; color: rgba(255,255,255,0.35); }
+  .bar-label { font-size: 10px; color: rgba(255,255,255,0.48); }
   .bar-value { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.60); }
   .bar-track { height: 3px; background: rgba(255,255,255,0.07); border-radius: 99px; overflow: hidden; }
   .bar-fill  { height: 100%; border-radius: 99px; transition: width 1s ease; }
@@ -617,8 +617,8 @@ class KosiarkaCard extends HTMLElement {
                             background:${barGradFinal};transition:width 1s ease;"></div>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barLabel}</span>
-                <span style="font-size:10px;color:rgba(255,255,255,0.28);">${barRight}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barLabel}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.48);">${barRight}</span>
               </div>
             </div>` : ''}
 
@@ -629,7 +629,7 @@ class KosiarkaCard extends HTMLElement {
                         gap:2px;min-width:52px;">
               <span style="font-size:20px;font-weight:600;letter-spacing:-0.5px;line-height:1;
                            color:${batColor};">${rightVal}</span>
-              <span style="font-size:10px;color:rgba(255,255,255,0.28);white-space:nowrap;">${rightLabel}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.48);white-space:nowrap;">${rightLabel}</span>
             </div>
             <button class="toggle-btn" title="Rozwiń">${kosSvgToggleExpand()}</button>
           </div>
@@ -725,7 +725,7 @@ class KosiarkaCard extends HTMLElement {
       sections.push(`
         <div class="section" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           ${hasBlade ? `<div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.4px;">Noże — przebieg</span>
+            <span style="font-size:10px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:0.4px;">Noże — przebieg</span>
             ${bladeInfo}
           </div>` : '<div></div>'}
           <div style="display:flex;gap:8px;">${btns.join('')}</div>
@@ -813,7 +813,7 @@ class KosiarkaCard extends HTMLElement {
     }
 
     if (bars.length === 0)
-      return `<div style="font-size:11px;color:rgba(255,255,255,0.28);">Brak danych</div>`;
+      return `<div style="font-size:11px;color:rgba(255,255,255,0.48);">Brak danych</div>`;
 
     return `<div class="bar-row">${bars.map(b => `
       <div class="bar-item">
@@ -862,7 +862,7 @@ class KosiarkaCard extends HTMLElement {
     if (d.unavailable) {
       this.shadowRoot.innerHTML = `<style>${KOS_STYLES}</style>
         <div class="card slim" style="border:0.5px solid rgba(255,255,255,0.08);">
-          <div style="padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.30);">
+          <div style="padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.48);">
             Encja niedostępna: ${this._config.entity}
           </div>
         </div>`;

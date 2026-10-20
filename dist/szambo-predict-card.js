@@ -10,6 +10,8 @@
  *   entity_current:  sensor.szambo_zuzycie
  *   entity_rate:     sensor.szambo_przyrost_dzienny
  *   capacity:        10       # m³, domyślnie 10
+ *   suppress_when_plan: true # opcjonalnie: w stanie planu/alarmu karta zwija się do jednej linii
+ *                            # (alarm pokazuje już karta zbiornika — bez dublowania czerwieni)
  *   tap_action:              # opcjonalnie
  *     action: more-info
  */
@@ -50,6 +52,7 @@ class SzamboPredictCard extends HTMLElement {
       warn_plan: config.warn_plan ?? DEFAULTS.WARN_PLAN,
       tap_action: config.tap_action ?? { action: 'more-info' },
       slim: config.slim ?? false,
+      suppress_when_plan: config.suppress_when_plan ?? false,
     };
   }
 
@@ -95,7 +98,7 @@ class SzamboPredictCard extends HTMLElement {
 
   _setupCard() {
     const style = document.createElement('style');
-    style.textContent = this._config.slim ? this._getSlimStyles() : this._getStyles();
+    style.textContent = (this._config.slim ? this._getSlimStyles() : this._getStyles()) + this._getCollapsedStyles();
     this.shadowRoot.appendChild(style);
 
     const card = document.createElement('div');
@@ -179,10 +182,60 @@ class SzamboPredictCard extends HTMLElement {
     const fmt = v => v.toFixed(3).replace('.', ',');
     const fmt2 = v => v.toFixed(2).replace('.', ',');
 
+    // Tryb zwinięty: alarm/plan sygnalizuje karta zbiornika, tu tylko jedna cicha linia
+    if (this._config.suppress_when_plan && (isFull || isPlan)) {
+      card.classList.add('collapsed');
+      card.innerHTML = this._renderCollapsed({ isFull, dateStr });
+      return;
+    }
+    card.classList.remove('collapsed');
+
     const args = { noData, isFull, daysInt, daysLabel, dayName, dateStr, accentClr, barColor, fillPct, current, cap, rate, weekly, remaining, fmt, fmt2 };
     card.innerHTML = this._config.slim
       ? this._renderSlimContent(args)
       : this._renderContent(args);
+  }
+
+  _renderCollapsed({ isFull, dateStr }) {
+    const right = isFull ? 'przekroczona' : (dateStr || '\u2014');
+    return `
+      <div class="collapsed-row">
+        <span class="collapsed-lbl">Prognoza pełnego zbiornika</span>
+        <span class="collapsed-val">${right}</span>
+      </div>
+    `;
+  }
+
+  _getCollapsedStyles() {
+    return `
+      .card.collapsed {
+        display: block;
+        padding: 12px 16px;
+        border: 0.5px solid rgba(255,255,255,0.08);
+        animation: none;
+        box-shadow: none;
+      }
+      .collapsed-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+      .collapsed-lbl {
+        color: rgba(255,255,255,0.62);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .collapsed-val {
+        color: rgba(255,255,255,0.94);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+    `;
   }
 
   _renderError(title, subtitle) {
@@ -191,7 +244,7 @@ class SzamboPredictCard extends HTMLElement {
         <div class="top-left">
           <div class="eyebrow">następny wywóz szamba</div>
           <div class="no-data">${title}</div>
-          <div style="font-size:12px;color:#636366;margin-top:4px;">${subtitle}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.48);margin-top:4px;">${subtitle}</div>
         </div>
         <div class="icon-box">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="${COLORS.RED}">
@@ -391,7 +444,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .date-str {
         font-size: 11px;
-        color: rgba(142,142,147,0.75);
+        color: rgba(255,255,255,0.50);
       }
 
       .stats-row {
@@ -407,7 +460,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .stat-lbl {
         font-size: 10px;
-        color: rgba(142,142,147,0.60);
+        color: rgba(255,255,255,0.48);
         text-transform: uppercase;
         letter-spacing: 0.2px;
       }
@@ -420,12 +473,12 @@ class SzamboPredictCard extends HTMLElement {
       }
       .stat-sep {
         font-size: 10px;
-        color: rgba(142,142,147,0.30);
+        color: rgba(255,255,255,0.48);
       }
 
       .sub {
         font-size: 11px;
-        color: rgba(142,142,147,0.65);
+        color: rgba(255,255,255,0.50);
       }
 
       /* right countdown */
@@ -448,7 +501,7 @@ class SzamboPredictCard extends HTMLElement {
       .metric-lbl {
         font-size: 11px;
         font-weight: 400;
-        color: rgba(142,142,147,0.65);
+        color: rgba(255,255,255,0.50);
         text-align: right;
       }
     `;
@@ -461,13 +514,13 @@ class SzamboPredictCard extends HTMLElement {
       }
       .card {
         background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-        border-radius: 18px;
+        border-radius: 20px;
         padding: 16px 18px;
         box-sizing: border-box;
-        font-family: -apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;
+        font-family: -apple-system, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
         cursor: pointer;
-        transition: transform 0.1s ease, opacity 0.1s ease;
+        transition: transform 0.15s ease, opacity 0.15s ease;
       }
       .card:active {
         transform: scale(0.98);
@@ -482,7 +535,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .eyebrow {
         font-size: 11px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-bottom: 4px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -502,7 +555,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .days-lbl {
         font-size: 18px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
       }
       .date-row {
         display: flex;
@@ -518,7 +571,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .date-str {
         font-size: 12px;
-        color: #8E8E93;
+        color: rgba(255,255,255,0.62);
       }
       .no-data {
         font-size: 20px;
@@ -528,7 +581,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .subtitle {
         font-size: 12px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-top: 4px;
       }
       .subtitle.alert {
@@ -538,7 +591,7 @@ class SzamboPredictCard extends HTMLElement {
         width: 52px;
         height: 52px;
         border-radius: 16px;
-        background: #1C2A3A;
+        background: rgba(255,255,255,0.05);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -557,7 +610,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .progress-labels span {
         font-size: 10px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
       }
       .progress-labels .today {
         font-weight: 500;
@@ -565,7 +618,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .track {
         height: 5px;
-        background: #3A3A3C;
+        background: rgba(255,255,255,0.08);
         border-radius: 3px;
         position: relative;
         margin-bottom: 4px;
@@ -596,8 +649,8 @@ class SzamboPredictCard extends HTMLElement {
       }
       .metric {
         flex: 1;
-        background: #3A3A3C;
-        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 12px;
         padding: 9px 11px;
         transition: transform 0.2s ease;
       }
@@ -606,7 +659,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .metric-label {
         font-size: 10px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-bottom: 3px;
         text-transform: uppercase;
         letter-spacing: 0.3px;
@@ -618,7 +671,7 @@ class SzamboPredictCard extends HTMLElement {
       }
       .metric-unit {
         font-size: 10px;
-        color: #636366;
+        color: rgba(255,255,255,0.48);
         margin-left: 1px;
       }
     `;

@@ -452,7 +452,7 @@
       :host { display: block; font-family: -apple-system, system-ui, sans-serif; }
       .card {
         background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-        border-radius: 22px;
+        border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.07);
         overflow: hidden;
       }
@@ -464,7 +464,7 @@
       }
       .title {
         font-size: 11px; font-weight: 600;
-        color: rgba(255,255,255,0.35);
+        color: rgba(255,255,255,0.48);
         text-transform: uppercase; letter-spacing: .08em;
       }
       .navs { display: flex; gap: 5px; }
@@ -497,7 +497,7 @@
       }
       .dh {
         font-size: 7.5px; font-weight: 600;
-        color: rgba(255,255,255,0.20);
+        color: rgba(255,255,255,0.48);
         text-align: center; padding-bottom: 4px;
         letter-spacing: .02em;
       }
@@ -572,7 +572,7 @@
         border-top: 1px solid rgba(255,255,255,0.05);
       }
       .li { display: flex; align-items: center; gap: 4px; }
-      .li span { font-size: 9.5px; color: rgba(255,255,255,0.25); }
+      .li span { font-size: 9.5px; color: rgba(255,255,255,0.48); }
       /* Tooltip (light DOM, styled inline) */
       .tr { display: flex; align-items: center; gap: 6px; }
       .td { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
