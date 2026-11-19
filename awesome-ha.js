@@ -24043,11 +24043,10 @@ window.customCards.push({
  *   battery_entity:      (optional) sensor.* battery — domyślnie auto
  *   name:                (optional) override nazwy
  *
- * Stany:
- *   idle        → brak ruchu, kolor neutralny
- *   motion      → wykryto ruch, kolor amber + pulsing box-shadow
+ * Ikona i glow zawsze odzwierciedlają poziom oświetlenia (lux).
+ * Przy wykryciu ruchu glow pulsuje i karta ma amber border.
  *
- * Rejestracja:
+ * Usage:
  *   type: custom:aha-motion-light-card
  *   entity: binary_sensor.ruch_i_swiatlo_gora
  *   name: Ruch i światło
@@ -24060,18 +24059,16 @@ const _ML_STYLES = `
     height: 100%;
   }
 
-  @keyframes motion-pulse {
-    0%, 100% {
-      box-shadow: 0 0 0 0px rgba(239,159,39,0);
-    }
-    50% {
-      box-shadow: 0 0 0 5px rgba(239,159,39,0.18);
-    }
+  /* Card-level pulse — kolor napędzany przez --lux-r,g,b ustawiane z JS */
+  @keyframes ml-card-pulse {
+    0%, 100% { box-shadow: 0 0 0 0px rgba(var(--lux-rgb), 0); }
+    50%       { box-shadow: 0 0 0 5px rgba(var(--lux-rgb), 0.20); }
   }
 
-  @keyframes icon-breathe {
-    0%, 100% { transform: scale(1);    opacity: 1; }
-    50%       { transform: scale(1.08); opacity: 0.88; }
+  /* Icon-bg brightness pulse przy ruchu */
+  @keyframes ml-glow-pulse {
+    0%, 100% { filter: brightness(1.0) saturate(1.0); }
+    50%       { filter: brightness(1.6) saturate(1.3); }
   }
 
   .card {
@@ -24083,43 +24080,28 @@ const _ML_STYLES = `
     flex-direction: column;
     position: relative;
     cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
     border: 1px solid rgba(255,255,255,0.06);
     box-sizing: border-box;
     font-family: -apple-system, system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-  }
-
-  .card:active {
-    transform: scale(0.96);
-  }
-
-  /* ── idle ── */
-  .card.idle {
     background: linear-gradient(150deg, #0b1120 0%, #0d1828 100%);
-  }
-  .card.idle .glow {
-    background: none;
+    transition: transform 0.15s ease, border-color 0.5s ease, background 0.5s ease;
   }
 
-  /* ── motion ── */
+  .card:active { transform: scale(0.96); }
+
   .card.motion {
-    background: linear-gradient(150deg, #1a1205 0%, #1f1708 100%);
-    border-color: rgba(239,159,39,0.22);
-    animation: motion-pulse 2.5s ease-in-out infinite;
-  }
-  .card.motion .glow {
-    background: radial-gradient(ellipse at 30% 30%, rgba(239,159,39,0.13) 0%, transparent 68%);
+    animation: ml-card-pulse 2.5s ease-in-out infinite;
   }
 
-  /* Glow overlay */
+  /* Radial glow overlay — napędzany przez JS (background ustawiony inline) */
   .glow {
     position: absolute;
     inset: 0;
     pointer-events: none;
     border-radius: 19px;
-    transition: background 0.4s ease;
+    transition: background 0.6s ease;
   }
 
   /* State label — top-center */
@@ -24134,9 +24116,11 @@ const _ML_STYLES = `
     letter-spacing: 0.06em;
     text-transform: uppercase;
     transition: color 0.4s ease, opacity 0.4s ease;
+    color: rgba(255,255,255,0.28);
   }
-  .idle   .state-label { color: rgba(255,255,255,0.28); }
-  .motion .state-label { color: rgba(239,159,39,0.95); }
+  .card.motion .state-label {
+    color: rgba(239,159,39,0.95);
+  }
 
   /* Icon area */
   .icon-area {
@@ -24155,19 +24139,18 @@ const _ML_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.4s ease;
+    /* background + box-shadow ustawiane z JS na bieżąco */
+    transition: background 0.6s ease, box-shadow 0.6s ease;
   }
-  .idle   .icon-bg { background: rgba(142,142,147,0.12); }
-  .motion .icon-bg { background: rgba(239,159,39,0.18); }
+
+  .card.motion .icon-bg {
+    animation: ml-glow-pulse 2.5s ease-in-out infinite;
+  }
 
   ha-icon {
     --mdc-icon-size: 28px;
-    transition: color 0.4s ease;
-  }
-  .idle   ha-icon { color: #8e8e93; }
-  .motion ha-icon {
-    color: #EF9F27;
-    animation: icon-breathe 2.5s ease-in-out infinite;
+    /* color ustawiane z JS */
+    transition: color 0.5s ease;
   }
 
   /* Illuminance row */
@@ -24184,12 +24167,9 @@ const _ML_STYLES = `
   .lux-value {
     font-size: 18px;
     font-weight: 600;
-    transition: color 0.4s ease;
     line-height: 1;
+    transition: color 0.5s ease;
   }
-  .idle   .lux-value { color: rgba(255,255,255,0.75); }
-  .motion .lux-value { color: #EF9F27; }
-
   .lux-unit {
     font-size: 10px;
     font-weight: 500;
@@ -24211,7 +24191,7 @@ const _ML_STYLES = `
     flex-shrink: 0;
   }
 
-  /* Battery — top right, pokazuje zawsze (mała ikona) gdy < 25% */
+  /* Battery — top right, pokazuje gdy < 25% */
   .bat-wrap {
     position: absolute; top: 9px; right: 10px; z-index: 12;
     display: flex; align-items: center; gap: 5px;
@@ -24228,21 +24208,28 @@ const _ML_STYLES = `
   .bat-wrap:hover .bat-tip { opacity: 1; }
 `;
 
-/* SVG icons — sun levels */
-const _ML_ICONS = {
-  motion_bright:  'mdi:motion-sensor',
-  motion_dark:    'mdi:motion-sensor',
-  idle_bright:    'mdi:white-balance-sunny',
-  idle_dark:      'mdi:weather-night',
-  idle_mid:       'mdi:brightness-5',
-};
+/* ── Lux profiles ─────────────────────────────────────────────────────────
+ * Każdy poziom ma:
+ *   icon  — MDI icon odzwierciedlający poziom oświetlenia
+ *   r,g,b — kolor bazy dla glowu i akcentów
+ *   label — czytelna etykieta poziomu (opcjonalnie do debugu)
+ */
+function _mlLuxProfile(lux) {
+  if (lux === null || lux < 5)
+    return { icon: 'mdi:weather-night',       r:  74, g: 127, b: 210 }; // nocny błękit
+  if (lux < 50)
+    return { icon: 'mdi:brightness-3',         r: 140, g: 120, b:  90 }; // zmierzch / ciepły brąz
+  if (lux < 200)
+    return { icon: 'mdi:brightness-5',         r: 200, g: 158, b:  60 }; // półmrok / amber
+  if (lux < 800)
+    return { icon: 'mdi:brightness-6',         r: 240, g: 196, b:  48 }; // jasno / żółty
+  return   { icon: 'mdi:white-balance-sunny',  r: 252, g: 230, b:  90 }; // słonecznie / jasny żółty
+}
 
-function _mlLuxIcon(isMotion, lux) {
-  if (isMotion) return 'mdi:motion-sensor';
-  if (lux === null) return 'mdi:motion-sensor-off';
-  if (lux < 10)  return 'mdi:weather-night';
-  if (lux < 100) return 'mdi:brightness-5';
-  return 'mdi:white-balance-sunny';
+/* Logarytmiczny rozmiar glowu: 0lx→2, 10lx→10, 100lx→20, 1000lx→30 (cap 34) */
+function _mlGlowSize(lux) {
+  if (!lux || lux <= 0) return 2;
+  return Math.min(34, Math.max(2, Math.round(Math.log10(lux + 1) * 11)));
 }
 
 class AhaMotionLightCard extends HTMLElement {
@@ -24263,8 +24250,6 @@ class AhaMotionLightCard extends HTMLElement {
   setConfig(config) {
     if (!config.entity) throw new Error('aha-motion-light-card: wymagane pole "entity"');
     this._config = config;
-
-    // Auto-detect sibling entities based on entity id naming convention
     const base = config.entity.replace(/^binary_sensor\./, 'sensor.');
     this._illuminanceEntity = config.illuminance_entity || (base + '_illuminance');
     this._batteryEntity     = config.battery_entity     || (base + '_battery');
@@ -24284,7 +24269,7 @@ class AhaMotionLightCard extends HTMLElement {
       <div class="state-label">brak ruchu</div>
       <div class="icon-area">
         <div class="icon-bg">
-          <ha-icon icon="mdi:motion-sensor-off"></ha-icon>
+          <ha-icon icon="mdi:weather-night"></ha-icon>
         </div>
       </div>
       <div class="lux-row">
@@ -24302,10 +24287,12 @@ class AhaMotionLightCard extends HTMLElement {
 
     shadow.appendChild(this._card);
 
-    this._haIcon    = shadow.querySelector('ha-icon');
-    this._nameEl    = shadow.querySelector('.name');
-    this._stateEl   = shadow.querySelector('.state-label');
-    this._luxValEl  = shadow.querySelector('.lux-value');
+    this._glowEl   = shadow.querySelector('.glow');
+    this._iconBg   = shadow.querySelector('.icon-bg');
+    this._haIcon   = shadow.querySelector('ha-icon');
+    this._nameEl   = shadow.querySelector('.name');
+    this._stateEl  = shadow.querySelector('.state-label');
+    this._luxValEl = shadow.querySelector('.lux-value');
 
     // Battery widget
     this._batWrap = document.createElement('div');
@@ -24330,23 +24317,67 @@ class AhaMotionLightCard extends HTMLElement {
     const isMotion = occState.state === 'on';
     const name     = this._config.name || occState.attributes.friendly_name || this._config.entity;
 
-    // Illuminance
     const luxState = this._hass.states[this._illuminanceEntity];
     const lux      = luxState && luxState.state !== 'unavailable' && luxState.state !== 'unknown'
-                      ? parseFloat(luxState.state)
-                      : null;
+                      ? parseFloat(luxState.state) : null;
 
-    const stateClass  = isMotion ? 'motion' : 'idle';
-    const stateText   = isMotion ? 'ruch wykryty' : 'brak ruchu';
-    const icon        = _mlLuxIcon(isMotion, lux);
-    const luxDisplay  = lux !== null ? Math.round(lux) : '—';
+    const profile   = _mlLuxProfile(lux);
+    const glowSize  = _mlGlowSize(lux);
+    const { r, g, b } = profile;
 
-    this._card.className         = `card ${stateClass}`;
-    this._stateEl.textContent    = stateText;
-    this._haIcon.setAttribute('icon', icon);
-    this._luxValEl.textContent   = luxDisplay;
-    this._nameEl.textContent     = name;
+    // Intensity 0–1 (logarithmic) — drives opacity of glows
+    const intensity = lux !== null ? Math.min(1, Math.log10((lux || 0) + 1) / Math.log10(1001)) : 0;
 
+    // ── card class ──
+    this._card.className = `card ${isMotion ? 'motion' : 'idle'}`;
+
+    // ── CSS custom property dla animacji card-level pulse ──
+    this._card.style.setProperty('--lux-rgb', `${r},${g},${b}`);
+
+    // ── state label ──
+    this._stateEl.textContent = isMotion ? 'ruch wykryty' : 'brak ruchu';
+
+    // ── icon ──
+    this._haIcon.setAttribute('icon', profile.icon);
+    this._haIcon.style.color = `rgb(${r},${g},${b})`;
+
+    // ── icon-bg: tło + box-shadow glow (logarytmiczny) ──
+    const bgOpacity   = 0.06 + intensity * 0.20;
+    // przy braku lux — minimalne szare tło
+    const bgColor = lux !== null
+      ? `rgba(${r},${g},${b},${bgOpacity.toFixed(2)})`
+      : 'rgba(142,142,147,0.10)';
+
+    const glowOpacityBase = isMotion ? 0.45 : 0.28;
+    const glowOpacity = glowOpacityBase + intensity * 0.25;
+    const spread = Math.round(glowSize * 0.35);
+
+    this._iconBg.style.background  = bgColor;
+    this._iconBg.style.boxShadow   = lux !== null && lux > 0
+      ? `0 0 ${glowSize}px ${spread}px rgba(${r},${g},${b},${glowOpacity.toFixed(2)})`
+      : 'none';
+
+    // ── card background radial glow overlay ──
+    const overlayOpacity = intensity * (isMotion ? 0.14 : 0.08);
+    this._glowEl.style.background = lux !== null && lux > 0
+      ? `radial-gradient(ellipse at 50% 65%, rgba(${r},${g},${b},${overlayOpacity.toFixed(2)}) 0%, transparent 70%)`
+      : 'none';
+
+    // ── card border color ──
+    const borderOpacity = isMotion
+      ? 0.18 + intensity * 0.18
+      : 0.03 + intensity * 0.10;
+    this._card.style.borderColor = lux !== null
+      ? `rgba(${r},${g},${b},${borderOpacity.toFixed(2)})`
+      : 'rgba(255,255,255,0.06)';
+
+    // ── lux value color ──
+    this._luxValEl.style.color = lux !== null
+      ? `rgba(${r},${g},${b},${(0.70 + intensity * 0.30).toFixed(2)})`
+      : 'rgba(255,255,255,0.75)';
+    this._luxValEl.textContent = lux !== null ? Math.round(lux) : '—';
+
+    this._nameEl.textContent = name;
     this._updateBattery();
   }
 
@@ -24374,10 +24405,7 @@ class AhaMotionLightCard extends HTMLElement {
   getCardSize() { return 2; }
 
   static getStubConfig() {
-    return {
-      entity: 'binary_sensor.ruch_i_swiatlo_gora',
-      name:   'Ruch i światło',
-    };
+    return { entity: 'binary_sensor.ruch_i_swiatlo_gora', name: 'Ruch i światło' };
   }
 }
 
@@ -24387,6 +24415,6 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type:        'aha-motion-light-card',
   name:        'Motion + Light Card',
-  description: 'Karta czujnika ruchu i natężenia światła z animacją przy wykryciu ruchu',
+  description: 'Karta czujnika ruchu i natężenia światła — glow skaluje się z luksami',
   preview:     true,
 });
