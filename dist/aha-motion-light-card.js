@@ -136,22 +136,20 @@ const _ML_STYLES = `
   }
   .scale-marker-out ha-icon { color: #a1a1a6; }
 
-  /* Lux pill — prawo od tytułu, schowany gdy brak danych */
+  /* Lux pill — lewy górny róg */
   .lux-pill {
     display: inline-flex; align-items: center;
     border-radius: 6px; padding: 2px 7px;
     font-size: 10px; font-weight: 600;
-    position: absolute; top: 10px; right: 10px; z-index: 6;
+    position: absolute; top: 10px; left: 10px; z-index: 6;
     transition: background 0.4s ease, color 0.4s ease;
   }
 
-  /* Railing chip — opcjonalny wskaźnik switch.porecz */
+  /* Railing chip — lewy dolny róg, absolutny */
   .railing-chip {
     display: none;                        /* ukryty gdy brak railing_entity */
-    align-items: center; gap: 4px;
-    justify-content: center;
-    padding: 2px 0 3px;
-    position: relative; z-index: 2; flex-shrink: 0;
+    align-items: center;
+    position: absolute; bottom: 10px; left: 10px; z-index: 6;
   }
   .railing-chip.visible { display: flex; }
 
@@ -206,23 +204,21 @@ const _ML_STYLES = `
   }
   .card.motion .footer { color: rgba(239,159,39,0.50); }
 
-  /* Battery — zawsze widoczna, intensywność rośnie jak poziom spada */
+  /* Battery — tylko gdy < 60%, top-right jak pasek stanu telefonu */
   .bat-wrap {
-    position: absolute; top: 30px; right: 10px; z-index: 12;
-    display: flex; align-items: center; gap: 4px;
-    transition: opacity 0.4s ease;
+    position: absolute; top: 9px; right: 10px; z-index: 12;
+    display: none; align-items: center; gap: 4px;
   }
+  .bat-wrap.bat-visible { display: flex; }
   .bat-pct {
     font-size: 9px; font-weight: 600;
     background: rgba(12,20,36,.92); border: .5px solid rgba(255,255,255,.14);
     border-radius: 4px; padding: 1px 4px;
-    pointer-events: none; transition: opacity .15s, color .3s, border-color .3s;
-    opacity: 0;                          /* ukryty domyślnie, hover lub low pokazuje */
+    pointer-events: none; transition: color .3s, border-color .3s;
     color: rgba(255,255,255,.8);
   }
-  .bat-wrap:hover .bat-pct            { opacity: 1; }
-  .bat-wrap.bat-low   .bat-pct        { opacity: 1; color: #E24B4A; border-color: rgba(226,75,74,.35); }
-  .bat-wrap.bat-warn  .bat-pct        { opacity: 1; color: #FF9F0A; border-color: rgba(255,159,10,.30); }
+  .bat-wrap.bat-low  .bat-pct { color: #E24B4A; border-color: rgba(226,75,74,.35); }
+  .bat-wrap.bat-warn .bat-pct { color: #FF9F0A; border-color: rgba(255,159,10,.30); }
 `;
 
 /* ── Light profiles (kolor ikony + znacznika wewnętrznego) ─────────────── */
@@ -389,12 +385,6 @@ class AhaMotionLightCard extends HTMLElement {
           <ha-icon icon="mdi:white-balance-sunny"></ha-icon>
         </div>
       </div>
-      <div class="railing-chip">
-        <div class="railing-pill off">
-          <ha-icon icon="mdi:led-strip-variant"></ha-icon>
-          <span>poręcz</span>
-        </div>
-      </div>
       <div class="status-text">—</div>
       <div class="name">—</div>
       <div class="footer">—</div>
@@ -415,8 +405,6 @@ class AhaMotionLightCard extends HTMLElement {
     this._footerEl    = shadow.querySelector('.footer');
     this._stateEl     = shadow.querySelector('.state-label');
     this._statusEl    = shadow.querySelector('.status-text');
-    this._railingChip = shadow.querySelector('.railing-chip');
-    this._railingPill = shadow.querySelector('.railing-pill');
     this._luxPill     = shadow.querySelector('.lux-pill');
     this._scaleSegment = shadow.querySelector('.scale-segment');
     this._markerIn    = shadow.querySelector('.scale-marker-in');
@@ -424,6 +412,14 @@ class AhaMotionLightCard extends HTMLElement {
     this._markerInIcon  = shadow.querySelector('.scale-marker-in ha-icon');
     this._markerOutIcon = shadow.querySelector('.scale-marker-out ha-icon');
 
+    /* railing chip — absolutny, bottom-left */
+    this._railingChip = document.createElement('div');
+    this._railingChip.className = 'railing-chip';
+    this._railingChip.innerHTML = `<div class="railing-pill off"><ha-icon icon="mdi:led-strip-variant"></ha-icon><span>poręcz</span></div>`;
+    this._card.appendChild(this._railingChip);
+    this._railingPill = this._railingChip.querySelector('.railing-pill');
+
+    /* battery */
     this._batWrap = document.createElement('div');
     this._batWrap.className = 'bat-wrap';
     this._batWrap.innerHTML = `<span class="bat-pct"></span><svg width="16" height="8" viewBox="0 0 22 11"></svg>`;
@@ -603,36 +599,28 @@ class AhaMotionLightCard extends HTMLElement {
   _updateBattery() {
     const s = this._hass.states[this._batteryEntity];
     if (!s || s.state === 'unavailable' || s.state === 'unknown') {
-      this._batWrap.style.opacity = '0';
-      this._batWrap.style.pointerEvents = 'none';
-      return;
+      this._batWrap.className = 'bat-wrap'; return;
     }
-    this._batWrap.style.opacity = '';
-    this._batWrap.style.pointerEvents = '';
-
     const pct = Math.round(parseFloat(s.state));
 
-    // Poziomy: full≥60, ok 40-60, warn 20-40, low <20
+    // Pokaż tylko gdy < 60%
+    if (pct >= 60) { this._batWrap.className = 'bat-wrap'; return; }
+
     let strokeCol, fillCol, wrapClass, svgOpacity;
-    if (pct >= 60) {
-      strokeCol  = 'rgba(255,255,255,0.22)';
-      fillCol    = 'rgba(255,255,255,0.28)';
-      wrapClass  = 'bat-wrap';
-      svgOpacity = 0.55;
-    } else if (pct >= 40) {
+    if (pct >= 40) {
       strokeCol  = 'rgba(255,255,255,0.45)';
       fillCol    = 'rgba(255,255,255,0.55)';
-      wrapClass  = 'bat-wrap';
+      wrapClass  = 'bat-wrap bat-visible';
       svgOpacity = 0.80;
     } else if (pct >= 20) {
       strokeCol  = '#FF9F0A';
       fillCol    = '#FF9F0A';
-      wrapClass  = 'bat-wrap bat-warn';
+      wrapClass  = 'bat-wrap bat-visible bat-warn';
       svgOpacity = 1;
     } else {
       strokeCol  = '#E24B4A';
       fillCol    = '#E24B4A';
-      wrapClass  = 'bat-wrap bat-low';
+      wrapClass  = 'bat-wrap bat-visible bat-low';
       svgOpacity = 1;
     }
 
