@@ -160,18 +160,20 @@ const _ML_STYLES = `
   }
   .railing-pill ha-icon { --mdc-icon-size: 14px; transition: color 0.4s ease, filter 0.4s ease; }
 
-  .railing-pill.off {
-    background: rgba(255,255,255,0.07);
+  /* standby: switch ON ale brak ruchu > 2min — pasek wygasł */
+  .railing-pill.standby {
+    background: rgba(255,159,10,0.07);
   }
-  .railing-pill.off ha-icon { color: rgba(255,255,255,0.22); }
+  .railing-pill.standby ha-icon { color: rgba(255,159,10,0.28); }
 
+  /* on: switch ON + ruch w ostatnich 2min — pasek faktycznie świeci */
   .railing-pill.on {
     background: rgba(255,159,10,0.18);
-    box-shadow: 0 0 8px 2px rgba(255,159,10,0.25);
+    box-shadow: 0 0 8px 2px rgba(255,159,10,0.28);
   }
   .railing-pill.on ha-icon {
     color: rgba(255,159,10,0.95);
-    filter: drop-shadow(0 0 3px rgba(255,159,10,0.70));
+    filter: drop-shadow(0 0 4px rgba(255,159,10,0.75));
   }
 
   /* Status text */
@@ -583,17 +585,20 @@ class AhaMotionLightCard extends HTMLElement {
 
   _updateRailing() {
     if (!this._railingEntity) {
-      this._railingChip.className = 'railing-chip';
-      return;
+      this._railingChip.className = 'railing-chip'; return;
     }
     const s = this._hass.states[this._railingEntity];
-    if (!s || s.state === 'unavailable' || s.state === 'unknown') {
-      this._railingChip.className = 'railing-chip';
-      return;
+    if (!s || s.state === 'unavailable' || s.state === 'unknown' || s.state !== 'on') {
+      this._railingChip.className = 'railing-chip'; return;
     }
-    const isOn = s.state === 'on';
+    // Switch ON — sprawdź czy pasek faktycznie świeci (ruch w ostatnich 2 min)
+    const motion   = this._hass.states[this._config.entity];
+    const isActive = motion && (
+      motion.state === 'on' ||
+      (Date.now() - new Date(motion.last_changed).getTime()) < 120000
+    );
     this._railingChip.className = 'railing-chip visible';
-    this._railingPill.className = `railing-pill ${isOn ? 'on' : 'off'}`;
+    this._railingPill.className = `railing-pill ${isActive ? 'on' : 'standby'}`;
   }
 
   _updateBattery() {
