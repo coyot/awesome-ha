@@ -24210,18 +24210,23 @@ const _ML_STYLES = `
   }
   .card.motion .footer { color: rgba(239,159,39,0.50); }
 
-  /* Battery */
+  /* Battery — zawsze widoczna, intensywność rośnie jak poziom spada */
   .bat-wrap {
     position: absolute; top: 30px; right: 10px; z-index: 12;
-    display: flex; align-items: center; gap: 5px;
+    display: flex; align-items: center; gap: 4px;
+    transition: opacity 0.4s ease;
   }
-  .bat-tip {
-    font-size: 10px; font-weight: 600; color: rgba(255,255,255,.80);
-    background: rgba(12,20,36,.95); border: .5px solid rgba(255,255,255,.15);
-    border-radius: 6px; padding: 2px 6px; white-space: nowrap;
-    opacity: 0; pointer-events: none; transition: opacity .15s;
+  .bat-pct {
+    font-size: 9px; font-weight: 600;
+    background: rgba(12,20,36,.92); border: .5px solid rgba(255,255,255,.14);
+    border-radius: 4px; padding: 1px 4px;
+    pointer-events: none; transition: opacity .15s, color .3s, border-color .3s;
+    opacity: 0;                          /* ukryty domyślnie, hover lub low pokazuje */
+    color: rgba(255,255,255,.8);
   }
-  .bat-wrap:hover .bat-tip { opacity: 1; }
+  .bat-wrap:hover .bat-pct            { opacity: 1; }
+  .bat-wrap.bat-low   .bat-pct        { opacity: 1; color: #E24B4A; border-color: rgba(226,75,74,.35); }
+  .bat-wrap.bat-warn  .bat-pct        { opacity: 1; color: #FF9F0A; border-color: rgba(255,159,10,.30); }
 `;
 
 /* ── Light profiles (kolor ikony + znacznika wewnętrznego) ─────────────── */
@@ -24416,10 +24421,9 @@ class AhaMotionLightCard extends HTMLElement {
 
     this._batWrap = document.createElement('div');
     this._batWrap.className = 'bat-wrap';
-    this._batWrap.style.display = 'none';
-    this._batWrap.innerHTML = `<div class="bat-tip"></div><svg width="18" height="9" viewBox="0 0 22 11"></svg>`;
+    this._batWrap.innerHTML = `<span class="bat-pct"></span><svg width="16" height="8" viewBox="0 0 22 11"></svg>`;
     this._card.appendChild(this._batWrap);
-    this._batTip = this._batWrap.querySelector('.bat-tip');
+    this._batPct = this._batWrap.querySelector('.bat-pct');
     this._batSvg = this._batWrap.querySelector('svg');
   }
 
@@ -24578,21 +24582,49 @@ class AhaMotionLightCard extends HTMLElement {
   _updateBattery() {
     const s = this._hass.states[this._batteryEntity];
     if (!s || s.state === 'unavailable' || s.state === 'unknown') {
-      this._batWrap.style.display = 'none'; return;
+      this._batWrap.style.opacity = '0';
+      this._batWrap.style.pointerEvents = 'none';
+      return;
     }
-    const pct = parseFloat(s.state);
-    if (pct >= 25) { this._batWrap.style.display = 'none'; return; }
-    const low     = pct < 20;
-    const col     = low ? '#E24B4A' : 'rgba(255,255,255,0.42)';
-    const fillCol = low ? '#E24B4A' : 'rgba(255,255,255,0.50)';
-    const fillW   = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
-    this._batTip.textContent = Math.round(pct) + '%';
+    this._batWrap.style.opacity = '';
+    this._batWrap.style.pointerEvents = '';
+
+    const pct = Math.round(parseFloat(s.state));
+
+    // Poziomy: full≥60, ok 40-60, warn 20-40, low <20
+    let strokeCol, fillCol, wrapClass, svgOpacity;
+    if (pct >= 60) {
+      strokeCol  = 'rgba(255,255,255,0.22)';
+      fillCol    = 'rgba(255,255,255,0.28)';
+      wrapClass  = 'bat-wrap';
+      svgOpacity = 0.55;
+    } else if (pct >= 40) {
+      strokeCol  = 'rgba(255,255,255,0.45)';
+      fillCol    = 'rgba(255,255,255,0.55)';
+      wrapClass  = 'bat-wrap';
+      svgOpacity = 0.80;
+    } else if (pct >= 20) {
+      strokeCol  = '#FF9F0A';
+      fillCol    = '#FF9F0A';
+      wrapClass  = 'bat-wrap bat-warn';
+      svgOpacity = 1;
+    } else {
+      strokeCol  = '#E24B4A';
+      fillCol    = '#E24B4A';
+      wrapClass  = 'bat-wrap bat-low';
+      svgOpacity = 1;
+    }
+
+    this._batWrap.className = wrapClass;
+    this._batPct.textContent = `${pct}%`;
+
+    const fillW = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
+    this._batSvg.style.opacity = svgOpacity;
     this._batSvg.innerHTML = `
-      <rect x="0.5" y="0.5" width="17" height="10" rx="2.5"
-            fill="none" stroke="${col}" stroke-width="1.1"/>
-      <rect x="18" y="3.5" width="2.5" height="4" rx="1" fill="${col}" opacity="0.7"/>
+      <rect x=".5" y=".5" width="17" height="10" rx="2.5"
+            fill="none" stroke="${strokeCol}" stroke-width="1.1"/>
+      <rect x="18" y="3.5" width="2.5" height="4" rx="1" fill="${strokeCol}" opacity=".7"/>
       ${fillW > 0 ? `<rect x="2" y="2" width="${fillW}" height="6" rx="1.5" fill="${fillCol}"/>` : ''}`;
-    this._batWrap.style.display = '';
   }
 
   getCardSize() { return 3; }
