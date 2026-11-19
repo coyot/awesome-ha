@@ -24048,6 +24048,7 @@ window.customCards.push({
  *   outdoor_lux_entity:  (optional) def: sensor.stacja_pogodowa_solar_lux
  *   max_natural_lux:     (optional) def: 50 — kalibracja pomieszczenia
  *   name:                (optional) override nazwy
+ *   room:                (optional) nazwa pomieszczenia wyświetlana pod nazwą
  */
 
 const _ML_STYLES = `
@@ -24089,16 +24090,17 @@ const _ML_STYLES = `
     border-radius: 19px; transition: background 0.4s ease;
   }
 
-  /* State label — top-center */
+  /* State label — top-center, widoczna TYLKO przy ruchu */
   .state-label {
     position: absolute; top: 10px; left: 0; right: 0; z-index: 5;
     text-align: center; pointer-events: none;
     font-size: 9px; font-weight: 600;
     letter-spacing: 0.06em; text-transform: uppercase;
-    transition: color 0.4s ease;
-    color: rgba(255,255,255,0.28);
+    transition: color 0.4s ease, opacity 0.4s ease;
+    color: rgba(239,159,39,0.95);
+    opacity: 0;
   }
-  .card.motion .state-label { color: rgba(239,159,39,0.95); }
+  .card.motion .state-label { opacity: 1; }
 
   /* Icon area */
   .icon-area {
@@ -24164,9 +24166,20 @@ const _ML_STYLES = `
   .name {
     text-align: center; font-size: 12px; font-weight: 600;
     color: rgba(255,255,255,0.65);
-    padding-bottom: 2px;
+    padding-bottom: 1px;
     position: relative; z-index: 2; flex-shrink: 0;
   }
+
+  /* Room + state subtitle */
+  .footer {
+    text-align: center; font-size: 10px; font-weight: 500;
+    color: rgba(255,255,255,0.35);
+    padding-bottom: 3px;
+    position: relative; z-index: 2; flex-shrink: 0;
+    transition: color 0.4s ease;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card.motion .footer { color: rgba(239,159,39,0.55); }
 
   /* Battery */
   .bat-wrap {
@@ -24262,6 +24275,7 @@ class AhaMotionLightCard extends HTMLElement {
     this._daylightEntity    = config.daylight_entity    || 'sensor.swiatlo_pora_dnia';
     this._outdoorLuxEntity  = config.outdoor_lux_entity || 'sensor.stacja_pogodowa_solar_lux';
     this._maxNatural        = config.max_natural_lux    || 50;
+    this._room              = config.room               || null;
   }
 
   _build() {
@@ -24289,6 +24303,7 @@ class AhaMotionLightCard extends HTMLElement {
         <span class="lux-unit">lx</span>
       </div>
       <div class="name">—</div>
+      <div class="footer">—</div>
     `;
 
     this._card.addEventListener('click', () => {
@@ -24303,6 +24318,7 @@ class AhaMotionLightCard extends HTMLElement {
     this._iconBg      = shadow.querySelector('.icon-bg');
     this._haIcon      = shadow.querySelector('ha-icon');
     this._nameEl      = shadow.querySelector('.name');
+    this._footerEl    = shadow.querySelector('.footer');
     this._stateEl     = shadow.querySelector('.state-label');
     this._luxValEl    = shadow.querySelector('.lux-value');
     this._chipSource  = shadow.querySelector('.chip-source');
@@ -24353,12 +24369,16 @@ class AhaMotionLightCard extends HTMLElement {
     this._card.className = `card ${isMotion ? 'motion' : 'idle'}`;
     this._card.style.setProperty('--lux-rgb', `${r},${g},${b}`);
 
-    // ── state label ──
-    if (isMotion) {
-      this._stateEl.textContent = profile.source === 'lamp' ? 'ruch · lampa' : 'ruch wykryty';
-    } else {
-      this._stateEl.textContent = profile.source === 'lamp' ? 'lampa' : 'brak ruchu';
-    }
+    // ── state label (top) — tylko przy ruchu ──
+    this._stateEl.textContent = profile.source === 'lamp' ? 'ruch · lampa' : 'ruch wykryty';
+
+    // ── footer: room · stan ──
+    const stateStr = isMotion
+      ? (profile.source === 'lamp' ? 'ruch · lampa' : 'ruch wykryty')
+      : (profile.source === 'lamp' ? 'lampa' : 'brak ruchu');
+    this._footerEl.textContent = this._room
+      ? `${this._room} · ${stateStr}`
+      : stateStr;
 
     // ── chip source (zawsze widoczny) ──
     this._chipSource.textContent = profile.chipLabel;
