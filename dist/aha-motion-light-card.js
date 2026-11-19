@@ -145,6 +145,37 @@ const _ML_STYLES = `
     transition: background 0.4s ease, color 0.4s ease;
   }
 
+  /* Railing chip — opcjonalny wskaźnik switch.porecz */
+  .railing-chip {
+    display: none;                        /* ukryty gdy brak railing_entity */
+    align-items: center; gap: 4px;
+    justify-content: center;
+    padding: 2px 0 3px;
+    position: relative; z-index: 2; flex-shrink: 0;
+  }
+  .railing-chip.visible { display: flex; }
+
+  .railing-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    border-radius: 6px; padding: 3px 8px;
+    font-size: 10px; font-weight: 600;
+    transition: background 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .railing-pill ha-icon { --mdc-icon-size: 11px; }
+
+  .railing-pill.off {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.30);
+  }
+  .railing-pill.off ha-icon { color: rgba(255,255,255,0.25); }
+
+  .railing-pill.on {
+    background: rgba(255,159,10,0.15);
+    color: rgba(255,159,10,0.90);
+    box-shadow: 0 0 6px 1px rgba(255,159,10,0.12);
+  }
+  .railing-pill.on ha-icon { color: rgba(255,159,10,0.90); }
+
   /* Status text */
   .status-text {
     text-align: center; font-size: 10px; font-weight: 500;
@@ -321,6 +352,7 @@ class AhaMotionLightCard extends HTMLElement {
     this._weatherEntity     = config.weather_entity     || null;
     this._maxNatural        = config.max_natural_lux    || 50;
     this._room              = config.room               || null;
+    this._railingEntity     = config.railing_entity     || null;
   }
 
   _build() {
@@ -357,6 +389,12 @@ class AhaMotionLightCard extends HTMLElement {
           <ha-icon icon="mdi:white-balance-sunny"></ha-icon>
         </div>
       </div>
+      <div class="railing-chip">
+        <div class="railing-pill off">
+          <ha-icon icon="mdi:led-strip-variant"></ha-icon>
+          <span>poręcz</span>
+        </div>
+      </div>
       <div class="status-text">—</div>
       <div class="name">—</div>
       <div class="footer">—</div>
@@ -377,6 +415,8 @@ class AhaMotionLightCard extends HTMLElement {
     this._footerEl    = shadow.querySelector('.footer');
     this._stateEl     = shadow.querySelector('.state-label');
     this._statusEl    = shadow.querySelector('.status-text');
+    this._railingChip = shadow.querySelector('.railing-chip');
+    this._railingPill = shadow.querySelector('.railing-pill');
     this._luxPill     = shadow.querySelector('.lux-pill');
     this._scaleSegment = shadow.querySelector('.scale-segment');
     this._markerIn    = shadow.querySelector('.scale-marker-in');
@@ -477,6 +517,7 @@ class AhaMotionLightCard extends HTMLElement {
       : (profile.chipLabel === 'lampa' ? 'lampa' : 'brak ruchu');
     this._footerEl.textContent = this._room ? `${this._room} · ${stateStr}` : stateStr;
 
+    this._updateRailing();
     this._updateBattery();
   }
 
@@ -542,6 +583,21 @@ class AhaMotionLightCard extends HTMLElement {
         this._indoorLux, this._outdoorLux, this._isMotion, this._lastChanged
       );
     }
+  }
+
+  _updateRailing() {
+    if (!this._railingEntity) {
+      this._railingChip.className = 'railing-chip';
+      return;
+    }
+    const s = this._hass.states[this._railingEntity];
+    if (!s || s.state === 'unavailable' || s.state === 'unknown') {
+      this._railingChip.className = 'railing-chip';
+      return;
+    }
+    const isOn = s.state === 'on';
+    this._railingChip.className = 'railing-chip visible';
+    this._railingPill.className = `railing-pill ${isOn ? 'on' : 'off'}`;
   }
 
   _updateBattery() {
