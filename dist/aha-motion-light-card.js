@@ -145,11 +145,11 @@ const _ML_STYLES = `
     transition: background 0.4s ease, color 0.4s ease;
   }
 
-  /* Railing chip — lewy dolny róg, absolutny */
+  /* Railing chip — pod lux-pill, top-left */
   .railing-chip {
     display: none;                        /* ukryty gdy brak railing_entity */
     align-items: center;
-    position: absolute; bottom: 10px; left: 10px; z-index: 6;
+    position: absolute; top: 32px; left: 10px; z-index: 6;
   }
   .railing-chip.visible { display: flex; }
 
