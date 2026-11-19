@@ -24189,25 +24189,25 @@ const _ML_STYLES = `
   .railing-chip.visible { display: flex; }
 
   .railing-pill {
-    display: inline-flex; align-items: center; gap: 4px;
-    border-radius: 6px; padding: 3px 8px;
-    font-size: 10px; font-weight: 600;
-    transition: background 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 7px;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
   }
-  .railing-pill ha-icon { --mdc-icon-size: 11px; }
+  .railing-pill ha-icon { --mdc-icon-size: 14px; transition: color 0.4s ease, filter 0.4s ease; }
 
   .railing-pill.off {
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.30);
+    background: rgba(255,255,255,0.07);
   }
-  .railing-pill.off ha-icon { color: rgba(255,255,255,0.25); }
+  .railing-pill.off ha-icon { color: rgba(255,255,255,0.22); }
 
   .railing-pill.on {
-    background: rgba(255,159,10,0.15);
-    color: rgba(255,159,10,0.90);
-    box-shadow: 0 0 6px 1px rgba(255,159,10,0.12);
+    background: rgba(255,159,10,0.18);
+    box-shadow: 0 0 8px 2px rgba(255,159,10,0.25);
   }
-  .railing-pill.on ha-icon { color: rgba(255,159,10,0.90); }
+  .railing-pill.on ha-icon {
+    color: rgba(255,159,10,0.95);
+    filter: drop-shadow(0 0 3px rgba(255,159,10,0.70));
+  }
 
   /* Status text */
   .status-text {
@@ -24450,7 +24450,7 @@ class AhaMotionLightCard extends HTMLElement {
     /* railing chip — absolutny, bottom-left */
     this._railingChip = document.createElement('div');
     this._railingChip.className = 'railing-chip';
-    this._railingChip.innerHTML = `<div class="railing-pill off"><ha-icon icon="mdi:led-strip-variant"></ha-icon><span>poręcz</span></div>`;
+    this._railingChip.innerHTML = `<div class="railing-pill off"><ha-icon icon="mdi:led-strip-variant"></ha-icon></div>`;
     this._card.appendChild(this._railingChip);
     this._railingPill = this._railingChip.querySelector('.railing-pill');
 
