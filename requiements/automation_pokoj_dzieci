@@ -1,0 +1,6 @@
+when sensor.nenek_temperature gets over 26 celsius and it's day time for kids
+turn on climate.pokoj_leona for cooling to 21 degrees as fast as possible
+- day time: 10:00 - 18:30
+- working if iphone_tk or iphone_monika is at zone.home 
+- turn off when it's 18:30 or tempareture in nenek_temperature reaches back to 21
+- zamknij tez rolete numer 8 - cover.rollershutter_0008 gdy uruchamiasz chlodzenie, bo moze jest otwarta i warto by sie schlodzilo

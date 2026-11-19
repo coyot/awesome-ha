@@ -184,6 +184,18 @@ waste:
     name: Gabaryty
     color: '#9C27B0'      # fioletowy
 
+# ── Kalendarz (wspólny) ──────────────────────────────────────
+# Pokazuje dzisiejsze wydarzenia z wybranych kalendarzy Google
+# (np. rodzinny kalendarz, który współdzielicie w domu).
+#
+# color: użyj tego samego koloru, jaki kalendarz ma w Google Calendar
+# (Ustawienia kalendarza → Kolor kalendarza), żeby wpisy na karcie
+# wyglądały tak samo jak w aplikacji Google Calendar.
+calendars:
+  - entity: calendar.rodzinne
+    name: Rodzinne
+    color: '#9C27B0'      # fioletowy — kolor kalendarza "Rodzinne" w Google Calendar
+
 # ── Szambo ───────────────────────────────────────────────────
 # Pokaż przypomnienie gdy zbiornik zapełniony w ≥ warn_pct %
 # capacity: pojemność w m³ (sprawdź w integracji szambo)

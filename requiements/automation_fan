@@ -1,0 +1,5 @@
+when sensor.biuro_temperature gets over 26 celsius and it's working time
+turn on switch.biuro_wiatrak
+- working time: 7:00 - 22:00
+- working if iphone_tk is at zone.home 
+- turn off when it's 22:00 or tempareture in biuro reaches back to 22

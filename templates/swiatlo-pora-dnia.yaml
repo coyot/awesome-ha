@@ -1,34 +1,105 @@
 # Wklejone do configuration.yaml → template: (jako osobny element listy)
-# sensor.swiatlo_pora_dnia — docelowa jasność (%) + barwa (K) wg pory dnia
-#   dzień (słońce ≥ 12°)       100%, 5000K
-#   zmierzch/świt (-6°..12°)   płynnie między profilem wieczornym a dziennym
-#   wieczór (do 21:00)          55%, 2700K
-#   21:00 → 23:00               płynnie 55% → 10%, 2700K → 2000K
-#   noc (23:00–05:00)           10%, 2000K
-#   05:00 → 06:00               płynnie 10% → 55%
-  - sensor:
+# sensor.swiatlo_pora_dnia — docelowa jasność (%) + barwa wg pory dnia i zachmurzenia.
+# Trigger-based (co minutę). Krzywa f.lux-like:
+#   dzień (słońce wysoko)      100%, 5000K   (zachmurzenie 100%: 70%, 4000K; zmierzch zaczyna się do 4° wcześniej)
+#   zmierzch/wieczór           45%, 2700K    (interpolacja w mired, jasność logarytmicznie)
+#   21:00 → 23:00              płynnie → ~4%, poniżej 2000K przejście na rgb_color (bursztyn/brąz)
+#   noc (23:00–05:00)          4%, rgb(255,38,0)
+#   05:00 → 06:30              wygaszanie nocy (tłumione, gdy słońce już wstało)
+# Atrybuty: color_temp_kelvin (>=2000), mired, rgb_color (po kompensacji gamma), mode (color_temp|rgb),
+#           zachmurzenie (%), faza. Stałe do strojenia w bloku `k:` (night_g, led_gamma, night_b, cloud_*).
+  - triggers:
+      - trigger: time_pattern
+        minutes: "/1"
+      - trigger: homeassistant
+        event: start
+    variables:
+      k:
+        day_k: 5000
+        eve_k: 2700
+        eve_b: 45
+        night_b: 4
+        night_g: 110
+        led_gamma: 1.0
+        cloud_dim: 30
+        cloud_k: 1000
+        cloud_shift: 4
+        wd_start: 1260
+        wd_end: 1380
+        wake_start: 300
+        wake_end: 390
+        e_lo: -4
+        e_hi: 12
+        m_hand: 500
+        m_end: 650
+      el: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+      cc: >-
+        {%- set t = now().timestamp() -%}
+        {%- set fc = state_attr('sensor.forecast_hourly_json', 'forecast') -%}
+        {%- set ns = namespace(a=none, ta=0, b=none, tb=0) -%}
+        {%- if fc is iterable and fc is not string -%}
+          {%- for f in fc if f is mapping and f['cloud_coverage'] is number -%}
+            {%- set tf = as_timestamp(f['datetime'], 0) -%}
+            {%- if tf <= t -%}{%- set ns.a = f['cloud_coverage'] -%}{%- set ns.ta = tf -%}
+            {%- elif ns.b is none -%}{%- set ns.b = f['cloud_coverage'] -%}{%- set ns.tb = tf -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+        {%- set cur = state_attr('weather.forecast_home', 'cloud_coverage') -%}
+        {%- set cond = states('weather.forecast_home') -%}
+        {%- set cmap = {'sunny': 5, 'clear-night': 5, 'partlycloudy': 45, 'windy': 40, 'windy-variant': 70,
+                        'cloudy': 90, 'fog': 90, 'exceptional': 60, 'rainy': 95, 'snowy': 95,
+                        'snowy-rainy': 95, 'hail': 100, 'pouring': 100, 'lightning': 100,
+                        'lightning-rainy': 100} -%}
+        {%- if ns.a is not none and ns.b is not none and (t - ns.ta) <= 5400 and 0 < (ns.tb - ns.ta) <= 5400 -%}
+          {{ ns.a + (ns.b - ns.a) * (t - ns.ta) / (ns.tb - ns.ta) }}
+        {%- elif cur is number -%}{{ cur }}
+        {%- else -%}{{ cmap.get(cond, 0) }}
+        {%- endif -%}
+      c: "{{ [0, [1, cc | float(0) / 100] | min] | max }}"
+      m: "{{ now().hour * 60 + now().minute + now().second / 60 }}"
+      x: "{{ [0, [1, (el - k.cloud_shift * c - k.e_lo) / (k.e_hi - k.e_lo)] | min] | max }}"
+      d: "{{ x * x * (3 - 2 * x) }}"
+      nl: >-
+        {{ [0, [1, (m - k.wd_start) / (k.wd_end - k.wd_start)] | min] | max if m >= k.wd_start
+           else (([0, [1, (k.wake_end - m) / (k.wake_end - k.wake_start)] | min] | max) * (1 - d) if m < k.wake_end else 0) }}
+      n: "{{ nl * nl * (3 - 2 * nl) }}"
+      md: "{{ 1000000 / (k.day_k - k.cloud_k * c) }}"
+      bd: "{{ 100 * (1 - k.cloud_dim / 100 * c) }}"
+      m0: "{{ 1000000 / k.eve_k + (md - 1000000 / k.eve_k) * d }}"
+      b0: "{{ k.eve_b ** (1 - d) * bd ** d }}"
+      mir: "{{ m0 + (k.m_end - m0) * n if m0 < k.m_end else m0 }}"
+      bri: "{{ [1, [100, (b0 ** (1 - n) * k.night_b ** n) | round(0)] | min] | max | int }}"
+      tk: "{{ 1000000 / mir }}"
+      s: "{{ [0, [1, (mir - k.m_hand) / (k.m_end - k.m_hand)] | min] | max }}"
+      tt: "{{ [tk, 2000] | max / 100 }}"
+      rgb: >-
+        {%- set g0 = [0, [255, 99.4708 * (tt | log) - 161.1196] | min] | max -%}
+        {%- set b0c = [0, [255, 138.5177 * ((tt - 10) | log) - 305.0448] | min] | max -%}
+        {%- if mir <= k.m_hand -%}
+          {%- set gn = g0 -%}{%- set bn = b0c -%}
+        {%- else -%}
+          {%- set ga = (137 / 255) ** 2.2 -%}
+          {%- set gb = (k.night_g / 255) ** 2.2 -%}
+          {%- set gn = 255 * (ga + (gb - ga) * s) ** (1 / 2.2) -%}
+          {%- set bn = 14 * (1 - s) -%}
+        {%- endif -%}
+        {{ [255, (255 * (gn / 255) ** k.led_gamma) | round(0) | int, (255 * (bn / 255) ** k.led_gamma) | round(0) | int] }}
+    sensor:
       - name: "Światło pora dnia"
         unique_id: swiatlo_pora_dnia
         default_entity_id: sensor.swiatlo_pora_dnia
         icon: mdi:sun-clock
         unit_of_measurement: "%"
-        state: >
-          {% set e = state_attr('sun.sun','elevation') | float(0) %}
-          {% set p = [0, [1, (e + 6) / 18] | min] | max %}
-          {% set m = now().hour * 60 + now().minute %}
-          {% set n = ([1, (m - 1260) / 120] | min) if m >= 1260 else (1 if m < 300 else ((1 - (m - 300) / 60) if m < 360 else 0)) %}
-          {% set bb = 55 - 45 * n %}
-          {{ (bb + (100 - bb) * p) | round(0) | int }}
+        state: "{{ bri }}"
         attributes:
-          color_temp_kelvin: >
-            {% set e = state_attr('sun.sun','elevation') | float(0) %}
-            {% set p = [0, [1, (e + 6) / 18] | min] | max %}
-            {% set m = now().hour * 60 + now().minute %}
-            {% set n = ([1, (m - 1260) / 120] | min) if m >= 1260 else (1 if m < 300 else ((1 - (m - 300) / 60) if m < 360 else 0)) %}
-            {% set bk = 2700 - 700 * n %}
-            {{ (((bk + (5000 - bk) * p) / 50) | round(0) * 50) | int }}
-          faza: >
-            {% set e = state_attr('sun.sun','elevation') | float(0) %}
-            {% set m = now().hour * 60 + now().minute %}
-            {{ 'dzień' if e >= 12 else (('świt' if m < 720 else 'zmierzch') if e > -6 else
-               ('noc' if (m >= 1380 or m < 300) else ('wyciszanie' if m >= 1260 else ('pobudka' if m < 360 else 'wieczór')))) }}
+          color_temp_kelvin: "{{ (([tk, 2000] | max / 50) | round(0) * 50) | int }}"
+          mired: "{{ mir | round(0) | int }}"
+          rgb_color: "{{ rgb }}"   # kody urządzenia, już z kompensacją gamma
+          mode: "{{ 'rgb' if mir > k.m_hand else 'color_temp' }}"
+          zachmurzenie: "{{ cc | float(0) | round(0) | int }}"
+          faza: >-
+            {{ 'noc' if (n >= 0.99 and m >= k.wd_start or m < k.wake_start) else
+               ('wyciszanie' if m >= k.wd_start else
+               ('pobudka' if m < k.wake_end else
+               ('dzień' if d >= 0.9 else ('wieczór' if (d <= 0.1 and m >= 720) else ('świt' if m < 720 else 'zmierzch'))))) }}

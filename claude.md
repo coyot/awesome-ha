@@ -90,6 +90,46 @@ When publishing a new version:
    ```
    HACS reads "What's New" from GitHub Releases — a bare tag shows nothing to the user in HA.
 
+## Home Assistant Access
+
+HA runs locally at `192.168.33.209:8123`.
+
+### SMB config mount
+Mount HA config via Finder → Cmd+K → `smb://admin:PASSWORD@192.168.33.209/config`  
+Mounts to `/Volumes/config` — gives direct read/write access to all HA config files.
+
+> Note: `admin` password is the HA admin account password (not stored here for security).  
+> If `/Volumes/config` is not mounted, remind the user to mount it via Finder first.
+
+### Key paths (via SMB)
+- Dashboards: `/Volumes/config/.storage/lovelace.dashboard_*`
+- Resources: `/Volumes/config/.storage/lovelace_resources`
+- Dashboard list: `/Volumes/config/.storage/lovelace_dashboards`
+- Bundle deploy: `/Volumes/config/www/community/awesome-ha/awesome-ha.js`
+
+### Deploy bundle
+```
+cp awesome-ha.js /Volumes/config/www/community/awesome-ha/awesome-ha.js
+```
+Then restart HA (see below). No HACS update needed — file is served directly.
+
+### HA REST API
+Token stored in memory file `reference_ha_api.md`.
+
+```bash
+# Restart HA
+curl -s -o /dev/null -w "%{http_code}" \
+  -X POST http://192.168.33.209:8123/api/services/homeassistant/restart \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" -d '{}'
+
+# Get entity state
+curl -s http://192.168.33.209:8123/api/states/sensor.ENTITY \
+  -H "Authorization: Bearer TOKEN"
+```
+
+After restart, wait ~30s for HA to come back up before verifying changes in browser.
+
 ## Contribution Guidelines
 1. Add new features under relevant directory structure
 2. Maintain Apple-inspired design consistency

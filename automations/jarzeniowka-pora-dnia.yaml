@@ -1,9 +1,8 @@
 - id: jarzeniowka_pora_dnia_zastosuj
   alias: "Jarzeniówka: śledzenie pory dnia — zastosuj"
   description: >
-    Gdy input_boolean.jarzeniowka_pora_dnia = on i lampa świeci, ustawia jasność
-    i barwę (color_temp_kelvin) wg sensor.swiatlo_pora_dnia. Wysyła komendę tylko
-    przy realnej różnicy (≥2% jasności lub ≥100K), żeby nie spamować Govee Cloud API.
+    Ustawia jasność i barwę wg sensor.swiatlo_pora_dnia: color_temp_kelvin (>=2000 K) albo
+    rgb_color (głęboki bursztyn/brąz). Komenda tylko przy realnej zmianie, z histerezą trybu.
   triggers:
     - trigger: state
       entity_id: sensor.swiatlo_pora_dnia
@@ -24,22 +23,50 @@
       entity_id: light.jarzeniowka
       state: "on"
     - condition: template
-      value_template: "{{ states('sensor.swiatlo_pora_dnia') | is_number }}"
+      value_template: >
+        {{ states('sensor.swiatlo_pora_dnia') | is_number
+           and state_attr('sensor.swiatlo_pora_dnia', 'rgb_color') is not none }}
   actions:
     - variables:
-        tb: "{{ states('sensor.swiatlo_pora_dnia') | int }}"
+        tb: "{{ states('sensor.swiatlo_pora_dnia') | int(0) }}"
         tk: "{{ state_attr('sensor.swiatlo_pora_dnia', 'color_temp_kelvin') | int(4000) }}"
+        tm: "{{ state_attr('sensor.swiatlo_pora_dnia', 'mired') | int(250) }}"
+        trgb: "{{ state_attr('sensor.swiatlo_pora_dnia', 'rgb_color') }}"
         cb: "{{ ((state_attr('light.jarzeniowka', 'brightness') | int(0)) / 2.55) | round(0) | int }}"
         ck: "{{ state_attr('light.jarzeniowka', 'color_temp_kelvin') | int(0) }}"
+        crgb: "{{ state_attr('light.jarzeniowka', 'rgb_color') | default([0, 0, 0], true) }}"
         cm: "{{ state_attr('light.jarzeniowka', 'color_mode') }}"
+    - variables:
+        use_rgb: "{{ (tm > 485) if cm == 'rgb' else (tm > 515) }}"
+    - variables:
+        bri_changed: "{{ (cb - tb) | abs >= [1, cb * 0.07] | max }}"
+        col_changed: >
+          {% if use_rgb %}
+            {{ cm != 'rgb' or ((crgb[1] - trgb[1]) | abs + (crgb[2] - trgb[2]) | abs) >= 6 }}
+          {% else %}
+            {{ cm != 'color_temp' or ck == 0 or ((1000000 / ck) - (1000000 / tk)) | abs >= 10 }}
+          {% endif %}
     - condition: template
-      value_template: "{{ cm != 'color_temp' or (cb - tb) | abs >= 2 or (ck - tk) | abs >= 100 }}"
-    - action: light.turn_on
-      target:
-        entity_id: light.jarzeniowka
-      data:
-        brightness_pct: "{{ tb }}"
-        color_temp_kelvin: "{{ tk }}"
+      value_template: "{{ bri_changed or col_changed }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ use_rgb }}"
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id: light.jarzeniowka
+              data:
+                brightness_pct: "{{ [1, tb] | max }}"
+                rgb_color: "{{ trgb }}"
+      default:
+        - action: light.turn_on
+          target:
+            entity_id: light.jarzeniowka
+          data:
+            brightness_pct: "{{ [1, tb] | max }}"
+            color_temp_kelvin: "{{ tk }}"
+    - delay: "00:00:10"
   mode: single
   max_exceeded: silent
 

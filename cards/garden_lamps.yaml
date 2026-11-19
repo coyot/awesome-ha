@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurora Glass — 3 lampy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:#08080d; color:#e8e8ee; min-height:100vh; display:grid; place-items:center; padding:32px 16px; }
+  .wrap { width:100%; max-width:440px; }
+  .page-title { font-family:'Space Grotesk'; font-size:12px; letter-spacing:.28em; text-transform:uppercase; color:#5a5a70; text-align:center; margin-bottom:24px; }
+  .v1 { background:linear-gradient(160deg,rgba(30,30,46,.9),rgba(16,16,26,.95)); border:1px solid rgba(255,255,255,.06); border-radius:26px; padding:24px; backdrop-filter:blur(20px); box-shadow:0 24px 60px rgba(0,0,0,.5); }
+  .v1-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .v1-head h3 { font-size:16px; font-weight:600; }
+  .v1-head .meta { font-size:12px; color:#5a5a70; display:flex; align-items:center; gap:6px; }
+  .v1-head .dot { width:7px; height:7px; border-radius:50%; background:#4ade80; box-shadow:0 0 8px #4ade80; }
+  .v1-row { display:flex; align-items:center; gap:16px; padding:18px 0; }
+  .v1-row + .v1-row { border-top:1px solid rgba(255,255,255,.05); }
+  .stage { width:64px; height:64px; flex-shrink:0; display:grid; place-items:center; }
+
+  /* KULE */
+  .orbs { display:flex; align-items:flex-end; gap:6px; }
+  .orb { border-radius:50%; transition:.55s cubic-bezier(.4,0,.2,1); background:radial-gradient(circle at 35% 30%,#2c2c3c,#16161f); border:1px solid rgba(255,255,255,.08); }
+  .orb.big { width:34px; height:34px; } .orb.small { width:20px; height:20px; }
+  .orbs.on .orb { background:radial-gradient(circle at 35% 30%,#fff3d6,#ffb347); border-color:rgba(255,200,120,.5); }
+  .orbs.on .orb.big { box-shadow:0 0 26px 5px rgba(255,179,71,.6),0 0 48px 10px rgba(255,160,50,.28); animation:breathe 3.5s ease-in-out infinite; }
+  .orbs.on .orb.small { box-shadow:0 0 18px 4px rgba(255,179,71,.55); animation:breathe 3.5s ease-in-out infinite .4s; }
+  @keyframes breathe { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.18)} }
+
+  /* SPOT na drzewa — skośny reflektor ogrodowy, świeci z przedniej krawędzi w górę */
+  .spot { position:relative; width:64px; height:64px; }
+  .gs { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(38deg); }
+  /* bolec w ziemię */
+  .gs-stake { position:absolute; left:50%; top:24px; transform:translateX(-50%); width:6px; height:22px; border-radius:0 0 3px 3px; background:linear-gradient(180deg,#22222e,#15151c); }
+  /* trzon */
+  .gs-stem { position:absolute; left:50%; top:12px; transform:translateX(-50%); width:7px; height:16px; border-radius:4px; background:linear-gradient(180deg,#2a2a38,#1c1c26); }
+  /* głowica reflektora (walec pod skosem) */
+  .gs-head { position:absolute; left:50%; top:-4px; transform:translateX(-50%); width:22px; height:30px; border-radius:11px 11px 9px 9px; background:linear-gradient(150deg,#30303e,#1a1a24); border:1px solid rgba(255,255,255,.1); }
+  /* przednia krawędź / klosz — to stąd bije światło */
+  .gs-face { position:absolute; left:50%; top:-7px; transform:translateX(-50%); width:24px; height:11px; border-radius:50%; background:#15151c; border:1px solid rgba(255,255,255,.12); transition:.5s; z-index:2; }
+  /* wiązka światła — miękki gradient zanikający ku górze + halo przy źródle */
+  .gs-beam { position:absolute; left:50%; top:-46px; transform:translateX(-50%); width:34px; height:46px; transition:.55s; z-index:1; opacity:0;
+    background:
+      radial-gradient(ellipse 60% 38% at 50% 100%, rgba(255,210,130,.55), transparent 70%),
+      conic-gradient(from 180deg at 50% 100%, transparent 62deg, rgba(255,200,110,.32) 90deg, rgba(255,210,130,.40) 180deg, rgba(255,200,110,.32) 270deg, transparent 298deg);
+    -webkit-mask-image:linear-gradient(to top, #000 0%, rgba(0,0,0,.7) 35%, transparent 92%);
+    mask-image:linear-gradient(to top, #000 0%, rgba(0,0,0,.7) 35%, transparent 92%);
+    filter:blur(4px); }
+  .gs-halo { position:absolute; left:50%; top:-12px; transform:translateX(-50%); width:30px; height:30px; border-radius:50%; background:radial-gradient(circle, rgba(255,200,110,.5), transparent 65%); transition:.5s; opacity:0; filter:blur(3px); z-index:1; }
+  .spot.on .gs-face { background:radial-gradient(ellipse at center,#fff2d0,#ffb84d); box-shadow:0 0 22px 6px rgba(255,184,77,.8); border-color:rgba(255,210,140,.6); }
+  .spot.on .gs-beam { opacity:1; animation:beamglow 4.5s ease-in-out infinite; }
+  .spot.on .gs-halo { opacity:1; animation:beamglow 4.5s ease-in-out infinite .3s; }
+  @keyframes beamglow { 0%,100%{opacity:.78} 50%{opacity:1} }
+  @keyframes beamglow { 0%,100%{opacity:.8} 50%{opacity:1} }
+
+  /* PERGOLA LED — elipsa świecąca w dół, intensywność wg poziomu */
+  .pergola { position:relative; width:64px; height:64px; }
+  .bar { position:absolute; top:16px; left:50%; transform:translateX(-50%); width:36px; height:8px; border-radius:4px; background:linear-gradient(180deg,#2a2a38,#1a1a24); border:1px solid rgba(255,255,255,.1); z-index:3; }
+  .ellipse { position:absolute; top:24px; left:50%; transform:translateX(-50%); width:40px; height:30px; border-radius:50%; background:radial-gradient(ellipse at center top,rgba(255,200,100,0),transparent 70%); transition:.5s; z-index:1; filter:blur(2px); }
+  .glowpt { position:absolute; top:22px; left:50%; transform:translateX(-50%); width:28px; height:4px; border-radius:3px; background:#15151c; transition:.45s; z-index:2; }
+  .pergola[data-lvl="1"] .glowpt { background:#ffd98a; box-shadow:0 0 8px 2px rgba(255,200,100,.5); }
+  .pergola[data-lvl="2"] .glowpt { background:#ffd070; box-shadow:0 0 12px 3px rgba(255,190,90,.7); }
+  .pergola[data-lvl="3"] .glowpt { background:#fff0c0; box-shadow:0 0 18px 5px rgba(255,200,100,.9); }
+  .pergola[data-lvl="1"] .ellipse { background:radial-gradient(ellipse at center top,rgba(255,200,100,.3),transparent 70%); }
+  .pergola[data-lvl="2"] .ellipse { background:radial-gradient(ellipse at center top,rgba(255,200,100,.5),transparent 72%); height:36px; }
+  .pergola[data-lvl="3"] .ellipse { background:radial-gradient(ellipse at center top,rgba(255,210,120,.72),transparent 75%); height:42px; }
+
+  .v1-info { flex:1; }
+  .v1-info .name { font-size:15px; font-weight:500; }
+  .v1-info .state { font-size:12px; color:#5a5a70; margin-top:3px; transition:.3s; }
+  .v1-info .state.on-warm { color:#ffb347; }
+  .v1-info .state.on-cool { color:#5ec8ff; }
+  .v1-info .state.on-amber { color:#ffce80; }
+
+  .v1-toggle { width:52px; height:30px; border-radius:30px; background:#222230; position:relative; transition:.35s; flex-shrink:0; cursor:pointer; }
+  .v1-toggle::after { content:''; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#6a6a80; transition:.35s; }
+  .v1-toggle.warm.on { background:rgba(255,179,71,.3); } .v1-toggle.warm.on::after { left:25px; background:#ffb347; box-shadow:0 0 12px #ffb347; }
+  .v1-toggle.cool.on { background:rgba(255,184,77,.3); } .v1-toggle.cool.on::after { left:25px; background:#ffb84d; box-shadow:0 0 12px #ffb84d; }
+
+  /* segmented dimmer */
+  .seg { display:flex; gap:4px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:3px; flex-shrink:0; }
+  .seg button { border:none; background:none; color:#6a6a80; font-family:'Space Grotesk'; font-size:11px; font-weight:600; padding:7px 9px; border-radius:9px; cursor:pointer; transition:.25s; min-width:36px; }
+  .seg button.active { background:rgba(255,200,100,.18); color:#ffce80; box-shadow:0 0 12px rgba(255,200,100,.25) inset; }
+  .seg button.active.zero { background:rgba(255,255,255,.08); color:#9a9ab0; box-shadow:none; }
+
+  .v1-sched { display:flex; gap:8px; margin-top:18px; }
+  .v1-pill { flex:1; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:11px 12px; text-align:center; }
+  .v1-pill .lbl { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#5a5a70; }
+  .v1-pill .val { font-size:16px; font-weight:600; margin-top:3px; font-family:'Space Grotesk'; }
+  .v1-pill .val.dim { color:#ffb347; } .v1-pill .val.off { color:#7a7a90; }
+  .row3 { flex-direction:column; align-items:stretch; gap:14px; }
+  .row3-top { display:flex; align-items:center; gap:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-title">Aurora Glass · Shelly 2PM + Dimmer</div>
+  <div class="v1">
+    <div class="v1-head"><h3>Ogród</h3><span class="meta"><span class="dot"></span>3 obwody · online</span></div>
+
+    <!-- KULE -->
+    <div class="v1-row">
+      <div class="stage"><div class="orbs" id="orbs"><div class="orb big"></div><div class="orb small"></div></div></div>
+      <div class="v1-info"><div class="name">Kule świecące</div><div class="state" id="s1">Wyłączone</div></div>
+      <div class="v1-toggle warm" id="tg1" onclick="toggleWarm()"></div>
+    </div>
+
+    <!-- SPOT -->
+    <div class="v1-row">
+      <div class="stage"><div class="spot" id="spot"><div class="gs"><div class="gs-beam"></div><div class="gs-halo"></div><div class="gs-stake"></div><div class="gs-stem"></div><div class="gs-head"></div><div class="gs-face"></div></div></div></div>
+      <div class="v1-info"><div class="name">Spot na drzewa</div><div class="state" id="s2">Wyłączone</div></div>
+      <div class="v1-toggle cool" id="tg2" onclick="toggleCool()"></div>
+    </div>
+
+    <!-- PERGOLA LED — dimmable -->
+    <div class="v1-row row3">
+      <div class="row3-top">
+        <div class="stage"><div class="pergola" id="perg" data-lvl="0"><div class="bar"></div><div class="glowpt"></div><div class="ellipse"></div></div></div>
+        <div class="v1-info"><div class="name">Spot LED w pergoli</div><div class="state" id="s3">Wyłączone · 0%</div></div>
+      </div>
+      <div class="seg" id="seg" style="align-self:flex-start;margin-left:80px;">
+        <button data-l="0" class="active zero" onclick="setLvl(0)">0%</button>
+        <button data-l="1" onclick="setLvl(1)">33%</button>
+        <button data-l="2" onclick="setLvl(2)">66%</button>
+        <button data-l="3" onclick="setLvl(3)">100%</button>
+      </div>
+    </div>
+
+    <div class="v1-sched">
+      <div class="v1-pill"><div class="lbl">Włącz</div><div class="val dim">20:30</div></div>
+      <div class="v1-pill"><div class="lbl">Wyłącz</div><div class="val off">23:00</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleWarm(){ const on=document.getElementById('orbs').classList.toggle('on'); document.getElementById('tg1').classList.toggle('on',on); const s=document.getElementById('s1'); s.className='state'+(on?' on-warm':''); s.textContent=on?'Włączone · 18 W':'Wyłączone'; }
+  function toggleCool(){ const on=document.getElementById('spot').classList.toggle('on'); document.getElementById('tg2').classList.toggle('on',on); const s=document.getElementById('s2'); s.className='state'+(on?' on-amber':''); s.textContent=on?'Włączone · 12 W':'Wyłączone'; }
+  const pct=[0,33,66,100], watt=[0,5,10,15];
+  function setLvl(l){
+    document.getElementById('perg').dataset.lvl=l;
+    document.querySelectorAll('#seg button').forEach(b=>{ const a=+b.dataset.l===l; b.classList.toggle('active',a); b.classList.toggle('zero',a&&l===0); });
+    const s=document.getElementById('s3');
+    s.className='state'+(l>0?' on-amber':'');
+    s.textContent=(l>0?`Włączone · ${pct[l]}% · ${watt[l]} W`:'Wyłączone · 0%');
+  }
+</script>
+</body>
+</html>

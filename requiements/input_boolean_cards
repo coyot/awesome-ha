@@ -1,0 +1,7 @@
+przygotuj pill + kolorowa ikona w kółku (z 1) + pill toggle w prawym górnym rogu jako wskaźnik stanu (z 4).
+
+mam podawac input_boolean a ty masz mi tym zarządzać + podawać nazwę i ikonę z definicji w configuration.
+
+jesli sa dodatkowe informacje - obsluz je. 
+
+zaprojektuj to w stylu apple home, najlepiej by to bylo stosunkowo male per jeden boolean, ale moge miec ich wiele - wiec teoretycznie moze byc ich duzo. przygotuj karte, zdefiniuje Ci input_booleany jakie chce bys mi obslugiwal.

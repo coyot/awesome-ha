@@ -83,7 +83,9 @@ class AhaLightCard extends HTMLElement {
     const bri = parseInt(s.state, 10);
     const k = parseInt(s.attributes.color_temp_kelvin, 10);
     if (isNaN(bri) || isNaN(k)) return null;
-    return { bri, k };
+    const rgb = Array.isArray(s.attributes.rgb_color) ? s.attributes.rgb_color.map(Number) : null;
+    const mode = (s.attributes.mode === 'rgb' && rgb && rgb.length === 3 && rgb.every(Number.isFinite)) ? 'rgb' : 'color_temp';
+    return { bri, k, rgb, mode };
   }
 
   _call(domain, service, data) { return this._hass.callService(domain, service, data); }
@@ -103,7 +105,12 @@ class AhaLightCard extends HTMLElement {
     }
     const t = this._adaptiveOn() ? this._target() : null;
     const data = { entity_id: this._config.entity };
-    if (t) { data.brightness_pct = t.bri; if (this._hasCT()) data.color_temp_kelvin = t.k; }
+    if (t) {
+      data.brightness_pct = t.bri;
+      if (t.mode === 'rgb' && this._hasColor()) data.rgb_color = t.rgb;
+      else if (this._hasCT()) data.color_temp_kelvin = t.k;
+      else if (this._hasColor() && t.rgb) data.rgb_color = t.rgb;
+    }
     this._call('light', 'turn_on', data);
   }
 
@@ -430,7 +437,7 @@ class AhaLightCard extends HTMLElement {
 
     const t = adaptive ? this._target() : null;
     const chips = [c.model, c.room, c.brand].filter(Boolean).map(x => `<span class="chip">${x}</span>`);
-    if (t) chips.unshift(`<span class="chip sun">☀ ${t.bri}% · ${t.k}K</span>`);
+    if (t) chips.unshift(`<span class="chip sun">☀ ${t.bri}% · ${t.mode === 'rgb' ? 'bursztyn' : t.k + 'K'}</span>`);
     const html = chips.join('');
     if (this._chipsHtml !== html) { this._chipsHtml = html; $('chips').innerHTML = html; }
   }

@@ -1,0 +1,18 @@
+sensor temperatury: sensor.pergola_new_temperature
+sensor wilgotnosci: sensor.pergola_new_humidity
+pergola entity: cover.teleco_leds2
+temp prog: 26 - czy to dobry? 
+
+chce automation by otwieraly sie pergolowe lamele na 100% gdy w pergoli zrobi sie "nieprzyjemnie" - czyli albo za duza temperatura albo wilgotnosc.
+
+ale tylko wiosna lub latem, gdy nie pada - wtedy maja sie otwierac. nigdy gdy jest deszcz! warto wziac pod uwage temperature na zewnatrz - mozesz skorzystac z AI, jesli potrzebujesz?
+
+niech sie zamykaja gdy zacznie padac deszcz, lub gdy temperatura wroci do akceptowalnej. 
+
+i niech to sie dzieje gdy iphone_tk lub iphone_monika sa w domu.
+
+gdy nas nie ma - niech to bedzie polgodzinne przewietrzenie tylko w przypadku przegroczenia progu.
+
+i niech to sie dzieje w godzinach 8-22, poza tym niech sie nic nie otwiera. 
+
+pamietaj o dodaniu wpisu w aha-log-history-card (opis + szczegolowe dane, a takze troche statystyk i obsluge tam)

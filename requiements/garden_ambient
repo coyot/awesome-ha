@@ -1,0 +1,6 @@
+input_boolean: garden_ambient
+
+1. gdy wlaczam na TRUE, to wlaczaja sie switch.ogrod_lampy0, switch.ogrod_lampy1, light.teleco_shutters (na 33%). 
+2. gdy wylaczam na FALSE, to wszystkie 3 sie wylaczaja na 0%
+3. jesli tryb_noc jest aktywowany - przestawiam garden_ambient na FALSE
+4. dodaje obsluge garden_ambient do aha-input-boolean-card 
