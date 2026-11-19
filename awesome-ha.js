@@ -24241,6 +24241,53 @@ const _ML_STYLES = `
   }
   .card.motion .footer { color: rgba(239,159,39,0.50); }
 
+  /* ── Tooltips ──────────────────────────────────────────────── */
+  .tip {
+    position: absolute;
+    white-space: nowrap;
+    font-size: 9px; font-weight: 600;
+    color: rgba(255,255,255,.88);
+    background: rgba(10,18,32,.96);
+    border: .5px solid rgba(255,255,255,.16);
+    border-radius: 5px;
+    padding: 3px 7px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+    z-index: 30;
+  }
+  /* Markery na skali — tooltip nad markerem */
+  .scale-marker { overflow: visible; }
+  .scale-marker .tip {
+    bottom: calc(100% + 5px);
+    left: 50%; transform: translateX(-50%);
+  }
+  .scale-marker:hover .tip { opacity: 1; }
+
+  /* Lux pill — tooltip pod pillem */
+  .lux-pill { overflow: visible; cursor: default; }
+  .lux-pill .tip {
+    top: calc(100% + 4px);
+    left: 0;
+  }
+  .lux-pill:hover .tip { opacity: 1; }
+
+  /* Railing chip — tooltip na prawo od ikonki */
+  .railing-chip { overflow: visible; }
+  .railing-chip .tip {
+    left: calc(100% + 7px);
+    top: 50%; transform: translateY(-50%);
+  }
+  .railing-chip:hover .tip { opacity: 1; }
+
+  /* Battery — tooltip na lewo od ikony */
+  .bat-wrap { overflow: visible; cursor: default; }
+  .bat-wrap .tip {
+    right: calc(100% + 7px);
+    top: 50%; transform: translateY(-50%);
+  }
+  .bat-wrap:hover .tip { opacity: 1; }
+
   /* Battery — tylko gdy < 60%, top-right jak pasek stanu telefonu */
   .bat-wrap {
     position: absolute; top: 9px; right: 10px; z-index: 12;
@@ -24405,7 +24452,7 @@ class AhaMotionLightCard extends HTMLElement {
     this._card.innerHTML = `
       <div class="glow"></div>
       <div class="state-label">ruch wykryty</div>
-      <div class="lux-pill">— lx</div>
+      <div class="lux-pill">— lx<div class="tip"></div></div>
       <div class="icon-area">
         <div class="icon-bg">
           <ha-icon icon="mdi:weather-night"></ha-icon>
@@ -24417,9 +24464,11 @@ class AhaMotionLightCard extends HTMLElement {
         <div class="scale-segment"></div>
         <div class="scale-marker scale-marker-in">
           <ha-icon icon="mdi:home"></ha-icon>
+          <div class="tip"></div>
         </div>
         <div class="scale-marker scale-marker-out">
           <ha-icon icon="mdi:white-balance-sunny"></ha-icon>
+          <div class="tip"></div>
         </div>
       </div>
       <div class="status-text">—</div>
@@ -24448,21 +24497,26 @@ class AhaMotionLightCard extends HTMLElement {
     this._markerOut   = shadow.querySelector('.scale-marker-out');
     this._markerInIcon  = shadow.querySelector('.scale-marker-in ha-icon');
     this._markerOutIcon = shadow.querySelector('.scale-marker-out ha-icon');
+    this._tipIn       = shadow.querySelector('.scale-marker-in .tip');
+    this._tipOut      = shadow.querySelector('.scale-marker-out .tip');
+    this._tipLux      = shadow.querySelector('.lux-pill .tip');
 
     /* railing chip — absolutny, bottom-left */
     this._railingChip = document.createElement('div');
     this._railingChip.className = 'railing-chip';
-    this._railingChip.innerHTML = `<div class="railing-pill off"><ha-icon icon="mdi:led-strip-variant"></ha-icon></div>`;
+    this._railingChip.innerHTML = `<div class="railing-pill off"><ha-icon icon="mdi:led-strip-variant"></ha-icon></div><div class="tip"></div>`;
     this._card.appendChild(this._railingChip);
     this._railingPill = this._railingChip.querySelector('.railing-pill');
+    this._tipRailing  = this._railingChip.querySelector('.tip');
 
     /* battery */
     this._batWrap = document.createElement('div');
     this._batWrap.className = 'bat-wrap';
-    this._batWrap.innerHTML = `<span class="bat-pct"></span><svg width="16" height="8" viewBox="0 0 22 11"></svg>`;
+    this._batWrap.innerHTML = `<div class="tip"></div><span class="bat-pct"></span><svg width="16" height="8" viewBox="0 0 22 11"></svg>`;
     this._card.appendChild(this._batWrap);
     this._batPct = this._batWrap.querySelector('.bat-pct');
     this._batSvg = this._batWrap.querySelector('svg');
+    this._tipBat = this._batWrap.querySelector('.tip');
   }
 
   _readSensor(entityId) {
@@ -24504,10 +24558,11 @@ class AhaMotionLightCard extends HTMLElement {
     // ── state label (top, motion only) ──
     this._stateEl.textContent = profile.chipLabel === 'lampa' ? 'ruch · lampa' : 'ruch wykryty';
 
-    // ── lux pill (top right) ──
-    this._luxPill.textContent = indoorLux !== null ? `${Math.round(indoorLux)} lx` : '— lx';
+    // ── lux pill (top left) ──
+    this._luxPill.childNodes[0].textContent = indoorLux !== null ? `${Math.round(indoorLux)} lx` : '— lx';
     this._luxPill.style.background = `rgba(${r},${g},${b},0.15)`;
     this._luxPill.style.color      = `rgba(${r},${g},${b},0.90)`;
+    this._tipLux.textContent = `${profile.chipLabel} · ${Math.round(poraDnia)}% dnia`;
 
     // ── icon (główna, z glowem) ──
     this._haIcon.setAttribute('icon', profile.icon);
@@ -24565,6 +24620,7 @@ class AhaMotionLightCard extends HTMLElement {
       this._markerIn.style.background = `rgb(${mc.r},${mc.g},${mc.b})`;
       this._markerIn.style.display    = '';
       this._markerInIcon.style.color  = `rgba(${Math.round(mc.r*0.3)},${Math.round(mc.g*0.25)},${Math.round(mc.b*0.2)},1)`;
+      this._tipIn.textContent = `środek: ${Math.round(indoorLux)} lx`;
     } else {
       this._markerIn.style.display = 'none';
     }
@@ -24573,9 +24629,10 @@ class AhaMotionLightCard extends HTMLElement {
     if (posOut !== null) {
       this._markerOut.style.left   = `${posOut.toFixed(1)}%`;
       this._markerOut.style.display = '';
-      // Ikona pogody jeśli dostępna
       const weatherIcon = this._getWeatherIcon();
       this._markerOutIcon.setAttribute('icon', weatherIcon);
+      const wxState = this._weatherEntity ? (this._hass.states[this._weatherEntity]?.state ?? '') : '';
+      this._tipOut.textContent = `dwór: ${Math.round(outdoorLux)} lx${wxState ? ' · ' + wxState : ''}`;
 
       // Kolizja: jeśli markery bliżej niż 12%, przesuń outdoor w górę
       if (posIn !== null && Math.abs(posOut - posIn) < 12) {
@@ -24610,12 +24667,12 @@ class AhaMotionLightCard extends HTMLElement {
   }
 
   _tickUpdate() {
-    // Odśwież status (czas temu) co 15s bez pełnego render
     if (this._statusEl && this._lastChanged !== undefined) {
       this._statusEl.textContent = _mlComparisonStatus(
         this._indoorLux, this._outdoorLux, this._isMotion, this._lastChanged
       );
     }
+    if (this._hass && this._config) this._updateRailing();
   }
 
   _updateRailing() {
@@ -24628,12 +24685,14 @@ class AhaMotionLightCard extends HTMLElement {
     }
     // Switch ON — sprawdź czy pasek faktycznie świeci (ruch w ostatnich 2 min)
     const motion   = this._hass.states[this._config.entity];
-    const isActive = motion && (
-      motion.state === 'on' ||
-      (Date.now() - new Date(motion.last_changed).getTime()) < 120000
-    );
+    const secAgo   = motion ? Math.round((Date.now() - new Date(motion.last_changed).getTime()) / 1000) : 999;
+    const isActive = motion && (motion.state === 'on' || secAgo < 120);
     this._railingChip.className = 'railing-chip visible';
     this._railingPill.className = `railing-pill ${isActive ? 'on' : 'standby'}`;
+    const t = secAgo < 60 ? `${secAgo}s` : secAgo < 3600 ? `${Math.floor(secAgo/60)}min` : `${Math.floor(secAgo/3600)}h`;
+    this._tipRailing.textContent = isActive
+      ? `poręcz świeci · ruch ${t} temu`
+      : `poręcz czuwa · brak ruchu ${t}`;
   }
 
   _updateBattery() {
@@ -24666,6 +24725,7 @@ class AhaMotionLightCard extends HTMLElement {
 
     this._batWrap.className = wrapClass;
     this._batPct.textContent = `${pct}%`;
+    this._tipBat.textContent = `bateria: ${pct}%`;
 
     const fillW = Math.round((Math.max(0, Math.min(100, pct)) / 100) * 13);
     this._batSvg.style.opacity = svgOpacity;
